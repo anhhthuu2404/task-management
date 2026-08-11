@@ -24,9 +24,9 @@ flowchart TD
     Admin["Admin"]
     Viewer["Viewer"]
 
-    TeamLeader -.->|"kế thừa"| Employee
-    PM -.->|"kế thừa"| TeamLeader
-    Admin -.->|"kế thừa"| PM
+    Employee -.->|"kế thừa"| TeamLeader
+    TeamLeader -.->|"kế thừa"| PM
+    PM -.->|"kế thừa"| Admin
 ```
  ## PHẦN 2: CÁC SƠ ĐỒ USE CASE THEO MODULE (CHUẨN MERMAID)
 ### 2.1. Module Task Core (Lõi nghiệp vụ công việc)
