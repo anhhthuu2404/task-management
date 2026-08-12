@@ -871,6 +871,7 @@ classDiagram
 
 Sơ đồ thể hiện toàn bộ vòng đời khép kín từ khâu khởi tạo Dự án, Phân công Task, Thực hiện, Nộp bài, Kiểm tra Dual Validation, Duyệt/Từ chối, cho đến Tự động hóa ngầm định.
 
+```mermaid
 flowchart TD
     Start([Bắt đầu Dự án]) --> PM_Create[PM tạo Project, Milestone & Phân bổ Member]
     PM_Create --> TL_Create[Team Leader/PM tạo Task mới]
