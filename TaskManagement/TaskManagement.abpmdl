@@ -1,0 +1,114 @@
+{
+  "template": "app",
+  "imports": {
+    "Volo.Abp.LeptonXLiteTheme": {
+      "version": "5.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.Account": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.OpenIddict": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.Identity": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.TenantManagement": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.SettingManagement": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.PermissionManagement": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.FeatureManagement": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    },
+    "Volo.Abp.BlobStoring.Database": {
+      "version": "10.6.0",
+      "isInstalled": true,
+      "creationTime": "08/11/2026 06:03:26 +00:00"
+    }
+  },
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {}
+    }
+  },
+  "packages": {
+    "TaskManagement.Application": {
+      "path": "src/TaskManagement.Application/TaskManagement.Application.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.Application.Tests": {
+      "path": "test/TaskManagement.Application.Tests/TaskManagement.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "TaskManagement.Domain.Shared": {
+      "path": "src/TaskManagement.Domain.Shared/TaskManagement.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.Application.Contracts": {
+      "path": "src/TaskManagement.Application.Contracts/TaskManagement.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.HttpApi": {
+      "path": "src/TaskManagement.HttpApi/TaskManagement.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.HttpApi.Client": {
+      "path": "src/TaskManagement.HttpApi.Client/TaskManagement.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.EntityFrameworkCore.Tests": {
+      "path": "test/TaskManagement.EntityFrameworkCore.Tests/TaskManagement.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+    "TaskManagement.EntityFrameworkCore": {
+      "path": "src/TaskManagement.EntityFrameworkCore/TaskManagement.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.TestBase": {
+      "path": "test/TaskManagement.TestBase/TaskManagement.TestBase.abppkg",
+      "folder": "test"
+    },
+    "TaskManagement.Domain.Tests": {
+      "path": "test/TaskManagement.Domain.Tests/TaskManagement.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "TaskManagement.HttpApi.Client.ConsoleTestApp": {
+      "path": "test/TaskManagement.HttpApi.Client.ConsoleTestApp/TaskManagement.HttpApi.Client.ConsoleTestApp.abppkg",
+      "folder": "test"
+    },
+    "TaskManagement.DbMigrator": {
+      "path": "src/TaskManagement.DbMigrator/TaskManagement.DbMigrator.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.HttpApi.Host": {
+      "path": "src/TaskManagement.HttpApi.Host/TaskManagement.HttpApi.Host.abppkg",
+      "folder": "src"
+    },
+    "TaskManagement.Domain": {
+      "path": "src/TaskManagement.Domain/TaskManagement.Domain.abppkg",
+      "folder": "src"
+    }
+  }
+}
