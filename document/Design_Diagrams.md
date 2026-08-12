@@ -18,6 +18,7 @@
 7. [CHƯƠNG 7: SƠ ĐỒ LỚP CHI TIẾT (CLASS DIAGRAM) & KIẾN TRÚC ABP](#chuong-7-so-do-lop-chi-tiet-class-diagram--kien-truc-abp)
 8. [CHƯƠNG 8: QUY TRÌNH NGHIỆP VỤ ĐỒNG BỘ TỔNG THỂ (BUSINESS FLOW)](#chuong-8-quy-trinh-nghiep-vu-dong-bo-tong-the-business-flow)
 
+
 ---
 
 ## CHƯƠNG 1: KIẾN TRÚC TỔNG QUAN & QUY TẮC CHUẨN HÓA (NAMING CONVENTIONS)
@@ -51,24 +52,26 @@
 
 Hệ thống bao gồm **5 Human Actors** có quan hệ phân cấp kế thừa quyền hạn và **1 System Actor** hoạt động độc lập ngầm định.
 
+# I. Phân tích Actor (Chương 2.1)
+
 ```mermaid
 flowchart TD
-    subgraph HumanActors [Nhóm Actor có phân cấp quyền kế thừa]
+    subgraph HumanActors ["Nhóm Actor có phân cấp quyền kế thừa"]
         direction LR
-        Employee["Employee<br/>(Nhân viên)"]
-        TeamLeader["Team Leader<br/>(Trưởng nhóm)"]
-        PM["Project Manager<br/>(Quản lý dự án)"]
-        Admin["Admin<br/>(Quản trị hệ thống)"]
+        Employee["Employee (Nhân viên)"]
+        TeamLeader["Team Leader (Trưởng nhóm)"]
+        PM["Project Manager (Quản lý dự án)"]
+        Admin["Admin (Quản trị hệ thống)"]
 
         Employee -.->|"kế thừa quyền"| TeamLeader
         TeamLeader -.->|"kế thừa quyền"| PM
         PM -.->|"kế thừa quyền"| Admin
     end
 
-    subgraph IndependentActors [Actor độc lập - Không kế thừa]
+    subgraph IndependentActors ["Actor độc lập - Không kế thừa"]
         direction LR
-        Viewer["Viewer<br/>(Người xem)"]
-        System["System<br/>(Background Job / Hangfire)"]
+        Viewer["Viewer (Người xem)"]
+        System["System (Background Job / Hangfire)"]
     end
 ```
 
@@ -116,103 +119,96 @@ flowchart TD
 
 ### 3.1 Module Task Core (Lõi Nghiệp vụ Công việc)
 
-```mermaid
-flowchart TD
+flowchart LR
     Employee["Employee"]
     TeamLeader["Team Leader"]
     PM["Project Manager"]
     Viewer["Viewer"]
 
-    subgraph MODULE_TASK_CORE [" MODULE TASK CORE "]
-        UC01(["UC01: Đăng nhập"])
-        UC02(["UC02: Tạo Task"])
-        UC03(["UC03: Xem DS/Chi tiết Task"])
-        UC04(["UC04: Cập nhật Task"])
-        UC05(["UC05: Xoá Task"])
-        UC06(["UC06: Search/Filter/Pagination"])
-        UC07(["UC07: Assign Task"])
-        UC08(["UC08: Cập nhật Status"])
-        UC09(["UC09: Cập nhật Progress"])
-        UC10(["UC10: Quản lý SubTask"])
-        UC11(["UC11: Quản lý Checklist"])
-        UC23(["UC23: Quản lý Tag"])
+    subgraph MODULE_TASK_CORE ["MODULE TASK CORE"]
+        direction TB
+        UC01["UC01: Đăng nhập"]
+        UC02["UC02: Tạo Task"]
+        UC03["UC03: Xem DS/Chi tiết Task"]
+        UC04["UC04: Cập nhật Task"]
+        UC05["UC05: Xoá Task"]
+        UC06["UC06: Search/Filter/Pagination"]
+        UC07["UC07: Assign Task"]
+        UC08["UC08: Cập nhật Status"]
+        UC09["UC09: Cập nhật Progress"]
+        UC10["UC10: Quản lý SubTask"]
+        UC11["UC11: Quản lý Checklist"]
+        UC23["UC23: Quản lý Tag"]
     end
 
-    Employee --> UC01
-    Employee --> UC03
-    Employee --> UC06
-    Employee --> UC08
-    Employee --> UC09
+    Employee --> UC01 
+    Employee --> UC03 
+    Employee --> UC06 
+    Employee --> UC08 
+    Employee --> UC09 
     Employee --> UC11
-
-    TeamLeader --> UC02
-    TeamLeader --> UC04
-    TeamLeader --> UC07
-    TeamLeader --> UC10
+    
+    TeamLeader --> UC02 
+    TeamLeader --> UC04 
+    TeamLeader --> UC07 
+    TeamLeader --> UC10 
     TeamLeader --> UC23
-
-    PM --> UC05
+    
+    PM --> UC05 
     PM --> UC23
-
-    Viewer --> UC01
-    Viewer --> UC03
+    
+    Viewer --> UC01 
+    Viewer --> UC03 
     Viewer --> UC06
 
-    UC02 -.->|include| UC01
-    UC03 -.->|include| UC01
-    UC04 -.->|extend| UC03
-    UC05 -.->|extend| UC03
-    UC07 -.->|extend| UC03
-    UC08 -.->|extend| UC03
-    UC09 -.->|extend| UC03
-    UC10 -.->|extend| UC02
-    UC11 -.->|extend| UC10
-```
-
+    UC02 -.->|"include"| UC01
+    UC03 -.->|"include"| UC01
+    UC04 -.->|"extend"| UC03
+    UC05 -.->|"extend"| UC03
+    UC07 -.->|"extend"| UC03
+    UC08 -.->|"extend"| UC03
+    UC09 -.->|"extend"| UC03
+    UC10 -.->|"extend"| UC02
+    UC11 -.->|"extend"| UC10
 ### 3.2 Module Collaboration & Workflow (Cộng tác & Luồng duyệt)
 
-```mermaid
-flowchart TD
+flowchart LR
     Employee["Employee"]
     TeamLeader["Team Leader"]
     PM["Project Manager"]
     Viewer["Viewer"]
 
-    subgraph MODULE_WORKFLOW [" MODULE COLLABORATION & WORKFLOW "]
-        UC12(["UC12: Comment / Reply"])
-        UC13(["UC13: Upload Attachment"])
-        UC14(["UC14: Xem Lịch sử History"])
-        UC15(["UC15: Submit Review"])
-        UC16(["UC16: Approve Task"])
-        UC17(["UC17: Reject Task"])
-        UC18(["UC18: Nhận Notification"])
+    subgraph MODULE_WORKFLOW ["MODULE COLLABORATION & WORKFLOW"]
+        direction TB
+        UC12["UC12: Comment / Reply"]
+        UC13["UC13: Upload Attachment"]
+        UC14["UC14: Xem Lịch sử History"]
+        UC15["UC15: Submit Review"]
+        UC16["UC16: Approve Task"]
+        UC17["UC17: Reject Task"]
+        UC18["UC18: Nhận Notification"]
     end
 
-    Employee --> UC12
-    Employee --> UC13
-    Employee --> UC14
-    Employee --> UC15
+    Employee --> UC12 
+    Employee --> UC13 
+    Employee --> UC14 
+    Employee --> UC15 
     Employee --> UC18
-
-    TeamLeader --> UC16
-    TeamLeader --> UC17
+    
+    TeamLeader --> UC16 
+    TeamLeader --> UC17 
     TeamLeader --> UC18
-
-    PM --> UC16
+    
+    PM --> UC16 
     PM --> UC17
-
-    Viewer --> UC14
+    
+    Viewer --> UC14 
     Viewer --> UC18
 
-    UC15 -.->|extend| UC08
-    UC16 -.->|include| UC15
-    UC17 -.->|include| UC15
-    UC18 -.->|extend| UC07
-    UC18 -.->|extend| UC12
-    UC18 -.->|extend| UC16
-    UC18 -.->|extend| UC17
-```
-
+    UC15 -.->|"extend"| UC08
+    UC16 -.->|"include"| UC15
+    UC17 -.->|"include"| UC15
+    UC18 -.->|"extend"| UC07
 ### 3.3 Module Project & Organization (Dự án & Quản trị)
 
 ```mermaid
@@ -875,57 +871,53 @@ classDiagram
 
 Sơ đồ thể hiện toàn bộ vòng đời khép kín từ khâu khởi tạo Dự án, Phân công Task, Thực hiện, Nộp bài, Kiểm tra Dual Validation, Duyệt/Từ chối, cho đến Tự động hóa ngầm định.
 
-```mermaid
 flowchart TD
-    Start([Bắt đầu Dự án]) --> PM_Create[PM tạo Project, Milestone & Phân bổ Member<br/>UC19, UC20, UC21]
-    PM_Create --> TL_Create[Team Leader/PM tạo Task mới<br/>UC02]
-    TL_Create --> Assign[Assign Task & phân định vai trò Assignee/Reviewer<br/>UC07, UC18]
-    Assign --> InProgress[Employee bắt đầu làm công việc<br/>Status: IN_PROGRESS - UC08]
+    Start([Bắt đầu Dự án]) --> PM_Create[PM tạo Project, Milestone & Phân bổ Member]
+    PM_Create --> TL_Create[Team Leader/PM tạo Task mới]
+    TL_Create --> Assign[Assign Task & phân định vai trò Assignee/Reviewer]
+    Assign --> InProgress[Employee bắt đầu làm công việc]
 
-    subgraph Execution [Nhánh thực thi của Employee]
+    subgraph Execution ["Nhánh thực thi của Employee"]
         direction TB
-        InProgress --> CheckAction{Hành động thực hiện?}
+        InProgress --> CheckAction{"Hành động thực hiện?"}
 
-        CheckAction -->|Thực hiện Code/Tài liệu| NormalWork[Thực hiện công việc chính]
-        CheckAction -->|Tạo Task con| CreateSub[Tạo/Cập nhật SubTask - UC10]
-        CheckAction -->|Checklist| CreateCheck[Tick ChecklistItem - UC11]
+        CheckAction -->|"Thực hiện Code/Tài liệu"| NormalWork[Thực hiện công việc chính]
+        CheckAction -->|"Tạo Task con"| CreateSub[Tạo/Cập nhật SubTask]
+        CheckAction -->|"Checklist"| CreateCheck[Tick ChecklistItem]
 
         NormalWork --> ProgressCheck
-        CreateSub --> UpdateProgress[Hệ thống tự tính toán lại % Tiến độ - UC09]
+        CreateSub --> UpdateProgress[Hệ thống tự tính toán lại % Tiến độ]
         CreateCheck --> UpdateProgress
-        UpdateProgress --> ProgressCheck{Task đã sẵn sàng nộp?}
+        UpdateProgress --> ProgressCheck{"Task đã sẵn sàng nộp?"}
 
-        ProgressCheck -->|Chưa xong| CheckAction
-        ProgressCheck -->|Đã sẵn sàng| SubmitReview[Nhấn 'Submit Review'<br/>Status: REVIEW - UC15]
+        ProgressCheck -->|"Chưa xong"| CheckAction
+        ProgressCheck -->|"Đã sẵn sàng"| SubmitReview[Nhấn Submit Review]
     end
 
-    SubmitReview --> ApprovalDualCheck{Kiểm tra Dual Validation Rule<br/>1. RoleType == 'REVIEWER' trên Task?<br/>2. Cấp bậc hệ thống >= TeamLeader?}
+    SubmitReview --> ApprovalDualCheck{"Kiểm tra Dual Validation Rule"}
 
-    ApprovalDualCheck -->|FAIL 1 trong 2| DenyAction[Trả về Error HTTP 403 Forbidden<br/>Task vẫn giữ nguyên Status: REVIEW]
+    ApprovalDualCheck -->|FAIL| DenyAction[Trả về Error HTTP 403 Forbidden]
     DenyAction --> WaitRetry[Chờ Reviewer đủ thẩm quyền thao tác lại]
-    WaitRetry -.->|Reviewer hợp lệ thao tác| ApprovalDualCheck
+    WaitRetry -.-> ApprovalDualCheck
 
-    ApprovalDualCheck -->|PASS cả 2| ApprovalAction{Lựa chọn Duyệt hay Từ chối?}
+    ApprovalDualCheck -->|PASS| ApprovalAction{"Lựa chọn Duyệt hay Từ chối?"}
 
-    ApprovalAction -->|Phê duyệt - UC16| Complete[Chuyển Status: COMPLETED]
-    ApprovalAction -->|Từ chối - UC17| RejectSet[Chuyển Status: REJECTED kèm Lý do]
-    RejectSet --> NotifyEmp[Gửi Notification thông báo cho Employee - UC18]
-    NotifyEmp --> ResumeWork[Employee bấm 'Resume Work'<br/>Status: REJECTED -> IN_PROGRESS]
+    ApprovalAction -->|"Phê duyệt"| Complete[Chuyển Status: COMPLETED]
+    ApprovalAction -->|"Từ chối"| RejectSet[Chuyển Status: REJECTED kèm Lý do]
+    RejectSet --> NotifyEmp[Gửi Notification thông báo cho Employee]
+    NotifyEmp --> ResumeWork[Employee bấm Resume Work]
     ResumeWork --> CheckAction
 
-    Complete --> NotifyDone[Gửi Notification hoàn thành cho các bên - UC18]
+    Complete --> NotifyDone[Gửi Notification hoàn thành cho các bên]
     NotifyDone --> End([Kết thúc Vòng đời Task])
 
-    subgraph Background [System Background Jobs - Hangfire/Worker chạy ngầm định kỳ]
+    subgraph Background ["System Background Jobs"]
         direction TB
-        Job[Background Worker quét định kỳ] --> Overdue{Có Task quá hạn?<br/>DueDate < NOW AND Status != COMPLETED}
-        Overdue -->|Đúng| Mark[Set IsOverdue = true & Gửi Notification<br/>UC31]
+        Job[Background Worker quét định kỳ] --> Overdue{"Có Task quá hạn?"}
+        Overdue -->|Đúng| Mark[Set IsOverdue = true & Gửi Notification]
         Overdue -->|Chưa| Job
 
         Job --> Recurring{Có RecurringTaskConfig đến kỳ?}
-        Recurring -->|Đúng| CreateRecur[Tự động sinh Task mới<br/>UC30]
+        Recurring -->|Đúng| CreateRecur[Tự động sinh Task mới]
         Recurring -->|Chưa| Job
     end
-```
-
----
