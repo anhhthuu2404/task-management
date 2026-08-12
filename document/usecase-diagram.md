@@ -1,12 +1,12 @@
 # TÀI LIỆU PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG: SƠ ĐỒ USE CASE & QUY TRÌNH NGHIỆP VỤ
-**Dự án:** Hệ thống Quản lý Công việc (Task Management – ABP .NET + Angular)  
+**Dự án:** Hệ thống Quản lý Công việc (Task Management – ABP .NET + Angular)
 **Phạm vi:** Tài liệu chuyển đổi chi tiết từ yêu cầu hệ thống sang các sơ đồ phân tích kỹ thuật chuẩn Mermaid và quy trình nghiệp vụ.
 
 ---
 
 ## PHẦN 1: TỔNG QUAN VỀ TÁC NHÂN (ACTOR) VÀ PHÂN QUYỀN
 
-Hệ thống định nghĩa 5 nhóm Actor chính tương ứng với các cấp độ phân quyền trong ABP Framework, cùng với một System Actor chuyên trách các tác vụ nền tự động:
+Hệ thống định nghĩa 5 nhóm Actor chính tương ứng với các cấp độ phân quyền trong ABP Framework, cùng với một System Actor chuyên trách các tác vụ nền tự động (độc lập hoàn toàn, không tham gia vào cây kế thừa quyền):
 
 1. **Employee (Nhân viên):** Actor cơ sở, có quyền xem Task được giao, cập nhật tiến độ, trạng thái, bình luận, upload tài liệu và submit review.
 2. **Team Leader (Trưởng nhóm):** Kế thừa toàn bộ quyền của Employee, đồng thời có thể tạo/giao task, review task và theo dõi khối lượng công việc của cả team.
@@ -16,20 +16,33 @@ Hệ thống định nghĩa 5 nhóm Actor chính tương ứng với các cấp 
 6. **System (Hệ thống / Background Job):** Actor ngầm định thực thi tự động các tác vụ định kỳ như gửi thông báo, đánh dấu quá hạn, hoặc tạo Task lặp lại.
 
 ### Sơ đồ quan hệ phân cấp Actor
+
 ```mermaid
 flowchart TD
-    Employee["Employee"]
-    TeamLeader["Team Leader"]
-    PM["Project Manager"]
-    Admin["Admin"]
-    Viewer["Viewer"]
+    subgraph HumanActors [Nhóm Actor có phân cấp quyền]
+        direction LR
+        Employee["Employee"]
+        TeamLeader["Team Leader"]
+        PM["Project Manager"]
+        Admin["Admin"]
 
-    Employee -.->|"kế thừa"| TeamLeader
-    TeamLeader -.->|"kế thừa"| PM
-    PM -.->|"kế thừa"| Admin
+        Employee -.->|"kế thừa"| TeamLeader
+        TeamLeader -.->|"kế thừa"| PM
+        PM -.->|"kế thừa"| Admin
+    end
+
+    subgraph IndependentActors [Actor độc lập - không kế thừa]
+        direction LR
+        Viewer["Viewer"]
+        System["System (Background Job)"]
+    end
 ```
- ## PHẦN 2: CÁC SƠ ĐỒ USE CASE THEO MODULE (CHUẨN MERMAID)
+
+## PHẦN 2: CÁC SƠ ĐỒ USE CASE THEO MODULE (CHUẨN MERMAID)
+
 ### 2.1. Module Task Core (Lõi nghiệp vụ công việc)
+
+```mermaid
 flowchart TD
     Employee["Employee"]
     TeamLeader["Team Leader"]
@@ -48,6 +61,7 @@ flowchart TD
         UC09(["UC09: Cập nhật Progress"])
         UC10(["UC10: Quản lý SubTask"])
         UC11(["UC11: Quản lý Checklist"])
+        UC23(["UC23: Quản lý Tag"])
     end
 
     Employee --> UC01
@@ -61,8 +75,10 @@ flowchart TD
     TeamLeader --> UC04
     TeamLeader --> UC07
     TeamLeader --> UC10
+    TeamLeader --> UC23
 
     PM --> UC05
+    PM --> UC23
 
     Viewer --> UC01
     Viewer --> UC03
@@ -77,12 +93,16 @@ flowchart TD
     UC09 -.->|extend| UC03
     UC10 -.->|extend| UC02
     UC11 -.->|extend| UC10
+```
 
 ### 2.2. Module Cộng tác & Workflow (Quy trình phê duyệt)
+
+```mermaid
 flowchart TD
     Employee["Employee"]
     TeamLeader["Team Leader"]
     PM["Project Manager"]
+    Viewer["Viewer"]
 
     subgraph SYS[" COLLABORATION & WORKFLOW "]
         UC12(["UC12: Comment / Reply"])
@@ -107,6 +127,9 @@ flowchart TD
     PM --> UC16
     PM --> UC17
 
+    Viewer --> UC14
+    Viewer --> UC18
+
     UC15 -.->|extend| UC08
     UC16 -.->|"include"| UC15
     UC17 -.->|"include"| UC15
@@ -114,7 +137,11 @@ flowchart TD
     UC18 -.->|extend| UC12
     UC18 -.->|extend| UC16
     UC18 -.->|extend| UC17
+```
+
 ### 2.3. Module Project / Danh mục & Tổ chức
+
+```mermaid
 flowchart TD
     TeamLeader["Team Leader"]
     PM["Project Manager"]
@@ -125,7 +152,6 @@ flowchart TD
         UC20(["UC20: Quản lý Milestone"])
         UC21(["UC21: Quản lý ProjectMember"])
         UC22(["UC22: Quản lý Category"])
-        UC23(["UC23: Quản lý Tag"])
         UC24(["UC24: Quản lý User & Department"])
         UC25(["UC25: Phân quyền hệ thống"])
     end
@@ -133,7 +159,6 @@ flowchart TD
     PM --> UC19
     PM --> UC20
     PM --> UC21
-    PM --> UC23
 
     Admin --> UC22
     Admin --> UC24
@@ -141,11 +166,16 @@ flowchart TD
 
     UC20 -.->|extend| UC19
     UC21 -.->|extend| UC19
+```
+
 ### 2.4. Module Hiển thị nâng cao & Báo cáo
+
+```mermaid
 flowchart TD
     Employee["Employee"]
     PM["Project Manager"]
     Admin["Admin"]
+    Viewer["Viewer"]
 
     subgraph SYS[" KANBAN / CALENDAR / DASHBOARD / REPORT "]
         UC26(["UC26: Xem Kanban (Drag & Drop)"])
@@ -162,14 +192,21 @@ flowchart TD
     PM --> UC29
     Admin --> UC29
 
+    Viewer --> UC26
+    Viewer --> UC27
+
     UC26 -.->|extend| UC08
+```
+
 ### 2.5. Module Tự động hoá (System Actor)
+
+```mermaid
 flowchart TD
     System["System (Background Job)"]
 
     subgraph SYS[" TỰ ĐỘNG HOÁ "]
         UC30(["UC30: Tạo Recurring Task"])
-        UC31(["UC31: Đánh dấu Task Overdue"])
+        UC31(["UC31: Đánh dấu Task Overdue (IsOverdue = true)"])
     end
 
     System --> UC30
@@ -177,6 +214,8 @@ flowchart TD
 
     UC31 -.->|extend| UC08
     UC30 -.->|extend| UC02
+```
+
 ---
 
 ## PHẦN 3: ĐẶC TẢ CHI TIẾT CÁC USE CASE TRỌNG YẾU
@@ -203,12 +242,24 @@ flowchart TD
 ### 3. UC08 – Cập nhật trạng thái Task (UpdateStatus)
 * **Actor:** Employee (Assignee), Team Leader, Project Manager, Admin
 * **Vòng đời chuẩn:** `NEW -> ASSIGNED -> IN_PROGRESS -> REVIEW -> COMPLETED`
-* **Ngoại lệ:** `REVIEW -> REJECTED -> IN_PROGRESS`
+* **Ngoại lệ:** `REVIEW -> REJECTED -> IN_PROGRESS` (2 bước riêng biệt, `REJECTED` là trạng thái được lưu thật, không tự động chuyển tiếp)
 
 ### 4. UC15, UC16, UC17 – Luồng Phê duyệt (Workflow)
-* **Submit Review (UC15):** Assignee chuyển trạng thái sang `REVIEW`, tạo bản ghi `TaskApproval` ở trạng thái `PENDING`.
-* **Approve Task (UC16):** Reviewer duyệt $\rightarrow$ `Task.Status = COMPLETED`.
-* **Reject Task (UC17):** Reviewer từ chối kèm lý do $\rightarrow$ `Task.Status = REJECTED`.
+* **Submit Review (UC15):**
+  * Actor: Employee (Assignee), Team Leader, Project Manager
+  * Assignee chuyển trạng thái sang `REVIEW`, tạo bản ghi `TaskApproval` với `ApprovalStatus = PENDING`, ghi vết `TaskHistory` (Action = SUBMIT_REVIEW).
+* **Approve Task (UC16):**
+  * Actor: Team Leader, Project Manager, Admin
+  * **Điều kiện tiền đề (Dual Validation Rule) — bắt buộc thỏa mãn cả hai:**
+    * (a) User được gán `RoleType = REVIEWER` trên chính Task đó trong bảng `TaskUser`.
+    * (b) User có cấp bậc hệ thống ≥ Team Leader.
+  * Nếu không thỏa cả (a) và (b) → hệ thống trả lỗi `403 Forbidden`, Task giữ nguyên `Status = REVIEW`.
+  * Nếu thỏa mãn: Reviewer duyệt → `Task.Status = COMPLETED`, `TaskApproval.ApprovalStatus = APPROVED`, ghi `TaskHistory` (Action = APPROVE), kích hoạt UC18.
+* **Reject Task (UC17):**
+  * Actor: Team Leader, Project Manager, Admin
+  * Áp dụng **cùng Dual Validation Rule** như UC16.
+  * Reviewer từ chối kèm lý do → `Task.Status = REJECTED`, `TaskApproval.ApprovalStatus = REJECTED` (kèm `Reason`), ghi `TaskHistory` (Action = REJECT), kích hoạt UC18.
+  * Sau đó, Employee tự thao tác chuyển `REJECTED -> IN_PROGRESS` (một bước riêng, không tự động) để tiếp tục sửa Task.
 
 ---
 
