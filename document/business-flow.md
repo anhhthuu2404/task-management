@@ -1,5 +1,6 @@
 ##  QUY TRÌNH NGHIỆP VỤ ĐỒNG BỘ (BUSINESS FLOW)
 ### Luồng vận hành tổng thể của hệ thống được mô tả trực quan qua sơ đồ hoạt động (Activity Diagram), thể hiện toàn bộ vòng đời từ khâu khởi tạo dự án, phân công, thực hiện công việc cho đến quy trình phê duyệt khép kín và các tác vụ tự động hóa ngầm:
+```mermaid
 flowchart TD
     Start([Bắt đầu Dự án]) --> PM_Create[PM tạo Project, Milestone & Phân bổ Member<br/>UC19, UC20, UC21]
     PM_Create --> TL_Create[Team Leader/PM tạo Task mới<br/>UC02]

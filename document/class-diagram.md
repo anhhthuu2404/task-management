@@ -1,9 +1,9 @@
 ##  SƠ ĐỒ LỚP CHI TIẾT (CLASS DIAGRAM)
 ### Mô hình lớp tuân thủ kiến trúc phân tầng của ABP Framework (Domain Model, AppService, DTO) 
+```mermaid
 classDiagram
     direction BR
-
-    class TaskAppService {
+    class TaskAppServicee {
         +CreateTask(CreateTaskDto input) TaskDto
         +AssignTask(long id, AssignTaskDto input) void
         +SubmitReview(long id) void
