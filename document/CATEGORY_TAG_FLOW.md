@@ -1,39 +1,32 @@
+```mermaid
 graph TD
-    subgraph Frontend [Frontend - Angular Application]
-        UI[Template UI: category.component.html / tag.component.html]
-        Comp[Component Logic: category.component.ts / tag.component.ts]
-        Proxy[Proxy API: category.service.ts / tag.service.ts]
+    classDef frontend fill:#eef2ff,stroke:#4f46e5,stroke-width:2px,color:#000000;
+    classDef backend fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#000000;
+    classDef db fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#000000;
+
+    subgraph Frontend [1. Frontend Layer - Angular Application]
+        UI[Giao diện UI <br/> category.component.* <br/> tag.component.*]
+        Service[Giao tiếp API <br/> category.service.ts <br/> tag.service.ts]
+        
+        UI -->|1. Event Handling & Form Validation| Service
     end
 
-    subgraph Backend [Backend - TaskManagement.sln Solutions]
-        Host[TaskManagement.HttpApi.Host / HttpApi]
-        Contracts[TaskManagement.Application.Contracts]
-        App[TaskManagement.Application]
-        Domain[TaskManagement.Domain]
-        EF[TaskManagement.EntityFrameworkCore]
+    subgraph Backend [2. Backend Layer - TaskManagement Solutions]
+        Host[API Host <br/> TaskManagement.HttpApi.Host]
+        App[Nghiệp vụ Application <br/> TaskManagement.Application <br/> CategoryAppService & TagAppService]
+        DomainEF[Dữ liệu & EF Core <br/> TaskManagement.Domain <br/> TaskManagement.EntityFrameworkCore]
+
+        Host -->|3. Route Request, JWT Auth & Permission| App
+        App -->|4. Process Business Logic & Mapping DTO| DomainEF
     end
 
-    subgraph Database [Database System]
-        DB[(Bảng Categories & Tags)]
+    subgraph Database [3. Database Layer]
+        DB[(SQL Server Database <br/> Bảng Categories & Tags)]
     end
 
-    %% Client Interactions
-    UI -->|1. User click Icon Sửa/Xóa/Thêm| Comp
-    Comp -->|2. Validate FormGroup & gọi Proxy| Proxy
-    Proxy -->|3. HTTP Request JSON + Bearer Token| Host
+    Service -->|2. Send HTTP Request GET/POST/PUT/DELETE| Host
+    DomainEF -->|5. Execute LINQ / SQL Queries & Unit of Work| DB
 
-    %% Backend Processing
-    Host -->|4. Routing Request & Authentication| Contracts
-    Contracts -->|5. Kiếm tra DTO / Interfaces| App
-    App -->|6. Xử lý AppService CRUD Logic| Domain
-    Domain -->|7. Áp dụng Business Rule Entity| EF
-    EF -->|8. Truy vấn DbContext LINQ| DB
-
-    %% Database Response & UI Render
-    DB -->|9. Trả về Record Dữ liệu| EF
-    EF -->|10. Map Entity Data| Domain
-    Domain -->|11. AutoMapper Convert Entity -> DTO| App
-    App -->|12. Trả DTO cho Host Controller| Host
-    Host -->|13. HTTP Response 200 / 201 / 204| Proxy
-    Proxy -->|14. RxJS Observable Stream| Comp
-    Comp -->|15. Update State & Render ngx-datatable| UI
+    class UI,Service frontend;
+    class Host,App,DomainEF backend;
+    class DB db;
