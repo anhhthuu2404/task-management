@@ -38,4 +38,14 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./sys-master-lists/sys-mastert-list.component').then(c => c.SysMasterListComponent),
     canActivate: [authGuard, permissionGuard],
   },
+  {
+    path: 'categories',
+    loadComponent: () => import('./category/category.component').then(m => m.CategoryComponent), 
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tags',
+    loadComponent: () => import('./tag/tag.component').then(m => m.TagComponent),
+    canActivate: [authGuard],
+  },
 ];

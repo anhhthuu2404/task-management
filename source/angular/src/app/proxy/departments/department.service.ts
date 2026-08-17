@@ -1,0 +1,81 @@
+import type { AssignUserToDepartmentDto, CreateUpdateDepartmentDto, DepartmentDto, DepartmentTreeDto } from './models';
+import { RestService, Rest } from '@abp/ng.core';
+import type { PagedAndSortedResultRequestDto, PagedResultDto } from '@abp/ng.core';
+import { Injectable, inject } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class DepartmentService {
+  private restService = inject(RestService);
+  apiName = 'Default';
+  
+
+  assignUser = (input: AssignUserToDepartmentDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, void>({
+      method: 'POST',
+      url: '/api/app/department/assign-user',
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  assignUserToDepartment = (userId: string, departmentId: string, isManager: boolean, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, void>({
+      method: 'POST',
+      url: '/api/app/department/assign-user-to-department',
+      params: { userId, departmentId, isManager },
+    },
+    { apiName: this.apiName,...config });
+  
+
+  create = (input: CreateUpdateDepartmentDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, DepartmentDto>({
+      method: 'POST',
+      url: '/api/app/department',
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  delete = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, void>({
+      method: 'DELETE',
+      url: `/api/app/department/${id}`,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  get = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, DepartmentDto>({
+      method: 'GET',
+      url: `/api/app/department/${id}`,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getList = (input: PagedAndSortedResultRequestDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, PagedResultDto<DepartmentDto>>({
+      method: 'GET',
+      url: '/api/app/department',
+      params: { sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getTree = (config?: Partial<Rest.Config>) =>
+    this.restService.request<any, DepartmentTreeDto[]>({
+      method: 'GET',
+      url: '/api/app/department/tree',
+    },
+    { apiName: this.apiName,...config });
+  
+
+  update = (id: string, input: CreateUpdateDepartmentDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, DepartmentDto>({
+      method: 'PUT',
+      url: `/api/app/department/${id}`,
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+}

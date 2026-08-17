@@ -1,12 +1,12 @@
+using Azure;
+//using TaskManagement.Languages;
+//using TaskManagement.LanguageTexts;
+using Microsoft.EntityFrameworkCore;
 using TaskManagement.Books;
 using TaskManagement.Employees;
 using TaskManagement.LocalizationManagement.Languages;
 using TaskManagement.LocalizationManagement.LanguageTexts;
 using TaskManagement.SysMasterLists;
-
-//using TaskManagement.Languages;
-//using TaskManagement.LanguageTexts;
-using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
 using Volo.Abp.BlobStoring.Database.EntityFrameworkCore;
@@ -22,6 +22,9 @@ using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
+using TaskManagement.Categories;
+using TaskManagement.Tags;
+using TaskManagement.Departments;
 
 namespace TaskManagement.EntityFrameworkCore;
 
@@ -40,7 +43,10 @@ public class TaskManagementDbContext :
     public DbSet<LanguageText> LanguageTexts { get; set; }
     public DbSet<Employee> Employees { get; set; }
     public DbSet<SysMasterList> SysMasterLists { get; set; }
-
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<Tag> Tags { get; set; }
+    public DbSet<Department> Departments { get; set; }
+    public DbSet<UserDepartment> UserDepartments { get; set; }
     #region Entities from the modules
 
     /* Notice: We only implemented IIdentityProDbContext and ISaasDbContext
@@ -98,6 +104,37 @@ public class TaskManagementDbContext :
                 TaskManagementConsts.DbSchema);
             b.ConfigureByConvention(); //auto configure for the base class props
             b.Property(x => x.Name).IsRequired().HasMaxLength(128);
+        });
+
+        builder.Entity<Category>(b =>
+        {
+            b.ToTable("Categories"); // Tên bảng PascalCase, số nhiều
+            b.ConfigureByConvention();
+            b.Property(x => x.Name).IsRequired().HasMaxLength(128);
+            b.Property(x => x.ColorCode).HasMaxLength(32);
+        });
+        builder.Entity<Tag>(b =>
+        {
+            b.ToTable("Tags");
+            b.ConfigureByConvention();
+            b.Property(x => x.Name).IsRequired().HasMaxLength(64);
+        });
+        builder.Entity<Department>(b =>
+        {
+            b.ToTable("Departments");
+            b.ConfigureByConvention();
+            b.Property(x => x.Code).IsRequired().HasMaxLength(32);
+            b.Property(x => x.Name).IsRequired().HasMaxLength(128);
+            b.HasOne<Department>()
+             .WithMany()
+             .HasForeignKey(x => x.ParentId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<UserDepartment>(b =>
+        {
+            b.ToTable("UserDepartments");
+            b.ConfigureByConvention();
+            b.HasKey(x => new { x.UserId, x.DepartmentId }); // Khóa chính kết hợp
         });
 
         builder.ApplyConfiguration(new LanguageEfCoreMapping());

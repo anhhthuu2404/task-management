@@ -1,0 +1,93 @@
+<abp-page title="Quản lý Thẻ (Tags)">
+  <abp-page-toolbar-container class="col">
+    <div class="text-lg-end pt-2 pt-lg-0">
+      <button class="btn btn-primary" type="button" (click)="create()">
+        <i class="fa fa-plus me-1"></i>
+        <span>Thêm thẻ</span>
+      </button>
+    </div>
+  </abp-page-toolbar-container>
+
+  <div class="card">
+    <div class="card-body">
+      <form [formGroup]="searchForm" (ngSubmit)="search()" class="mb-3">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Tìm kiếm thẻ..."
+              formControlName="keyword"
+            />
+          </div>
+          <div class="col-md-4">
+            <button type="submit" class="btn btn-primary me-2">
+              <i class="fa fa-search me-1"></i>Tìm kiếm
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="reset()">
+              Đặt lại
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <ngx-datatable [rows]="items.items" [count]="items.totalCount" [list]="list" default>
+        <ngx-datatable-column [name]="'Thao tác'" [sortable]="false" [width]="100">
+          <ng-template let-row="row" ngx-datatable-cell-template>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary me-1"
+              (click)="edit(row.id)"
+              title="Sửa"
+            >
+              <i class="fa fa-pencil"></i>
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-danger"
+              (click)="delete(row.id)"
+              title="Xóa"
+            >
+              <i class="fa fa-trash"></i>
+            </button>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Tên thẻ" prop="name">
+          <ng-template let-row="row" ngx-datatable-cell-template>
+            <span class="badge bg-secondary me-1"><i class="fa fa-tag me-1"></i>{{ row.name }}</span>
+          </ng-template>
+        </ngx-datatable-column>
+      </ngx-datatable>
+    </div>
+  </div>
+
+  <abp-modal [(visible)]="isModalOpen">
+    <ng-template #abpHeader>
+      <h3>{{ (selected.id ? 'Sửa thẻ' : 'Thêm thẻ mới') }}</h3>
+    </ng-template>
+
+    <ng-template #abpBody>
+      <form [formGroup]="form" (ngSubmit)="save()" *ngIf="form">
+        <div class="form-group mb-3">
+          <label for="tag-name" class="form-label">Tên thẻ</label>
+          <span class="text-danger"> * </span>
+          <input
+            type="text"
+            id="tag-name"
+            class="form-control"
+            formControlName="name"
+            autofocus
+          />
+        </div>
+      </form>
+    </ng-template>
+
+    <ng-template #abpFooter>
+      <button type="button" class="btn btn-secondary" abpClose>Hủy</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="form?.invalid">
+        <i class="fa fa-check me-1"></i>Lưu
+      </button>
+    </ng-template>
+  </abp-modal>
+</abp-page>

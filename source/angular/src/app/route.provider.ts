@@ -21,8 +21,23 @@ function configureRoutes() {
       path: '/books',
       name: '::Menu:Books',
       iconClass: 'fas fa-book',
+      order: 2,
       layout: eLayoutType.application,
       requiredPolicy: 'TaskManagement.Books',
+    },
+    {
+      path: '/categories',
+      name: 'Quản lý Danh mục',
+      iconClass: 'fas fa-folder',
+      order: 3,
+      layout: eLayoutType.application,
+    },
+    {
+      path: '/tags',
+      name: 'Quản lý Thẻ (Tag)',
+      iconClass: 'fas fa-tags',
+      order: 4,
+      layout: eLayoutType.application,
     },
     {
       path: '/language-texts',
@@ -36,7 +51,7 @@ function configureRoutes() {
     {
       path: '/sys-master-lists',
       name: '::Menu:SysMasterLists',
-      iconClass: 'fa fa-language',
+      iconClass: 'fa fa-list',
       layout: eLayoutType.application,
       parentName: 'AbpUiNavigation::Menu:Administration',
       requiredPolicy: 'TaskManagement.SysMasterLists',
@@ -44,7 +59,6 @@ function configureRoutes() {
     },
   ]);
 }
-
 /*
 Mapping nhanh để nhớ
 [UI hiển thị]	        [parentName đúng]

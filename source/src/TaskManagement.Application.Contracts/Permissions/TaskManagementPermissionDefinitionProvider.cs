@@ -31,8 +31,25 @@ public class TaskManagementPermissionDefinitionProvider : PermissionDefinitionPr
         sysMasterListsPermission.AddChild(TaskManagementPermissions.SysMasterLists.Edit, L("Permission:SysMasterLists.Edit"));
         sysMasterListsPermission.AddChild(TaskManagementPermissions.SysMasterLists.Delete, L("Permission:SysMasterLists.Delete"));
 
-        //Define your own permissions here. Example:
-        //myGroup.AddPermission(TaskManagementPermissions.MyPermission1, L("Permission:MyPermission1"));
+        // 1. Phân quyền Categories
+        var categoriesPermission = myGroup.AddPermission(TaskManagementPermissions.Categories.Default, L("Permission:Categories"));
+        categoriesPermission.AddChild(TaskManagementPermissions.Categories.Create, L("Permission:Categories.Create"));
+        categoriesPermission.AddChild(TaskManagementPermissions.Categories.Edit, L("Permission:Categories.Edit"));
+        categoriesPermission.AddChild(TaskManagementPermissions.Categories.Delete, L("Permission:Categories.Delete"));
+
+        // 2. Phân quyền Tags
+        var tagsPermission = myGroup.AddPermission(TaskManagementPermissions.Tags.Default, L("Permission:Tags"));
+        tagsPermission.AddChild(TaskManagementPermissions.Tags.Create, L("Permission:Tags.Create"));
+        tagsPermission.AddChild(TaskManagementPermissions.Tags.Edit, L("Permission:Tags.Edit"));
+        tagsPermission.AddChild(TaskManagementPermissions.Tags.Delete, L("Permission:Tags.Delete"));
+
+        // 3. Phân quyền Departments
+        var departmentsPermission = myGroup.AddPermission(TaskManagementPermissions.Departments.Default, L("Permission:Departments"));
+        departmentsPermission.AddChild(TaskManagementPermissions.Departments.Create, L("Permission:Departments.Create"));
+        departmentsPermission.AddChild(TaskManagementPermissions.Departments.Edit, L("Permission:Departments.Edit"));
+        departmentsPermission.AddChild(TaskManagementPermissions.Departments.Delete, L("Permission:Departments.Delete"));
+        departmentsPermission.AddChild(TaskManagementPermissions.Departments.ManageUsers, L("Permission:Departments.ManageUsers"));
+        departmentsPermission.AddChild(TaskManagementPermissions.Departments.AssignUser, L("Permission:Departments.AssignUser"));
     }
 
     private static LocalizableString L(string name)

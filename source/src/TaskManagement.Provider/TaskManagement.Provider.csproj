@@ -11,4 +11,11 @@
     <ProjectReference Include="..\TaskManagement.EntityFrameworkCore\TaskManagement.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.2.0" />
+    <PackageReference Include="AutoMapper.Collection" Version="13.0.0" />
+    <PackageReference Include="Scriban" Version="7.2.6" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
+  </ItemGroup>
+
 </Project>
