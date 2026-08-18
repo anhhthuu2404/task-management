@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace TaskManagement.Departments;
 
@@ -13,6 +14,8 @@ public class CreateUpdateDepartmentDto
     public string Name { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
+
+    public Guid? ParentId { get; set; } 
 
     public bool IsActive { get; set; } = true;
 }

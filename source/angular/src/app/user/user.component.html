@@ -1,0 +1,93 @@
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <!-- Header trang -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-bold text-primary m-0">Quản lý Người dùng</h2>
+      <button type="button" class="btn btn-primary d-flex align-items-center gap-2" (click)="openModal()">
+        <i class="fa fa-plus"></i> Thêm người dùng
+      </button>
+    </div>
+
+    <!-- Bảng danh sách User -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Tên đăng nhập</th>
+            <th>Họ tên</th>
+            <th>Email</th>
+            <th>Trạng thái</th>
+            <th class="text-end">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of users">
+            <td class="fw-bold">{{ u.userName }}</td>
+            <td>{{ u.name }} {{ u.surname }}</td>
+            <td>{{ u.email }}</td>
+            <td>
+              <span class="badge" [ngClass]="u.isActive ? 'bg-success' : 'bg-danger'">
+                {{ u.isActive ? 'Hoạt động' : 'Đã khóa' }}
+              </span>
+            </td>
+            <td class="text-end">
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="openModal(u)" title="Sửa">
+                  <i class="fa fa-pen"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteUser(u.id)" title="Xóa">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="users.length === 0">
+            <td colspan="5" class="text-center text-muted py-4">Không có dữ liệu người dùng</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Thêm / Sửa User -->
+<div *ngIf="isModalOpen" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">{{ isEditMode ? 'Cập nhật Người dùng' : 'Thêm mới Người dùng' }}</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Tên đăng nhập <span class="text-danger">*</span></label>
+          <input [(ngModel)]="formData.userName" [disabled]="isEditMode" type="text" class="form-control" placeholder="VD: admin" />
+        </div>
+        
+        <!-- Ô mật khẩu có tích hợp nút ẩn/hiện con mắt -->
+        <div class="mb-3" *ngIf="!isEditMode">
+          <label class="form-label fw-bold">Mật khẩu <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <input [(ngModel)]="formData.password" [type]="showPassword ? 'text' : 'password'" class="form-control" placeholder="VD: 123456Ab@" />
+            <button class="btn btn-outline-secondary" type="button" (click)="showPassword = !showPassword">
+              <i class="fa" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+          <input [(ngModel)]="formData.email" type="email" class="form-control" placeholder="VD: admin@abp.io" />
+        </div>
+        <div class="form-check">
+          <input [(ngModel)]="formData.isActive" type="checkbox" class="form-check-input" id="activeCheck" />
+          <label class="form-check-label fw-semibold" for="activeCheck">Kích hoạt tài khoản</label>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">Hủy bỏ</button>
+        <button type="button" class="btn btn-primary" (click)="saveUser()">Lưu</button>
+      </div>
+    </div>
+  </div>
+</div>

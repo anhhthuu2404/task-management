@@ -19,7 +19,7 @@ import { APP_ROUTE_PROVIDER } from './route.provider';
 import { registerLocaleData } from '@angular/common';
 import localeVi from '@angular/common/locales/vi';
 
-// 🔥 BẮT BUỘC: đăng ký locale
+
 registerLocaleData(localeVi);
 
 export const appConfig: ApplicationConfig = {

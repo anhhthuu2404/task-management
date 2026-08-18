@@ -52,7 +52,8 @@ import {
   providers: [ListService],
 })
 export class LanguageTextComponent implements OnInit {
-  private service = inject(LanguageTextService);
+  // Định nghĩa tường minh kiểu dữ liệu để TypeScript không bị suy diễn thành unknown
+  private service = inject<LanguageTextService>(LanguageTextService);
   private fb = inject(FormBuilder);
   private confirmation = inject(ConfirmationService);
   public readonly list = inject(ListService);
@@ -62,16 +63,16 @@ export class LanguageTextComponent implements OnInit {
   selected = {} as LanguageTextDto;
   form!: FormGroup;
   isModalOpen = false;
-  languageTextCulture: any;
+  languageTextCulture: any[] = [];
 
   languageOptions: Array<{ id: string; text: string }> = [];
 
   ngOnInit() {
-    const streamCreator = q => this.service.getList(q);
+    const streamCreator = (q: any) => this.service.getList(q);
     this.list.hookToQuery(streamCreator).subscribe(res => {
       this.items = res;
     });
-    this.languageTextCulture = this.loadLanguages();
+    this.languageTextCulture = this.loadLanguages() || [];
     this.languageOptions = this.languageTextCulture.map(l => ({
       id: l.cultureName,
       text: l.displayName,
@@ -88,7 +89,6 @@ export class LanguageTextComponent implements OnInit {
   edit(id: string) {
     this.service.get(id).subscribe(item => {
       this.selected = item;
-      // nếu là edit
       if (this.selected) {
         this.patchAfterLoaded();
       }
@@ -110,7 +110,7 @@ export class LanguageTextComponent implements OnInit {
     this.form = this.fb.group({
       resourceName: [this.selected.resourceName || '', Validators.required],
       cultureName: [
-        this.selected?.cultureName ? [this.selected.cultureName] : [], // ✅ bọc trong array
+        this.selected?.cultureName ? [this.selected.cultureName] : [],
         Validators.required,
       ],
       key: [this.selected.key || '', Validators.required],
@@ -127,13 +127,12 @@ export class LanguageTextComponent implements OnInit {
     const formValue = this.form.value;
     const dto = {
       ...formValue,
-      cultureName: formValue.cultureName?.[0]?.id ?? null, // ✅ ép về string
+      cultureName: formValue.cultureName?.[0]?.id ?? formValue.cultureName?.[0] ?? null,
     };
-    let req = this.service.create(dto);
-
-    if (this.selected.id) {
-      req = this.service.update(this.selected.id, dto);
-    }
+    
+    const req = this.selected.id
+      ? this.service.update(this.selected.id, dto)
+      : this.service.create(dto);
 
     req.subscribe(() => {
       this.isModalOpen = false;

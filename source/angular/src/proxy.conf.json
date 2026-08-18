@@ -1,0 +1,10 @@
+{
+  "/api": {
+    "target": "https://localhost:44305",
+    "secure": false
+  },
+  "/connect": {
+    "target": "https://localhost:44305",
+    "secure": false
+  }
+}

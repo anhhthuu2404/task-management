@@ -48,4 +48,19 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./tag/tag.component').then(m => m.TagComponent),
     canActivate: [authGuard],
   },
+  {
+    path: 'departments',
+    loadComponent: () => import('./department/department.component').then(m => m.DepartmentComponent),
+    canActivate: [authGuard], 
+  },
+  {
+    path: 'users',
+    loadComponent: () => import('./user/user.component').then(m => m.UserComponent),
+    canActivate: [authGuard],
+  },
+  {
+  path: 'roles',
+  loadComponent: () => import('./role/role.component').then(m => m.RoleComponent), 
+  canActivate: [authGuard],
+},
 ];

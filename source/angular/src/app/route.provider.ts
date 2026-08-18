@@ -40,6 +40,27 @@ function configureRoutes() {
       layout: eLayoutType.application,
     },
     {
+      path: '/departments',
+      name: 'Quản lý Phòng ban',
+      iconClass: 'fas fa-sitemap',
+      order: 5,
+      layout: eLayoutType.application,
+    },
+    {
+      path: '/users',
+      name: 'Quản lý Người dùng',
+      iconClass: 'fas fa-users',
+      order: 6,
+      layout: eLayoutType.application,
+    },
+    {
+      path: '/roles',
+      name: 'Vai trò & Phân quyền',
+      iconClass: 'fas fa-user-shield',
+      order: 7,
+      layout: eLayoutType.application,
+    },
+    {
       path: '/language-texts',
       name: '::Menu:LanguageTexts',
       iconClass: 'fa fa-language',
@@ -61,9 +82,9 @@ function configureRoutes() {
 }
 /*
 Mapping nhanh để nhớ
-[UI hiển thị]	        [parentName đúng]
-Quản trị	            AbpUiNavigation::Menu:Administration
-Quản lý danh tính	    AbpIdentity::Menu:IdentityManagement
-Quản lý người thuê	  AbpTenantManagement::Menu:TenantManagement
-Cài đặt	              AbpSettingManagement::Menu:Settings
+[UI hiển thị]         [parentName đúng]
+Quản trị             AbpUiNavigation::Menu:Administration
+Quản lý danh tính    AbpIdentity::Menu:IdentityManagement
+Quản lý người thuê    AbpTenantManagement::Menu:TenantManagement
+Cài đặt              AbpSettingManagement::Menu:Settings
 */

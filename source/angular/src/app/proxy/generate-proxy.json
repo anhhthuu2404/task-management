@@ -1645,9 +1645,9 @@
                   "parametersOnMethod": [
                     {
                       "name": "input",
-                      "typeAsString": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto, Volo.Abp.Ddd.Application.Contracts",
-                      "type": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
-                      "typeSimple": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
+                      "typeAsString": "TaskManagement.Departments.GetDepartmentListDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Departments.GetDepartmentListDto",
+                      "typeSimple": "TaskManagement.Departments.GetDepartmentListDto",
                       "isOptional": false,
                       "defaultValue": null
                     }
@@ -1732,7 +1732,7 @@
                 "type": "System.Collections.Generic.List<TaskManagement.Departments.DepartmentTreeDto>",
                 "typeSimple": "[TaskManagement.Departments.DepartmentTreeDto]"
               },
-              "allowAnonymous": null,
+              "allowAnonymous": false,
               "implementFrom": "TaskManagement.Departments.IDepartmentAppService"
             },
             "AssignUserAsyncByInput": {
@@ -1769,7 +1769,7 @@
                 "type": "System.Void",
                 "typeSimple": "System.Void"
               },
-              "allowAnonymous": null,
+              "allowAnonymous": false,
               "implementFrom": "TaskManagement.Departments.IDepartmentAppService"
             },
             "AssignUserToDepartmentAsyncByUserIdAndDepartmentIdAndIsManager": {
@@ -1846,7 +1846,7 @@
                 "type": "System.Void",
                 "typeSimple": "System.Void"
               },
-              "allowAnonymous": null,
+              "allowAnonymous": false,
               "implementFrom": "TaskManagement.Departments.IDepartmentAppService"
             },
             "CreateAsyncByInput": {
@@ -1883,7 +1883,7 @@
                 "type": "TaskManagement.Departments.DepartmentDto",
                 "typeSimple": "TaskManagement.Departments.DepartmentDto"
               },
-              "allowAnonymous": null,
+              "allowAnonymous": false,
               "implementFrom": "Volo.Abp.Application.Services.ICreateAppService<TaskManagement.Departments.DepartmentDto,TaskManagement.Departments.CreateUpdateDepartmentDto>"
             },
             "UpdateAsyncByIdAndInput": {
@@ -1940,7 +1940,7 @@
                 "type": "TaskManagement.Departments.DepartmentDto",
                 "typeSimple": "TaskManagement.Departments.DepartmentDto"
               },
-              "allowAnonymous": null,
+              "allowAnonymous": false,
               "implementFrom": "Volo.Abp.Application.Services.IUpdateAppService<TaskManagement.Departments.DepartmentDto,System.Guid,TaskManagement.Departments.CreateUpdateDepartmentDto>"
             },
             "DeleteAsyncById": {
@@ -1977,7 +1977,7 @@
                 "type": "System.Void",
                 "typeSimple": "System.Void"
               },
-              "allowAnonymous": null,
+              "allowAnonymous": false,
               "implementFrom": "Volo.Abp.Application.Services.IDeleteAppService<System.Guid>"
             },
             "GetAsyncById": {
@@ -2014,8 +2014,8 @@
                 "type": "TaskManagement.Departments.DepartmentDto",
                 "typeSimple": "TaskManagement.Departments.DepartmentDto"
               },
-              "allowAnonymous": null,
-              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<TaskManagement.Departments.DepartmentDto,TaskManagement.Departments.DepartmentDto,System.Guid,Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto>"
+              "allowAnonymous": false,
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<TaskManagement.Departments.DepartmentDto,TaskManagement.Departments.DepartmentDto,System.Guid,TaskManagement.Departments.GetDepartmentListDto>"
             },
             "GetListAsyncByInput": {
               "uniqueName": "GetListAsyncByInput",
@@ -2026,14 +2026,38 @@
               "parametersOnMethod": [
                 {
                   "name": "input",
-                  "typeAsString": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto, Volo.Abp.Ddd.Application.Contracts",
-                  "type": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
-                  "typeSimple": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
+                  "typeAsString": "TaskManagement.Departments.GetDepartmentListDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Departments.GetDepartmentListDto",
+                  "typeSimple": "TaskManagement.Departments.GetDepartmentListDto",
                   "isOptional": false,
                   "defaultValue": null
                 }
               ],
               "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "Filter",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "IsActive",
+                  "jsonName": null,
+                  "type": "System.Boolean?",
+                  "typeSimple": "boolean?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
                 {
                   "nameOnMethod": "input",
                   "name": "Sorting",
@@ -2075,8 +2099,8 @@
                 "type": "Volo.Abp.Application.Dtos.PagedResultDto<TaskManagement.Departments.DepartmentDto>",
                 "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<TaskManagement.Departments.DepartmentDto>"
               },
-              "allowAnonymous": null,
-              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<TaskManagement.Departments.DepartmentDto,TaskManagement.Departments.DepartmentDto,System.Guid,Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto>"
+              "allowAnonymous": false,
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<TaskManagement.Departments.DepartmentDto,TaskManagement.Departments.DepartmentDto,System.Guid,TaskManagement.Departments.GetDepartmentListDto>"
             }
           }
         },
@@ -6678,6 +6702,18 @@
           "regex": null
         },
         {
+          "name": "ParentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "IsActive",
           "jsonName": null,
           "type": "System.Boolean",
@@ -6772,6 +6808,39 @@
           "jsonName": null,
           "type": "[TaskManagement.Departments.DepartmentTreeDto]",
           "typeSimple": "[TaskManagement.Departments.DepartmentTreeDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Departments.GetDepartmentListDto": {
+      "baseType": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Filter",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "IsActive",
+          "jsonName": null,
+          "type": "System.Boolean?",
+          "typeSimple": "boolean?",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,

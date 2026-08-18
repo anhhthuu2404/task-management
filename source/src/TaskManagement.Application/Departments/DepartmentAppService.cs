@@ -2,21 +2,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using TaskManagement.Localization;
 using TaskManagement.Permissions;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 
 namespace TaskManagement.Departments;
 
-public class DepartmentAppService :
-    CrudAppService<
-        Department,
-        DepartmentDto,
-        Guid,
-        PagedAndSortedResultRequestDto,
-        CreateUpdateDepartmentDto>,
-    IDepartmentAppService
+[Authorize(TaskManagementPermissions.Departments.Default)]
+public class DepartmentAppService : CrudAppService<
+    Department,
+    DepartmentDto,
+    Guid,
+    GetDepartmentListDto,
+    CreateUpdateDepartmentDto>, IDepartmentAppService
 {
     private readonly IRepository<UserDepartment> _userDepartmentRepository;
 
@@ -27,6 +27,8 @@ public class DepartmentAppService :
     {
         _userDepartmentRepository = userDepartmentRepository;
 
+        // Khởi tạo Phân quyền & Tài nguyên đa ngôn ngữ chuẩn ABP trong Constructor
+        LocalizationResource = typeof(TaskManagementResource);
         GetPolicyName = TaskManagementPermissions.Departments.Default;
         GetListPolicyName = TaskManagementPermissions.Departments.Default;
         CreatePolicyName = TaskManagementPermissions.Departments.Create;
@@ -34,40 +36,65 @@ public class DepartmentAppService :
         DeletePolicyName = TaskManagementPermissions.Departments.Delete;
     }
 
-    // 1. Triển khai phương thức dựng cây sơ đồ phòng ban
-    public async Task<List<DepartmentTreeDto>> GetTreeAsync()
+    protected override async Task<IQueryable<Department>> CreateFilteredQueryAsync(GetDepartmentListDto input)
     {
-        await CheckPolicyAsync(TaskManagementPermissions.Departments.Default);
+        var query = await base.CreateFilteredQueryAsync(input);
 
-        var departments = await Repository.GetListAsync();
-        var dtos = ObjectMapper.Map<List<Department>, List<DepartmentTreeDto>>(departments);
-
-        var lookup = dtos.ToLookup(x => x.ParentId);
-        foreach (var item in dtos)
+        if (!string.IsNullOrWhiteSpace(input.Filter))
         {
-            item.Children = lookup[item.Id].ToList();
+            query = query.Where(x => x.Name.Contains(input.Filter) || x.Code.Contains(input.Filter));
         }
 
-        return dtos.Where(x => x.ParentId == null).ToList();
+        if (input.IsActive.HasValue)
+        {
+            query = query.Where(x => x.IsActive == input.IsActive.Value);
+        }
+
+        return query;
     }
 
-    // 2. Gán User vào phòng ban qua DTO
+    public async Task<List<DepartmentTreeDto>> GetTreeAsync()
+    {
+        var departments = await Repository.GetListAsync();
+        var departmentDtos = ObjectMapper.Map<List<Department>, List<DepartmentTreeDto>>(departments);
+
+        var lookup = departmentDtos.ToLookup(x => x.ParentId);
+
+        // Chuẩn hóa tên tham số parentId để tránh lỗi CS0103
+        List<DepartmentTreeDto> BuildTree(Guid? parentId)
+        {
+            return lookup[parentId].Select(node =>
+            {
+                node.Children = BuildTree(node.Id);
+                return node;
+            }).ToList();
+        }
+
+        return BuildTree(null);
+    }
+
     public async Task AssignUserAsync(AssignUserToDepartmentDto input)
     {
         await AssignUserToDepartmentAsync(input.UserId, input.DepartmentId, input.IsManager);
     }
 
-    // 3. Gán User vào phòng ban qua bảng trung gian UserDepartment
     public async Task AssignUserToDepartmentAsync(Guid userId, Guid departmentId, bool isManager)
     {
-        await CheckPolicyAsync(TaskManagementPermissions.Departments.AssignUser);
+        var existing = await _userDepartmentRepository.FindAsync(x => x.UserId == userId && x.DepartmentId == departmentId);
 
-        await _userDepartmentRepository.DeleteAsync(x => x.UserId == userId && x.DepartmentId == departmentId);
-        await _userDepartmentRepository.InsertAsync(new UserDepartment
+        if (existing == null)
         {
-            UserId = userId,
-            DepartmentId = departmentId,
-            IsManager = isManager
-        });
+            await _userDepartmentRepository.InsertAsync(new UserDepartment
+            {
+                UserId = userId,
+                DepartmentId = departmentId,
+                IsManager = isManager
+            });
+        }
+        else
+        {
+            existing.IsManager = isManager;
+            await _userDepartmentRepository.UpdateAsync(existing);
+        }
     }
 }

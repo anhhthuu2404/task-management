@@ -1,45 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\common.props" />
+	<Import Project="..\..\common.props" />
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <RootNamespace>TaskManagement</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<RootNamespace>TaskManagement</RootNamespace>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="Caching\**" />
-    <Compile Remove="LanguageImportExport\**" />
-    <Compile Remove="Languages\**" />
-    <Compile Remove="LanguageTexts\**" />
-    <EmbeddedResource Remove="Caching\**" />
-    <EmbeddedResource Remove="LanguageImportExport\**" />
-    <EmbeddedResource Remove="Languages\**" />
-    <EmbeddedResource Remove="LanguageTexts\**" />
-    <None Remove="Caching\**" />
-    <None Remove="LanguageImportExport\**" />
-    <None Remove="Languages\**" />
-    <None Remove="LanguageTexts\**" />
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Caching\**" />
+		<Compile Remove="LanguageImportExport\**" />
+		<Compile Remove="Languages\**" />
+		<Compile Remove="LanguageTexts\**" />
+		<EmbeddedResource Remove="Caching\**" />
+		<EmbeddedResource Remove="LanguageImportExport\**" />
+		<EmbeddedResource Remove="Languages\**" />
+		<EmbeddedResource Remove="LanguageTexts\**" />
+		<None Remove="Caching\**" />
+		<None Remove="LanguageImportExport\**" />
+		<None Remove="Languages\**" />
+		<None Remove="LanguageTexts\**" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\TaskManagement.Domain\TaskManagement.Domain.csproj" />
-    <ProjectReference Include="..\TaskManagement.Application.Contracts\TaskManagement.Application.Contracts.csproj" />
-    <ProjectReference Include="..\TaskManagement.Provider\TaskManagement.Provider.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\TaskManagement.Domain\TaskManagement.Domain.csproj" />
+		<ProjectReference Include="..\TaskManagement.Application.Contracts\TaskManagement.Application.Contracts.csproj" />
+		<ProjectReference Include="..\TaskManagement.Provider\TaskManagement.Provider.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.2.0" />
-    <PackageReference Include="AutoMapper.Collection" Version="13.0.0" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
-    <PackageReference Include="Volo.Abp.AutoMapper" Version="10.0.1" />
-    <PackageReference Include="Volo.Abp.PermissionManagement.Application" Version="10.0.0" />
-    <PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="10.0.0" />
-    <PackageReference Include="Volo.Abp.SettingManagement.Application" Version="10.0.0" />
-    <PackageReference Include="Volo.Abp.Account.Application" Version="10.0.0" />
-    <PackageReference Include="Volo.Abp.Identity.Application" Version="10.0.0" />
-    <PackageReference Include="Volo.Abp.TenantManagement.Application" Version="10.0.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<!-- Riok.Mapperly cấu hình nạp đầy đủ asset -->
+		<PackageReference Include="Riok.Mapperly" Version="4.3.1" PrivateAssets="none" IncludeAssets="all" />
+		<PackageReference Include="Volo.Abp.Mapperly" Version="10.0.1" />
+
+		<!-- Thư viện AutoMapper -->
+		<PackageReference Include="AutoMapper" Version="16.2.0" />
+		<PackageReference Include="AutoMapper.Collection" Version="13.0.0" />
+		<PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
+		<PackageReference Include="Volo.Abp.AutoMapper" Version="10.0.1" />
+
+		<!-- ABP Application Modules -->
+		<PackageReference Include="Volo.Abp.PermissionManagement.Application" Version="10.0.0" />
+		<PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="10.0.0" />
+		<PackageReference Include="Volo.Abp.SettingManagement.Application" Version="10.0.0" />
+		<PackageReference Include="Volo.Abp.Account.Application" Version="10.0.0" />
+		<PackageReference Include="Volo.Abp.Identity.Application" Version="10.0.0" />
+		<PackageReference Include="Volo.Abp.TenantManagement.Application" Version="10.0.0" />
+	</ItemGroup>
 
 </Project>

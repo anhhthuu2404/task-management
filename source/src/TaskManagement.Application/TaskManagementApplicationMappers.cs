@@ -1,14 +1,13 @@
-﻿using AutoMapper;
+﻿using Riok.Mapperly.Abstractions;
+using Volo.Abp.Mapperly;
 using TaskManagement.Books;
+using TaskManagement.Categories;
+using TaskManagement.Departments;
 using TaskManagement.LocalizationManagement.Languages;
 using TaskManagement.LocalizationManagement.LanguageTexts;
 using TaskManagement.Provider;
 using TaskManagement.SysMasterLists;
-using Riok.Mapperly.Abstractions;
-using Volo.Abp.Mapperly;
-using TaskManagement.Categories;
 using TaskManagement.Tags;
-using TaskManagement.Departments;
 
 namespace TaskManagement;
 
@@ -20,7 +19,7 @@ public partial class TaskManagementBookToBookDtoMapper : MapperBase<Book, BookDt
     public override partial void Map(Book source, BookDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateBookDtoToBookMapper : MapperBase<CreateUpdateBookDto, Book>
 {
     public override partial Book Map(CreateUpdateBookDto source);
@@ -36,7 +35,7 @@ public partial class TaskManagementLanguageToLanguageDtoMapper : MapperBase<Lang
     public override partial void Map(Language source, LanguageDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateLanguageDtoToLanguageMapper : MapperBase<CreateUpdateLanguageDto, Language>
 {
     public override partial Language Map(CreateUpdateLanguageDto source);
@@ -66,7 +65,7 @@ public partial class TaskManagementLanguageTextToLanguageTextDtoMapper : MapperB
     public override partial void Map(LanguageText source, LanguageTextDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateLanguageTextDtoToLanguageTextMapper : MapperBase<CreateUpdateLanguageTextDto, LanguageText>
 {
     public override partial LanguageText Map(CreateUpdateLanguageTextDto source);
@@ -75,7 +74,7 @@ public partial class TaskManagementCreateUpdateLanguageTextDtoToLanguageTextMapp
 #endregion
 
 #region SysMasterLists
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagement_GetSysMasterListInput_To_SysMasterListRequest_Mapper : MapperBase<GetSysMasterListInput, SysMasterListRequest>
 {
     public override partial SysMasterListRequest Map(GetSysMasterListInput source);
@@ -96,21 +95,21 @@ public partial class TaskManagement_InfoSysMasterListQueryResponse_To_SysMasterL
     public override partial void Map(InfoSysMasterListQueryResponse source, SysMasterListDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagement_SysMasterListQueryResponse_To_SysMasterListDto_Mapper : MapperBase<SysMasterListQueryResponse, SysMasterListDto>
 {
     public override partial SysMasterListDto Map(SysMasterListQueryResponse source);
     public override partial void Map(SysMasterListQueryResponse source, SysMasterListDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagement_CreateUpdateSysMasterListDto_To_SysMasterListInsertOrUpdateRequest_Mapper : MapperBase<CreateUpdateSysMasterListDto, SysMasterListInsertOrUpdateRequest>
 {
     public override partial SysMasterListInsertOrUpdateRequest Map(CreateUpdateSysMasterListDto source);
     public override partial void Map(CreateUpdateSysMasterListDto source, SysMasterListInsertOrUpdateRequest destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)] // Đã sửa
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagement_DeleteSysMasterListDto_To_SysMasterListDeleteRequest_Mapper : MapperBase<DeleteSysMasterListDto, SysMasterListDeleteRequest>
 {
     public override partial SysMasterListDeleteRequest Map(DeleteSysMasterListDto source);
@@ -151,11 +150,21 @@ public partial class TaskManagementCreateUpdateTagDtoToTagMapper : MapperBase<Cr
 #endregion
 
 #region Departments
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementDepartmentToDepartmentDtoMapper : MapperBase<Department, DepartmentDto>
 {
     public override partial DepartmentDto Map(Department source);
     public override partial void Map(Department source, DepartmentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementDepartmentToDepartmentTreeDtoMapper : MapperBase<Department, DepartmentTreeDto>
+{
+    [MapperIgnoreTarget(nameof(DepartmentTreeDto.Children))]
+    public override partial DepartmentTreeDto Map(Department source);
+
+    [MapperIgnoreTarget(nameof(DepartmentTreeDto.Children))]
+    public override partial void Map(Department source, DepartmentTreeDto destination);
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
