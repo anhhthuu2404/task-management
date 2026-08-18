@@ -357,10 +357,10 @@ sequenceDiagram
     UI->>Auth: Kiểm tra JWT Token & Quyền Pages.Tasks.Create
     Auth-->>UI: Token hợp lệ & Authorized
 
-    UI->>AppSrv: POST /api/app/tasks (CreateTaskDto)
+    UI->>AppSrv: POST /api/app/tasks (CreateTaskDto với ProjectId kiểu Guid)
     activate AppSrv
 
-    AppSrv->>Domain: Khởi tạo Task Entity (Status = NEW)
+    AppSrv->>Domain: Khởi tạo Task Entity (Id = Guid.NewGuid(), Status = NEW)
     Domain->>Domain: Tự động sinh TaskCode (TASK-YYYY-XXXXX)
 
     AppSrv->>DB: INSERT INTO Tasks & INSERT INTO TaskHistories
@@ -387,13 +387,13 @@ sequenceDiagram
     actor Emp as Assignee / Reviewer User
 
     TL->>UI: Chọn Task & chỉ định Assignee / Reviewer
-    UI->>AppSrv: PUT /api/app/tasks/{id}/assign (AssignTaskDto)
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/assign (AssignTaskDto)
     activate AppSrv
 
     AppSrv->>DB: INSERT/UPDATE TaskUsers & UPDATE Tasks (Status = ASSIGNED)
     DB-->>AppSrv: Lưu dữ liệu thành công
 
-    AppSrv->>NotifHub: Trigger Event SendNotificationToUser(userId, payload)
+    AppSrv->>NotifHub: Trigger Event SendNotificationToUser(userId:Guid, payload)
     NotifHub->>DB: INSERT INTO AppNotifications
     NotifHub-->>Emp: Push Notification Real-time qua WebSocket (SignalR)
 
@@ -418,7 +418,7 @@ sequenceDiagram
     participant Notif as Notification Service (SignalR)
 
     Emp->>UI: Nhấn "Nộp bài / Submit Review" (UC15)
-    UI->>AppSrv: PUT /api/app/tasks/{id}/submit-review
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/submit-review
     activate AppSrv
     AppSrv->>Domain: Task.Status = REVIEW
     AppSrv->>DB: UPDATE Tasks & INSERT TaskApprovals (PENDING)
@@ -430,13 +430,14 @@ sequenceDiagram
 
     Note over Rev, DB: Reviewer tiến hành Duyệt / Từ chối (UC16 / UC17)
     Rev->>UI: Nhấn Approve hoặc Reject (nhập Lý do nếu Reject)
-    UI->>AppSrv: PUT /api/app/tasks/{id}/approve (hoặc /reject)
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/approve (hoặc /reject)
     activate AppSrv
 
     Note over AppSrv, DB: THỰC THI DUAL VALIDATION RULE
-    AppSrv->>DB: Check (a): SELECT COUNT(*) FROM TaskUsers WHERE TaskId={id} AND UserId={Rev.Id} AND RoleType='REVIEWER'
+    AppSrv->>DB: Check (a): SELECT COUNT(*) FROM TaskUsers WHERE TaskId={taskId} AND UserId={Rev.Id} AND RoleType='REVIEWER'
     DB-->>AppSrv: Trả về kết quả (a)
-    AppSrv->>AppSrv: Check (b): Check User Claims / System Role >= TeamLeader
+    AppSrv->>DB: Check (b): SELECT IsManager FROM UserDepartments WHERE UserId={Rev.Id}
+    DB-->>AppSrv: Trả về kết quả (b) - Xác thực quyền Trưởng/Phó phòng
 
     alt Lỗi Validation Check (Không thỏa mãn a hoặc b)
         AppSrv-->>UI: HTTP 403 Forbidden ("Bạn không có thẩm quyền duyệt task này")
@@ -460,7 +461,7 @@ sequenceDiagram
 
     Note over Emp, UI: Nếu bị Reject, Employee làm lại và bấm "Resume Work"
     Emp->>UI: Nhấn "Bắt đầu lại (Resume)"
-    UI->>AppSrv: PUT /api/app/tasks/{id}/status (Status = IN_PROGRESS)
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/status (Status = IN_PROGRESS)
     activate AppSrv
     AppSrv->>DB: UPDATE Tasks (Status=IN_PROGRESS) & Ghi TaskHistories (Action=RESUME)
     DB-->>AppSrv: Lưu thành công
@@ -474,31 +475,105 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor PM as Project Manager
+    actor Emp as Employee (Assignee)
+    actor Rev as User (Reviewer)
     participant UI as Angular UI
-    participant AppSrv as ProjectAppService
+    participant AppSrv as TaskAppService
+    participant Domain as Task Domain Entity
     participant DB as SQL Server Database
+    participant Notif as Notification Service (SignalR)
 
-    PM->>UI: Nhập thông tin Dự án mới & Các Milestone
-    UI->>AppSrv: POST /api/app/projects (CreateProjectDto)
+    Emp->>UI: Nhấn "Nộp bài / Submit Review" (UC15)
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/submit-review
     activate AppSrv
-    AppSrv->>DB: INSERT INTO Projects & INSERT INTO Milestones
-    DB-->>AppSrv: Lưu thành công
-    AppSrv-->>UI: Trả về ProjectDto (201 Created)
-    deactivate AppSrv
-
-    PM->>UI: Thêm danh sách Thành viên vào Dự án
-    UI->>AppSrv: POST /api/app/projects/{id}/members (AddMembersDto)
-    activate AppSrv
-    AppSrv->>DB: INSERT INTO ProjectMembers
+    AppSrv->>Domain: Task.Status = REVIEW
+    AppSrv->>DB: UPDATE Tasks & INSERT TaskApprovals (PENDING)
     DB-->>AppSrv: Lưu thành công
     AppSrv-->>UI: HTTP 200 OK
     deactivate AppSrv
 
-    UI-->>PM: Hiển thị Dự án đã được tạo cùng danh sách thành viên
+    UI-->>Emp: Cập nhật Badge "Chờ duyệt (REVIEW)"
+
+    Note over Rev, DB: Reviewer tiến hành Duyệt / Từ chối (UC16 / UC17)
+    Rev->>UI: Nhấn Approve hoặc Reject (nhập Lý do nếu Reject)
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/approve (hoặc /reject)
+    activate AppSrv
+
+    Note over AppSrv, DB: THỰC THI DUAL VALIDATION RULE
+    AppSrv->>DB: Check (a): SELECT COUNT(*) FROM TaskUsers WHERE TaskId={taskId} AND UserId={Rev.Id} AND RoleType='REVIEWER'
+    DB-->>AppSrv: Trả về kết quả (a)
+    AppSrv->>DB: Check (b): SELECT IsManager FROM UserDepartments WHERE UserId={Rev.Id}
+    DB-->>AppSrv: Trả về kết quả (b) - Xác thực quyền Trưởng/Phó phòng
+
+    alt Lỗi Validation Check (Không thỏa mãn a hoặc b)
+        AppSrv-->>UI: HTTP 403 Forbidden ("Bạn không có thẩm quyền duyệt task này")
+        UI-->>Rev: Hiển thị thông báo lỗi Permission Denied
+    else Đạt cả 2 điều kiện (Pass a & b)
+        alt Chọn Approve (UC16)
+            AppSrv->>Domain: Task.Status = COMPLETED
+            AppSrv->>DB: UPDATE Tasks (Status=COMPLETED) & TaskApprovals (APPROVED)
+        else Chọn Reject (UC17)
+            AppSrv->>Domain: Task.Status = REJECTED
+            AppSrv->>DB: UPDATE Tasks (Status=REJECTED) & TaskApprovals (REJECTED + Reason)
+        end
+
+        AppSrv->>Notif: Gửi thông báo kết quả duyệt cho Assignee
+        Notif-->>Emp: Push SignalR Notification
+        DB-->>AppSrv: Commit Transaction
+        AppSrv-->>UI: HTTP 200 OK
+        UI-->>Rev: Cập nhật UI trạng thái duyệt thành công
+    end
+    deactivate AppSrv
+
+    Note over Emp, UI: Nếu bị Reject, Employee làm lại và bấm "Resume Work"
+    Emp->>UI: Nhấn "Bắt đầu lại (Resume)"
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/status (Status = IN_PROGRESS)
+    activate AppSrv
+    AppSrv->>DB: UPDATE Tasks (Status=IN_PROGRESS) & Ghi TaskHistories (Action=RESUME)
+    DB-->>AppSrv: Lưu thành công
+    AppSrv-->>UI: HTTP 200 OK
+    deactivate AppSrv
+    UI-->>Emp: Task quay lại trạng thái "Đang thực hiện"
 ```
 
 ### 5.5 SD_UC26: Luồng Kéo Thả Trạng Thái Trên Kanban Board (UC26 & UC08)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Quản trị viên (Admin)
+    participant UI as Angular UI
+    participant AppSrv as DepartmentAppService
+    participant Repo as UserDepartmentRepository
+    participant DB as SQL Server Database
+
+    Admin->>UI: Chọn Nhân viên, tick cờ "IsManager" và bấm Gán
+    UI->>AppSrv: POST /api/app/departments/{departmentId:Guid}/assign-user<br/>Payload: { userId: Guid, isManager: bool }
+    activate AppSrv
+    
+    AppSrv->>Repo: FindAsync(x => x.UserId == userId && x.DepartmentId == departmentId)
+    Repo->>DB: SELECT TOP 1 * FROM UserDepartments...
+    DB-->>Repo: Trả về Bản ghi hiện tại (existingRecord) hoặc null
+    Repo-->>AppSrv: Trả về kết quả truy vấn
+    
+    alt existingRecord == null (Lần đầu tiên gán vào phòng ban)
+        AppSrv->>AppSrv: Khởi tạo đối tượng UserDepartment mới
+        AppSrv->>Repo: InsertAsync(new UserDepartment { UserId, DepartmentId, IsManager })
+        Repo->>DB: Thực thi câu lệnh INSERT INTO UserDepartments
+    else existingRecord != null (Đã thuộc phòng ban, chỉ cập nhật quyền)
+        AppSrv->>AppSrv: Cập nhật existingRecord.IsManager = isManager
+        AppSrv->>Repo: UpdateAsync(existingRecord)
+        Repo->>DB: Thực thi câu lệnh UPDATE UserDepartments
+    end
+
+    DB-->>AppSrv: Hoàn tất Transaction
+    AppSrv-->>UI: Trả về HTTP 200 OK
+    deactivate AppSrv
+    
+    UI-->>Admin: Hiển thị thông báo "Gán nhân viên thành công"
+```
+
+### 5.6 SD_UC30_31: Luồng Tự Động Hóa Background Job (UC30 & UC31)
 
 ```mermaid
 sequenceDiagram
@@ -509,7 +584,7 @@ sequenceDiagram
     participant DB as SQL Server Database
 
     User->>UI: Kéo thẻ Task từ cột 'IN_PROGRESS' sang 'REVIEW'
-    UI->>AppSrv: PUT /api/app/tasks/{id}/status (UpdateStatusDto)
+    UI->>AppSrv: PUT /api/app/tasks/{taskId:Guid}/status (UpdateStatusDto)
     activate AppSrv
 
     AppSrv->>AppSrv: Kiểm tra tính hợp lệ của Chuyển trạng thái
@@ -521,9 +596,7 @@ sequenceDiagram
 
     UI-->>User: Thẻ Task nằm cố định ở cột mới trên Kanban
 ```
-
-### 5.6 SD_UC30_31: Luồng Tự Động Hóa Background Job (UC30 & UC31)
-
+### 5.7 SD_UC30_31: Luồng Tự Động Hóa Background Job (UC30 & UC31)
 ```mermaid
 sequenceDiagram
     autonumber
@@ -552,15 +625,14 @@ sequenceDiagram
     DB-->>JobSrv: Danh sách Cấu hình Lặp lại đến hạn
 
     loop Mỗi Cấu hình Lặp lại
-        JobSrv->>DB: INSERT INTO Tasks (Sinh Task mới với GeneratedFromTaskId)
+        JobSrv->>DB: INSERT INTO Tasks (Sinh Task mới lưu trữ GeneratedFromTaskId kiểu Guid)
         JobSrv->>DB: UPDATE RecurringTaskConfigs (Tính NextRunTime mới)
     end
     JobSrv-->>Hangfire: Hoàn thành Sinh Task lặp lại
     deactivate JobSrv
 
-    User-->>User: Nhận thông báo Task quá hạn / Task mới được tự động tạo
-```
-
+    User-->>User: Nhận thông báo Task quá hạn / Task mới được tự động tạo qua SignalR
+ ```
 ---
 
 ## CHƯƠNG 6: SƠ ĐỒ ERD VÀ TỪ ĐIỂN DỮ LIỆU (DATA DICTIONARY)
@@ -569,7 +641,8 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
-    Users ||--o{ Departments : belongs_to
+    Users ||--o{ UserDepartments : works_in
+    Departments ||--o{ UserDepartments : includes
     Users ||--o{ ProjectMembers : participates
     Projects ||--o{ ProjectMembers : has
     Projects ||--o{ Milestones : contains
@@ -597,8 +670,7 @@ erDiagram
     Tasks ||--o| RecurringTaskConfigs : configures
 
     Users {
-        long Id PK
-        long DepartmentId FK
+        Guid Id PK
         string UserName
         string Email
         string PasswordHash
@@ -606,51 +678,60 @@ erDiagram
     }
 
     Departments {
-        long Id PK
+        Guid Id PK
+        Guid ParentId FK "Self-referencing for Tree View"
         string Name
+        string Code
+        boolean IsActive
+    }
+
+    UserDepartments {
+        Guid UserId PK, FK
+        Guid DepartmentId PK, FK
+        boolean IsManager "Xác định vai trò Trưởng/Phó phòng"
     }
 
     Projects {
-        long Id PK
+        Guid Id PK
         string Name
         string Description
         string Status
         datetime StartDate
         datetime EndDate
-        long CreatedBy FK
+        Guid CreatedBy FK
     }
 
     Milestones {
-        long Id PK
-        long ProjectId FK
+        Guid Id PK
+        Guid ProjectId FK
         string Title
         datetime DueDate
     }
 
     Categories {
-        long Id PK
-        long ProjectId FK "Null = Global, NotNull = Project-specific"
+        Guid Id PK
+        Guid ProjectId FK "Null = Global, NotNull = Project-specific"
         string Name
     }
 
     Tags {
-        long Id PK
+        Guid Id PK
         string Name
     }
 
     ProjectMembers {
-        long ProjectId PK, FK
-        long UserId PK, FK
+        Guid ProjectId PK, FK
+        Guid UserId PK, FK
         string AssignedRole
     }
 
     Tasks {
-        long Id PK
-        long ProjectId FK
-        long MilestoneId FK
-        long CategoryId FK
-        long ParentTaskId FK "SubTask (UC10)"
-        long GeneratedFromTaskId FK "Trace Task lặp lại (UC30)"
+        Guid Id PK
+        Guid ProjectId FK
+        Guid MilestoneId FK
+        Guid CategoryId FK
+        Guid ParentTaskId FK "SubTask (UC10)"
+        Guid GeneratedFromTaskId FK "Trace Task lặp lại (UC30)"
         string TaskCode
         string Title
         string Description
@@ -658,71 +739,71 @@ erDiagram
         string Priority
         boolean IsOverdue
         datetime DueDate
-        long CreatedBy FK
+        Guid CreatedBy FK
     }
 
     TaskUsers {
-        long TaskId PK, FK
-        long UserId PK, FK
+        Guid TaskId PK, FK
+        Guid UserId PK, FK
         string RoleType PK "ASSIGNEE, REVIEWER, COLLABORATOR, WATCHER"
     }
 
     TaskTags {
-        long TaskId PK, FK
-        long TagId PK, FK
+        Guid TaskId PK, FK
+        Guid TagId PK, FK
     }
 
     Checklists {
-        long Id PK
-        long TaskId FK
+        Guid Id PK
+        Guid TaskId FK
         string Title
     }
 
     ChecklistItems {
-        long Id PK
-        long ChecklistId FK
+        Guid Id PK
+        Guid ChecklistId FK
         string Content
         boolean IsCompleted
     }
 
     Attachments {
-        long Id PK
-        long TaskId FK
+        Guid Id PK
+        Guid TaskId FK
         string FileName
         string FilePath
-        long UploadedBy FK
+        Guid UploadedBy FK
     }
 
     TaskApprovals {
-        long Id PK
-        long TaskId FK
-        long ReviewerId FK
+        Guid Id PK
+        Guid TaskId FK
+        Guid ReviewerId FK
         string ApprovalStatus
         string Reason
     }
 
     TaskHistories {
-        long Id PK
-        long TaskId FK
-        long UserId FK
+        Guid Id PK
+        Guid TaskId FK
+        Guid UserId FK
         string Action
         string Description
         datetime Timestamp
     }
 
     Comments {
-        long Id PK
-        long TaskId FK
-        long ParentCommentId FK "Reply Comment"
-        long UserId FK
+        Guid Id PK
+        Guid TaskId FK
+        Guid ParentCommentId FK "Reply Comment"
+        Guid UserId FK
         string Content
         datetime CreationTime
     }
 
     AppNotifications {
-        long Id PK
-        long UserId FK
-        long TaskId FK
+        Guid Id PK
+        Guid UserId FK
+        Guid TaskId FK
         string Title
         string Message
         bool IsRead
@@ -730,8 +811,8 @@ erDiagram
     }
 
     RecurringTaskConfigs {
-        long Id PK
-        long TaskId FK
+        Guid Id PK
+        Guid TaskId FK
         string CronExpression
         datetime NextRunTime
         boolean IsActive
@@ -740,41 +821,39 @@ erDiagram
 
 ### 6.2 Từ điển Dữ liệu (Data Dictionary) các Bảng Trọng yếu
 
-#### 1. Bảng `Tasks` (Lưu thông tin Công việc)
+#### #### 1. Bảng `Tasks` (Lưu thông tin Công việc)
 | Tên Cột | Kiểu Dữ liệu (C# / SQL) | Nullable | Khóa | Mô tả Chi tiết |
 | :--- | :--- | :---: | :---: | :--- |
-| `Id` | `long` / `BIGINT` | No | PK | Mã khóa chính tự tăng |
+| `Id` | `Guid` / `UNIQUEIDENTIFIER` | No | PK | Mã khóa chính tự động sinh (`Guid`) |
 | `TaskCode` | `string` / `NVARCHAR(50)` | No | Unique | Mã công việc tự sinh (ví dụ: `TASK-2026-00012`) |
 | `Title` | `string` / `NVARCHAR(255)` | No | | Tiêu đề công việc |
 | `Description` | `string` / `NVARCHAR(MAX)` | Yes | | Mô tả chi tiết nội dung task |
 | `Status` | `string` / `NVARCHAR(30)` | No | | `NEW`, `ASSIGNED`, `IN_PROGRESS`, `REVIEW`, `COMPLETED`, `REJECTED` |
 | `Priority` | `string` / `NVARCHAR(20)` | No | | `LOW`, `MEDIUM`, `HIGH`, `URGENT` |
 | `IsOverdue` | `bool` / `BIT` | No | | `0`: Đúng hạn, `1`: Quá hạn (Background Job cập nhật) |
-| `ProjectId` | `long` / `BIGINT` | No | FK | Liên kết tới dự án (`Projects.Id`) |
-| `MilestoneId` | `long?` / `BIGINT` | Yes | FK | Liên kết cột mốc dự án (`Milestones.Id`) |
-| `CategoryId` | `long?` / `BIGINT` | Yes | FK | Danh mục phân loại task (`Categories.Id`) |
-| `ParentTaskId` | `long?` / `BIGINT` | Yes | FK | Liên kết task cha nếu đây là SubTask (UC10) |
-| `GeneratedFromTaskId` | `long?` / `BIGINT` | Yes | FK | Liên kết task gốc nếu được tạo từ Recurring Job (UC30) |
+| `ProjectId` | `Guid` / `UNIQUEIDENTIFIER` | No | FK | Liên kết tới dự án (`Projects.Id`) |
+| `MilestoneId` | `Guid?` / `UNIQUEIDENTIFIER` | Yes | FK | Liên kết cột mốc dự án (`Milestones.Id`) |
+| `CategoryId` | `Guid?` / `UNIQUEIDENTIFIER` | Yes | FK | Danh mục phân loại task (`Categories.Id`) |
+| `ParentTaskId` | `Guid?` / `UNIQUEIDENTIFIER` | Yes | FK | Liên kết task cha nếu đây là SubTask (UC10) |
+| `GeneratedFromTaskId` | `Guid?` / `UNIQUEIDENTIFIER` | Yes | FK | Liên kết task gốc nếu được tạo từ Recurring Job (UC30) |
 | `DueDate` | `DateTime` / `DATETIME2` | Yes | | Hạn hoàn thành |
-| `CreatedBy` | `long` / `BIGINT` | No | FK | Người tạo task (`Users.Id`) |
+| `CreatedBy` | `Guid` / `UNIQUEIDENTIFIER` | No | FK | Người tạo task (`Users.Id`) |
 
 #### 2. Bảng `TaskUsers` (Phân công Vai trò trên Task)
-| Tên Cột | Kiểu Dữ liệu | Nullable | Khóa | Mô tả Chi tiết |
+| Tên Cột | Kiểu Dữ liệu (C# / SQL) | Nullable | Khóa | Mô tả Chi tiết |
 | :--- | :--- | :---: | :---: | :--- |
-| `TaskId` | `long` / `BIGINT` | No | PK, FK | Liên kết task (`Tasks.Id`) |
-| `UserId` | `long` / `BIGINT` | No | PK, FK | Liên kết người dùng (`Users.Id`) |
+| `TaskId` | `Guid` / `UNIQUEIDENTIFIER` | No | PK, FK | Liên kết task (`Tasks.Id`) |
+| `UserId` | `Guid` / `UNIQUEIDENTIFIER` | No | PK, FK | Liên kết người dùng (`Users.Id`) |
 | `RoleType` | `string` / `NVARCHAR(30)` | No | PK | `ASSIGNEE` (Người làm), `REVIEWER` (Người duyệt), `COLLABORATOR` (Hỗ trợ), `WATCHER` (Theo dõi) |
 
 #### 3. Bảng `TaskApprovals` (Lịch sử Phê duyệt Workflow)
-| Tên Cột | Kiểu Dữ liệu | Nullable | Khóa | Mô tả Chi tiết |
+| Tên Cột | Kiểu Dữ liệu (C# / SQL) | Nullable | Khóa | Mô tả Chi tiết |
 | :--- | :--- | :---: | :---: | :--- |
-| `Id` | `long` / `BIGINT` | No | PK | Khóa chính |
-| `TaskId` | `long` / `BIGINT` | No | FK | Liên kết task (`Tasks.Id`) |
-| `ReviewerId` | `long` / `BIGINT` | No | FK | Người thực hiện duyệt (`Users.Id`) |
+| `Id` | `Guid` / `UNIQUEIDENTIFIER` | No | PK | Khóa chính |
+| `TaskId` | `Guid` / `UNIQUEIDENTIFIER` | No | FK | Liên kết task (`Tasks.Id`) |
+| `ReviewerId` | `Guid` / `UNIQUEIDENTIFIER` | No | FK | Người thực hiện duyệt (`Users.Id`) |
 | `ApprovalStatus` | `string` / `NVARCHAR(30)` | No | | `PENDING`, `APPROVED`, `REJECTED` |
 | `Reason` | `string` / `NVARCHAR(MAX)` | Yes | | Lý do từ chối (bắt buộc khi `REJECTED`) |
-
----
 
 ## CHƯƠNG 7: SƠ ĐỒ LỚP CHI TIẾT (CLASS DIAGRAM) & KIẾN TRÚC ABP
 
@@ -786,36 +865,42 @@ classDiagram
 
     class TaskAppService {
         +CreateTaskAsync(CreateTaskDto input) TaskDto
-        +AssignTaskAsync(long id, AssignTaskDto input) TaskDto
-        +SubmitReviewAsync(long id) TaskDto
-        +ApproveTaskAsync(long id) TaskDto
-        +RejectTaskAsync(long id, RejectTaskDto input) TaskDto
-        +UpdateStatusAsync(long id, UpdateStatusDto input) TaskDto
+        +AssignTaskAsync(Guid id, AssignTaskDto input) TaskDto
+        +SubmitReviewAsync(Guid id) TaskDto
+        +ApproveTaskAsync(Guid id) TaskDto
+        +RejectTaskAsync(Guid id, RejectTaskDto input) TaskDto
+        +UpdateStatusAsync(Guid id, UpdateStatusDto input) TaskDto
     }
 
     class ChecklistAppService {
-        +AddChecklistAsync(long taskId, CreateChecklistDto input) ChecklistDto
-        +AddChecklistItemAsync(long checklistId, CreateItemDto input) ChecklistItemDto
-        +ToggleItemStatusAsync(long itemId) void
+        +AddChecklistAsync(Guid taskId, CreateChecklistDto input) ChecklistDto
+        +AddChecklistItemAsync(Guid checklistId, CreateItemDto input) ChecklistItemDto
+        +ToggleItemStatusAsync(Guid itemId) void
     }
 
     class AttachmentAppService {
-        +UploadAttachmentAsync(long taskId, IFormFile file) AttachmentDto
-        +DeleteAttachmentAsync(long attachmentId) void
+        +UploadAttachmentAsync(Guid taskId, IFormFile file) AttachmentDto
+        +DeleteAttachmentAsync(Guid attachmentId) void
     }
 
     class CommentAppService {
-        +AddCommentAsync(long taskId, CreateCommentDto input) CommentDto
-        +ReplyCommentAsync(long commentId, CreateCommentDto input) CommentDto
+        +AddCommentAsync(Guid taskId, CreateCommentDto input) CommentDto
+        +ReplyCommentAsync(Guid commentId, CreateCommentDto input) CommentDto
     }
 
     class ProjectAppService {
         +CreateProjectAsync(CreateProjectDto input) ProjectDto
-        +AddMemberAsync(long projectId, AddMemberDto input) void
+        +AddMemberAsync(Guid projectId, AddMemberDto input) void
+    }
+
+    class DepartmentAppService {
+        +GetTreeAsync() List_DepartmentTreeDto
+        +AssignUserAsync(AssignUserToDepartmentDto input) void
+        +AssignUserToDepartmentAsync(Guid userId, Guid departmentId, boolean isManager) void
     }
 
     class TaskDomainModel {
-        +long Id
+        +Guid Id
         +string TaskCode
         +string Title
         +TaskStatus Status
@@ -827,8 +912,8 @@ classDiagram
     }
 
     class RecurringTaskConfig {
-        +long Id
-        +long TaskId
+        +Guid Id
+        +Guid TaskId
         +string CronExpression
         +datetime NextRunTime
         +boolean IsActive
@@ -836,9 +921,9 @@ classDiagram
     }
 
     class TaskApproval {
-        +long Id
-        +long TaskId
-        +long ReviewerId
+        +Guid Id
+        +Guid TaskId
+        +Guid ReviewerId
         +ApprovalStatus ApprovalStatus
         +string Reason
         +Approve()
@@ -846,8 +931,8 @@ classDiagram
     }
 
     class NotificationManager {
-        +SendNotificationAsync(long userId, long? taskId, string message)
-        +SendRealtimeSignalRAsync(long userId, object payload)
+        +SendNotificationAsync(Guid userId, Guid? taskId, string message)
+        +SendRealtimeSignalRAsync(Guid userId, object payload)
     }
 
     class BackgroundWorker {
@@ -863,6 +948,7 @@ classDiagram
     CommentAppService --> TaskDomainModel : modifies
     BackgroundWorker --> TaskAppService : invokes jobs
     BackgroundWorker --> RecurringTaskConfig : evaluates
+    DepartmentAppService --> TaskDomainModel : resolves Approver (IsManager)
 ```
 
 ---
