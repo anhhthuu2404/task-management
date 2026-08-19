@@ -53,8 +53,7 @@ namespace TaskManagement;
     typeof(TaskManagementEntityFrameworkCoreModule),
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpSwashbuckleModule),
-    typeof(AbpAspNetCoreSerilogModule),
-    typeof(TaskManagementApplicationModule)
+    typeof(AbpAspNetCoreSerilogModule)
     )]
 public class TaskManagementHttpApiHostModule : AbpModule
 {
@@ -70,6 +69,15 @@ public class TaskManagementHttpApiHostModule : AbpModule
                 options.AddAudiences("TaskManagement");
                 options.UseLocalServer();
                 options.UseAspNetCore();
+            });
+
+            // Ép OpenIddict Server nhận đúng Issuer URL từ AppSettings (https://localhost:44399)
+            builder.AddServer(options =>
+            {
+                if (!string.IsNullOrEmpty(configuration["AuthServer:Authority"]))
+                {
+                    options.SetIssuer(new Uri(configuration["AuthServer:Authority"]!));
+                }
             });
         });
 
@@ -105,7 +113,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
             {
                 options.DisableTransportSecurityRequirement = true;
             });
-            
+
             Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
@@ -121,14 +129,20 @@ public class TaskManagementHttpApiHostModule : AbpModule
         ConfigureVirtualFileSystem(context);
         ConfigureCors(context, configuration);
 
-        //Bước 3 — Đăng ký Contributor trong Host - Language Text
+        // Bật hiển thị thông tin lỗi chi tiết gửi về phía Client
+        Configure<Volo.Abp.AspNetCore.ExceptionHandling.AbpExceptionHandlingOptions>(options =>
+        {
+            options.SendExceptionsDetailsToClients = true;
+        });
+
+        // Đăng ký Contributor trong Host - Language Text
         context.Services.AddTransient<DatabaseLocalizationContributor>();
         Configure<AbpLocalizationOptions>(options =>
         {
             var contributor = context.Services.GetRequiredService<DatabaseLocalizationContributor>();
 
             options.Resources
-                .Get<TaskManagementResource>()   // tên resource của bạn
+                .Get<TaskManagementResource>()
                 .Contributors
                 .Add(contributor);
         });
@@ -175,7 +189,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
             );
         });
     }
-
 
     private void ConfigureVirtualFileSystem(ServiceConfigurationContext context)
     {

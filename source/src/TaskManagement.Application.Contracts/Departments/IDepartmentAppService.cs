@@ -5,14 +5,13 @@ using Volo.Abp.Application.Services;
 
 namespace TaskManagement.Departments;
 
-public interface IDepartmentAppService :
-    ICrudAppService<
-        DepartmentDto,
-        Guid,
-        GetDepartmentListDto, // Dùng DTO này để hỗ trợ tìm kiếm/lọc
-        CreateUpdateDepartmentDto>
+public interface IDepartmentAppService : ICrudAppService<
+    DepartmentDto,
+    Guid,
+    GetDepartmentListDto,
+    CreateUpdateDepartmentDto>
 {
     Task<List<DepartmentTreeDto>> GetTreeAsync();
     Task AssignUserAsync(AssignUserToDepartmentDto input);
-    Task AssignUserToDepartmentAsync(Guid userId, Guid departmentId, bool isManager);
+    Task DeleteUserAsync(Guid departmentId, Guid userId);
 }

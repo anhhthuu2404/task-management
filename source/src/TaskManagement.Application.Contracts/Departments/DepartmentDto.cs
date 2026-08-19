@@ -8,14 +8,24 @@ public class DepartmentDto : FullAuditedEntityDto<Guid>
 {
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; } // Cho phép null đồng bộ với Entity
+    public string? Description { get; set; }
     public Guid? ParentId { get; set; }
     public bool IsActive { get; set; }
+
+    public List<DepartmentMemberDto> Members { get; set; } = new();
+}
+
+public class DepartmentMemberDto
+{
+    public Guid UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public bool IsManager { get; set; }
 }
 
 public class DepartmentTreeDto : DepartmentDto
 {
-    public List<DepartmentTreeDto> Children { get; set; } = [];
+    public List<DepartmentTreeDto> Children { get; set; } = new();
 }
 
 public class AssignUserToDepartmentDto

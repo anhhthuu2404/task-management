@@ -3,7 +3,7 @@ import { Environment } from '@abp/ng.core';
 const baseUrl = 'http://localhost:4200';
 
 const oAuthConfig = {
-  issuer: 'https://localhost:44304/',
+  issuer: 'https://localhost:44399/', // <-- Sửa ở đây
   redirectUri: baseUrl,
   clientId: 'TaskManagement_App',
   responseType: 'code',
@@ -20,7 +20,7 @@ export const environment = {
   oAuthConfig,
   apis: {
     default: {
-      url: 'https://localhost:44304',
+      url: 'https://localhost:44399', // <-- Sửa ở đây
       rootNamespace: 'TaskManagement',
     },
     AbpAccountPublic: {

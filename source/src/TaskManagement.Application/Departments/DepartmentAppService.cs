@@ -7,6 +7,7 @@ using TaskManagement.Localization;
 using TaskManagement.Permissions;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace TaskManagement.Departments;
 
@@ -19,21 +20,61 @@ public class DepartmentAppService : CrudAppService<
     CreateUpdateDepartmentDto>, IDepartmentAppService
 {
     private readonly IRepository<UserDepartment> _userDepartmentRepository;
+    private readonly IRepository<IdentityUser, Guid> _userRepository;
 
     public DepartmentAppService(
         IRepository<Department, Guid> repository,
-        IRepository<UserDepartment> userDepartmentRepository)
+        IRepository<UserDepartment> userDepartmentRepository,
+        IRepository<IdentityUser, Guid> userRepository)
         : base(repository)
     {
         _userDepartmentRepository = userDepartmentRepository;
+        _userRepository = userRepository;
 
-        // Khởi tạo Phân quyền & Tài nguyên đa ngôn ngữ chuẩn ABP trong Constructor
         LocalizationResource = typeof(TaskManagementResource);
         GetPolicyName = TaskManagementPermissions.Departments.Default;
         GetListPolicyName = TaskManagementPermissions.Departments.Default;
         CreatePolicyName = TaskManagementPermissions.Departments.Create;
         UpdatePolicyName = TaskManagementPermissions.Departments.Edit;
         DeletePolicyName = TaskManagementPermissions.Departments.Delete;
+    }
+
+    public override async Task<DepartmentDto> GetAsync(Guid id)
+    {
+        var department = await Repository.GetAsync(id);
+
+        var dto = new DepartmentDto
+        {
+            Id = department.Id,
+            Code = department.Code,
+            Name = department.Name,
+            Description = department.Description,
+            ParentId = department.ParentId,
+            IsActive = department.IsActive,
+            CreationTime = department.CreationTime,
+            CreatorId = department.CreatorId,
+            LastModificationTime = department.LastModificationTime,
+            LastModifierId = department.LastModifierId,
+            IsDeleted = department.IsDeleted,
+            DeleterId = department.DeleterId,
+            DeletionTime = department.DeletionTime,
+            Members = new List<DepartmentMemberDto>()
+        };
+
+        var query = from userDept in await _userDepartmentRepository.GetQueryableAsync()
+                    join user in await _userRepository.GetQueryableAsync() on userDept.UserId equals user.Id
+                    where userDept.DepartmentId == id
+                    select new DepartmentMemberDto
+                    {
+                        UserId = user.Id,
+                        UserName = user.UserName ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
+                        IsManager = userDept.IsManager
+                    };
+
+        dto.Members = await AsyncExecuter.ToListAsync(query);
+
+        return dto;
     }
 
     protected override async Task<IQueryable<Department>> CreateFilteredQueryAsync(GetDepartmentListDto input)
@@ -60,7 +101,6 @@ public class DepartmentAppService : CrudAppService<
 
         var lookup = departmentDtos.ToLookup(x => x.ParentId);
 
-        // Chuẩn hóa tên tham số parentId để tránh lỗi CS0103
         List<DepartmentTreeDto> BuildTree(Guid? parentId)
         {
             return lookup[parentId].Select(node =>
@@ -75,26 +115,30 @@ public class DepartmentAppService : CrudAppService<
 
     public async Task AssignUserAsync(AssignUserToDepartmentDto input)
     {
-        await AssignUserToDepartmentAsync(input.UserId, input.DepartmentId, input.IsManager);
-    }
-
-    public async Task AssignUserToDepartmentAsync(Guid userId, Guid departmentId, bool isManager)
-    {
-        var existing = await _userDepartmentRepository.FindAsync(x => x.UserId == userId && x.DepartmentId == departmentId);
+        var existing = await _userDepartmentRepository.FirstOrDefaultAsync(x => x.UserId == input.UserId && x.DepartmentId == input.DepartmentId);
 
         if (existing == null)
         {
             await _userDepartmentRepository.InsertAsync(new UserDepartment
             {
-                UserId = userId,
-                DepartmentId = departmentId,
-                IsManager = isManager
+                UserId = input.UserId,
+                DepartmentId = input.DepartmentId,
+                IsManager = input.IsManager
             });
         }
         else
         {
-            existing.IsManager = isManager;
+            existing.IsManager = input.IsManager;
             await _userDepartmentRepository.UpdateAsync(existing);
+        }
+    }
+
+    public async Task DeleteUserAsync(Guid departmentId, Guid userId)
+    {
+        var existing = await _userDepartmentRepository.FirstOrDefaultAsync(x => x.DepartmentId == departmentId && x.UserId == userId);
+        if (existing != null)
+        {
+            await _userDepartmentRepository.DeleteAsync(existing);
         }
     }
 }

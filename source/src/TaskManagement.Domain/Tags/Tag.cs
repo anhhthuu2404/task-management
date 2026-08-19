@@ -1,7 +1,8 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
+using TaskManagement.Categories;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
-
 namespace TaskManagement.Tags;
 
 public class Tag : FullAuditedAggregateRoot<Guid>
@@ -18,4 +19,8 @@ public class Tag : FullAuditedAggregateRoot<Guid>
         ColorCode = colorCode;
         IsActive = isActive;
     }
+    public Guid? CategoryId { get; set; }
+
+    [ForeignKey("CategoryId")]
+    public virtual Category Category { get; set; }
 }

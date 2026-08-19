@@ -1,7 +1,7 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { IdentityUserService } from '@abp/ng.identity/proxy';
 
 @Component({
   selector: 'app-user',
@@ -10,32 +10,35 @@ import { HttpClient } from '@angular/common/http';
   templateUrl: './user.component.html'
 })
 export class UserComponent implements OnInit {
+
   users: any[] = [];
   isModalOpen = false;
   isEditMode = false;
-  selectedUserId = '';
+  selectedUserId: string | null = null;
   showPassword = false;
-  
-  formData = {
+
+  formData: any = {
     userName: '',
-    password: '',
     email: '',
     name: '',
     surname: '',
-    isActive: true
+    password: '',
+    isActive: true,
+    lockoutEnabled: true,
+    roleNames: [],
+    extraProperties: {}
   };
 
-  constructor(private http: HttpClient, private cd: ChangeDetectorRef) {}
+  constructor(private userService: IdentityUserService) {}
 
   ngOnInit(): void {
     this.loadUsers();
   }
 
   loadUsers(): void {
-    this.http.get<any>('/api/identity/users?maxResultCount=100').subscribe({
-      next: (res) => {
+    this.userService.getList({ maxResultCount: 100 }).subscribe({
+      next: (res: any) => {
         this.users = res.items || [];
-        this.cd.detectChanges();
       },
       error: (err) => console.error('Lỗi tải danh sách user:', err)
     });
@@ -43,74 +46,86 @@ export class UserComponent implements OnInit {
 
   openModal(user?: any): void {
     this.showPassword = false;
+    
     if (user) {
       this.isEditMode = true;
       this.selectedUserId = user.id;
       this.formData = {
         userName: user.userName,
-        password: '',
         email: user.email,
         name: user.name || '',
         surname: user.surname || '',
-        isActive: user.isActive
+        password: '',
+        isActive: user.isActive ?? true,
+        lockoutEnabled: user.lockoutEnabled ?? true,
+        roleNames: user.roleNames || [],
+        extraProperties: user.extraProperties || {}
       };
     } else {
       this.isEditMode = false;
-      this.selectedUserId = '';
+      this.selectedUserId = null;
       this.formData = {
         userName: '',
-        password: '',
         email: '',
         name: '',
         surname: '',
-        isActive: true
+        password: '',
+        isActive: true,
+        lockoutEnabled: true,
+        roleNames: [],
+        extraProperties: {}
       };
     }
-    this.isModalOpen = true;
-    this.cd.detectChanges();
+    this.isModalOpen = true; 
+  }
+
+  closeModal(): void {
+    this.isModalOpen = false;
   }
 
   saveUser(): void {
-    // Gán mặc định name và surname nếu trống để tránh lỗi 400 từ ABP API
-    if (!this.formData.name) this.formData.name = this.formData.userName;
-    if (!this.formData.surname) this.formData.surname = ' ';
-
-    if (this.isEditMode) {
-      this.http.put(`/api/identity/users/${this.selectedUserId}`, this.formData).subscribe({
+    if (this.isEditMode && this.selectedUserId) {
+      this.userService.update(this.selectedUserId, this.formData).subscribe({
         next: () => {
+          alert('Cập nhật người dùng thành công!');
           this.closeModal();
           this.loadUsers();
         },
-        error: (err) => {
-          const errorMsg = err.error?.error?.message || err.error?.error?.details || 'Có lỗi khi cập nhật user!';
-          alert(errorMsg);
-        }
+        error: (err: any) => this.handleError(err, 'cập nhật')
       });
     } else {
-      this.http.post('/api/identity/users', this.formData).subscribe({
+      this.userService.create(this.formData).subscribe({
         next: () => {
+          alert('Thêm người dùng thành công!');
           this.closeModal();
           this.loadUsers();
         },
-        error: (err) => {
-          const errorMsg = err.error?.error?.message || err.error?.error?.details || 'Có lỗi khi thêm mới user!';
-          alert(errorMsg);
-        }
+        error: (err: any) => this.handleError(err, 'thêm mới')
       });
     }
   }
 
   deleteUser(id: string): void {
-    if (confirm('Bạn có chắc chắn muốn xóa tài khoản này?')) {
-      this.http.delete(`/api/identity/users/${id}`).subscribe({
-        next: () => this.loadUsers(),
-        error: (err) => alert(err.error?.error?.message || 'Không thể xóa user này!')
+    if (confirm('Bạn có chắc chắn muốn xóa người dùng này không?')) {
+      this.userService.delete(id).subscribe({
+        next: () => {
+          alert('Xóa người dùng thành công!');
+          this.loadUsers();
+        },
+        error: (err: any) => {
+          let errorMsg = err.error?.error?.message || 'Không thể xóa người dùng!';
+          alert(errorMsg);
+        }
       });
     }
   }
 
-  closeModal(): void {
-    this.isModalOpen = false;
-    this.cd.detectChanges();
+  private handleError(err: any, actionName: string): void {
+    let errorMsg = `Có lỗi khi ${actionName} user!`;
+    if (err.error?.error) {
+      const abpError = err.error.error;
+      errorMsg = abpError.details || abpError.message || errorMsg;
+    }
+    alert(`Không thể ${actionName} người dùng:\n` + errorMsg);
   }
 }

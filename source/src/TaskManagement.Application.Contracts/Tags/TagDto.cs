@@ -7,4 +7,9 @@ public class TagDto : FullAuditedEntityDto<Guid>
 {
     public string Name { get; set; } = string.Empty;
     public string ColorCode { get; set; } = string.Empty;
+
+   
+    public string? CategoryName { get; set; }
+  
+    public Guid? CategoryId { get; set; }
 }

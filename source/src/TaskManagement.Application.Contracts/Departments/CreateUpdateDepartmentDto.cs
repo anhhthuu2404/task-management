@@ -13,9 +13,9 @@ public class CreateUpdateDepartmentDto
     [StringLength(128)]
     public string Name { get; set; } = string.Empty;
 
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
 
-    public Guid? ParentId { get; set; } 
+    public Guid? ParentId { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

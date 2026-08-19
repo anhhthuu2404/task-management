@@ -1,20 +1,25 @@
-﻿using TaskManagement.LocalizationManagement.LanguageTexts;
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using TaskManagement.LocalizationManagement.LanguageTexts;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Localization;
+using Volo.Abp.Threading;
 
 namespace TaskManagement.Localization
 {
-    //Bước 2 — Tạo Database Localization Contributor trong Application Layer - LanguageText
+    // Bước 2 — Tạo Database Localization Contributor trong Application Layer - LanguageText
     public class DatabaseLocalizationContributor : ILocalizationResourceContributor
     {
         private readonly IRepository<LanguageText, Guid> _languageTextRepository;
-        private List<LanguageText> _cachedTexts;
-        private List<string> _cachedCultures;
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
+        private readonly object _syncLock = new();
+
+        private List<LanguageText>? _cachedTexts;
+        private List<string>? _cachedCultures;
 
         public bool IsDynamic => true;
 
@@ -32,15 +37,15 @@ namespace TaskManagement.Localization
         // ABP gọi khi khởi tạo contributor
         public void Initialize(LocalizationResourceInitializationContext context)
         {
-            // Không làm gì — không cần ở scenario này
+            // Không cần xử lý ở scenario này
         }
 
-        // Dùng để đọc 1 key cụ thể (ít dùng)
+        // Dùng để đọc 1 key cụ thể
         public LocalizedString? GetOrNull(string cultureName, string name)
         {
             EnsureCacheLoaded();
 
-            var item = _cachedTexts
+            var item = _cachedTexts?
                 .FirstOrDefault(x =>
                     x.CultureName == cultureName &&
                     x.Key == name);
@@ -56,9 +61,9 @@ namespace TaskManagement.Localization
         {
             EnsureCacheLoaded();
 
-            var texts = _cachedTexts
+            var texts = _cachedTexts?
                 .Where(x => x.CultureName == cultureName)
-                .ToList();
+                .ToList() ?? new List<LanguageText>();
 
             foreach (var t in texts)
             {
@@ -71,9 +76,9 @@ namespace TaskManagement.Localization
         {
             await EnsureCacheLoadedAsync();
 
-            var texts = _cachedTexts
+            var texts = _cachedTexts?
                 .Where(x => x.CultureName == cultureName)
-                .ToList();
+                .ToList() ?? new List<LanguageText>();
 
             foreach (var t in texts)
             {
@@ -85,34 +90,58 @@ namespace TaskManagement.Localization
         public async Task<IEnumerable<string>> GetSupportedCulturesAsync()
         {
             await EnsureCacheLoadedAsync();
-            return _cachedCultures;
+            return _cachedCultures ?? Enumerable.Empty<string>();
         }
 
         // ====== PRIVATE HELPERS ======
 
         private void EnsureCacheLoaded()
         {
-            //if (_cachedTexts != null)
-            //    return;
+            // 1. Nếu đã có Cache thì trả về ngay (Mở lại comment bị khóa)
+            if (_cachedTexts != null)
+            {
+                return;
+            }
 
-            _cachedTexts = _languageTextRepository.GetListAsync().Result;
-            _cachedCultures = _cachedTexts
-                .Select(x => x.CultureName)
-                .Distinct()
-                .ToList();
+            // 2. Sử dụng lock đồng bộ và AsyncHelper.RunSync của ABP để tránh Deadlock
+            lock (_syncLock)
+            {
+                if (_cachedTexts == null)
+                {
+                    _cachedTexts = AsyncHelper.RunSync(() => _languageTextRepository.GetListAsync());
+                    _cachedCultures = _cachedTexts
+                        .Select(x => x.CultureName)
+                        .Distinct()
+                        .ToList();
+                }
+            }
         }
 
         private async Task EnsureCacheLoadedAsync()
         {
-            //if (_cachedTexts != null)
-            //    return;
+            // 1. Tránh load lại DB nếu đã có Cache
+            if (_cachedTexts != null)
+            {
+                return;
+            }
 
-            _cachedTexts = await _languageTextRepository.GetListAsync();
-
-            _cachedCultures = _cachedTexts
-                .Select(x => x.CultureName)
-                .Distinct()
-                .ToList();
+            // 2. Sử dụng SemaphoreSlim để đảm bảo chỉ 1 Request gọi DB tại một thời điểm
+            await _semaphore.WaitAsync();
+            try
+            {
+                if (_cachedTexts == null)
+                {
+                    _cachedTexts = await _languageTextRepository.GetListAsync();
+                    _cachedCultures = _cachedTexts
+                        .Select(x => x.CultureName)
+                        .Distinct()
+                        .ToList();
+                }
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
     }
 }

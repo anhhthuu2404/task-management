@@ -8,4 +8,6 @@ export interface CreateUpdateTagDto {
 export interface TagDto extends FullAuditedEntityDto<string> {
   name?: string;
   colorCode?: string;
+  categoryName?: string;
+  categoryId?: string;
 }

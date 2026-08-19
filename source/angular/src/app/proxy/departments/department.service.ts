@@ -20,15 +20,6 @@ export class DepartmentService {
     { apiName: this.apiName,...config });
   
 
-  assignUserToDepartment = (userId: string, departmentId: string, isManager: boolean, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, void>({
-      method: 'POST',
-      url: '/api/app/department/assign-user-to-department',
-      params: { userId, departmentId, isManager },
-    },
-    { apiName: this.apiName,...config });
-  
-
   create = (input: CreateUpdateDepartmentDto, config?: Partial<Rest.Config>) =>
     this.restService.request<any, DepartmentDto>({
       method: 'POST',
@@ -42,6 +33,15 @@ export class DepartmentService {
     this.restService.request<any, void>({
       method: 'DELETE',
       url: `/api/app/department/${id}`,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  deleteUser = (departmentId: string, userId: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, void>({
+      method: 'DELETE',
+      url: '/api/app/department/user',
+      params: { departmentId, userId },
     },
     { apiName: this.apiName,...config });
   

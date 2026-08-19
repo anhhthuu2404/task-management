@@ -1,92 +1,116 @@
-<abp-page title="Quản lý Thẻ (Tags)">
-  <abp-page-toolbar-container class="col">
-    <div class="text-lg-end pt-2 pt-lg-0">
-      <button class="btn btn-primary" type="button" (click)="create()">
-        <i class="fa fa-plus me-1"></i>
-        <span>Thêm thẻ</span>
-      </button>
-    </div>
-  </abp-page-toolbar-container>
-
-  <div class="card">
-    <div class="card-body">
-      <form [formGroup]="searchForm" (ngSubmit)="search()" class="mb-3">
-        <div class="row g-2">
-          <div class="col-md-4">
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Tìm kiếm thẻ..."
-              formControlName="keyword"
-            />
-          </div>
-          <div class="col-md-4">
-            <button type="submit" class="btn btn-primary me-2">
-              <i class="fa fa-search me-1"></i>Tìm kiếm
-            </button>
-            <button type="button" class="btn btn-outline-secondary" (click)="reset()">
-              Đặt lại
-            </button>
-          </div>
+<abp-page [title]="'Danh sách Thẻ (Tags)'">
+  <!-- Form Tìm kiếm & Lọc -->
+  <abp-card>
+    <abp-card-body>
+      <form [formGroup]="searchForm" (keyup.enter)="search()" class="row mb-3">
+        <div class="col-md-4 mb-2">
+          <label class="form-label">Tìm kiếm từ khóa</label>
+          <input type="text" class="form-control" formControlName="keyword" placeholder="Nhập tên thẻ..." />
+        </div>
+        <div class="col-md-4 mb-2">
+          <label class="form-label">Lọc theo danh mục</label>
+          <select class="form-select" formControlName="categoryId">
+            <option value="">-- Tất cả danh mục --</option>
+            <option *ngFor="let cat of categories" [value]="cat.id || cat.Id">
+              {{ cat.name || cat.Name }}
+            </option>
+          </select>
+        </div>
+        <div class="col-md-4 mb-2 d-flex align-items-end">
+          <button type="button" class="btn btn-primary me-2" (click)="search()">
+            <i class="fa fa-search me-1"></i> Tìm kiếm
+          </button>
+          <button type="button" class="btn btn-secondary me-2" (click)="reset()">
+            <i class="fa fa-refresh me-1"></i> Làm mới
+          </button>
+          <button type="button" class="btn btn-success ms-auto" (click)="create()">
+            <i class="fa fa-plus me-1"></i> Thêm mới
+          </button>
         </div>
       </form>
+    </abp-card-body>
+  </abp-card>
 
-      <ngx-datatable [rows]="items.items" [count]="items.totalCount" [list]="list" default>
-        <ngx-datatable-column [name]="'Thao tác'" [sortable]="false" [width]="100">
+  <!-- Bảng hiển thị danh sách -->
+  <abp-card>
+    <abp-card-body>
+      <ngx-datatable
+        [rows]="items.items"
+        [count]="items.totalCount"
+        [list]="list"
+        [loadingIndicator]="loading"
+        default
+      >
+        <!-- Cột Thao tác -->
+        <ngx-datatable-column [name]="'Thao tác'" [sortable]="false" [maxWidth]="120">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-primary me-1"
-              (click)="edit(row.id)"
-              title="Sửa"
-            >
-              <i class="fa fa-pencil"></i>
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-danger"
-              (click)="delete(row.id)"
-              title="Xóa"
-            >
-              <i class="fa fa-trash"></i>
-            </button>
+            <div class="btn-group btn-group-sm" role="group">
+              <button class="btn btn-primary" (click)="edit(row.id || row.Id)" title="Sửa">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <button class="btn btn-danger" (click)="delete(row.id || row.Id)" title="Xóa">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
           </ng-template>
         </ngx-datatable-column>
 
-        <ngx-datatable-column name="Tên thẻ" prop="name">
+        <!-- Cột Tên Thẻ -->
+        <ngx-datatable-column [name]="'Tên thẻ'" prop="name">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <span class="badge bg-secondary me-1"><i class="fa fa-tag me-1"></i>{{ row.name }}</span>
+            <span class="badge bg-primary text-white p-2">
+              <i class="fa fa-tag me-1"></i> {{ row.name || row.Name }}
+            </span>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <!-- Cột Danh Mục Thời Gian -->
+        <ngx-datatable-column name="Danh mục thời gian">
+          <ng-template let-row="row" ngx-datatable-cell-template>
+            <span class="badge bg-info text-dark" *ngIf="getCategoryName(row)">
+              <i class="fa fa-folder me-1"></i> {{ getCategoryName(row) }}
+            </span>
+            <span class="text-muted small fst-italic" *ngIf="!getCategoryName(row)">
+              chưa có danh mục
+            </span>
           </ng-template>
         </ngx-datatable-column>
       </ngx-datatable>
-    </div>
-  </div>
+    </abp-card-body>
+  </abp-card>
 
-  <abp-modal [(visible)]="isModalOpen">
+  <!-- Modal Thêm/Sửa Thẻ -->
+  <abp-modal [(visible)]="isModalOpen" [options]="modalOptions">
     <ng-template #abpHeader>
-      <h3>{{ (selected.id ? 'Sửa thẻ' : 'Thêm thẻ mới') }}</h3>
+      <h3>{{ selected.id ? 'Sửa Thẻ' : 'Thêm Thẻ Mới' }}</h3>
     </ng-template>
 
     <ng-template #abpBody>
-      <form [formGroup]="form" (ngSubmit)="save()" *ngIf="form">
-        <div class="form-group mb-3">
-          <label for="tag-name" class="form-label">Tên thẻ</label>
-          <span class="text-danger"> * </span>
-          <input
-            type="text"
-            id="tag-name"
-            class="form-control"
-            formControlName="name"
-            autofocus
-          />
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="mb-3">
+          <label class="form-label">Tên thẻ <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" formControlName="name" placeholder="Nhập tên thẻ..." />
+          <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="text-danger mt-1 small">
+            Vui lòng nhập tên thẻ hợp lệ (tối đa 100 ký tự).
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Thuộc danh mục</label>
+          <select class="form-select" formControlName="categoryId">
+            <option [ngValue]="null">-- Không chọn --</option>
+            <option *ngFor="let cat of categories" [value]="cat.id || cat.Id">
+              {{ cat.name || cat.Name }}
+            </option>
+          </select>
         </div>
       </form>
     </ng-template>
 
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" abpClose>Hủy</button>
-      <button class="btn btn-primary" (click)="save()" [disabled]="form?.invalid">
-        <i class="fa fa-check me-1"></i>Lưu
+      <button type="button" class="btn btn-secondary" #abpClose>Hủy</button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <i class="fa fa-save me-1"></i> Lưu
       </button>
     </ng-template>
   </abp-modal>

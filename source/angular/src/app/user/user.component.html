@@ -2,7 +2,7 @@
   <div class="card-body">
     <!-- Header trang -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="fw-bold text-primary m-0">Quản lý Người dùng</h2>
+      <h2 class="fw-bold text-primary m-0">Quản Lý Người dùng</h2>
       <button type="button" class="btn btn-primary d-flex align-items-center gap-2" (click)="openModal()">
         <i class="fa fa-plus"></i> Thêm người dùng
       </button>
@@ -13,20 +13,20 @@
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th>Tên đăng nhập</th>
-            <th>Họ tên</th>
-            <th>Email</th>
-            <th>Trạng thái</th>
-            <th class="text-end">Thao tác</th>
+            <th style="width: 25%;">Tên đăng nhập</th>
+            <th style="width: 25%;">Họ tên</th>
+            <th style="width: 25%;">E-mail</th>
+            <th style="width: 12%;">Trạng thái</th>
+            <th class="text-end" style="width: 13%;">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let u of users">
-            <td class="fw-bold">{{ u.userName }}</td>
-            <td>{{ u.name }} {{ u.surname }}</td>
+            <td class="fw-bold text-dark">{{ u.userName }}</td>
+            <td>{{ (u.surname ? u.surname + ' ' : '') + (u.name || '') }}</td>
             <td>{{ u.email }}</td>
             <td>
-              <span class="badge" [ngClass]="u.isActive ? 'bg-success' : 'bg-danger'">
+              <span class="badge px-2 py-1" [ngClass]="u.isActive ? 'bg-success' : 'bg-danger'">
                 {{ u.isActive ? 'Hoạt động' : 'Đã khóa' }}
               </span>
             </td>
@@ -61,7 +61,18 @@
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label fw-bold">Tên đăng nhập <span class="text-danger">*</span></label>
-          <input [(ngModel)]="formData.userName" [disabled]="isEditMode" type="text" class="form-control" placeholder="VD: admin" />
+          <input [(ngModel)]="formData.userName" [disabled]="isEditMode" type="text" class="form-control" placeholder="VD: anhthu" />
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Họ</label>
+            <input [(ngModel)]="formData.surname" type="text" class="form-control" placeholder="VD: Nguyễn" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Tên</label>
+            <input [(ngModel)]="formData.name" type="text" class="form-control" placeholder="VD: Anh Thư" />
+          </div>
         </div>
         
         <!-- Ô mật khẩu có tích hợp nút ẩn/hiện con mắt -->
@@ -76,9 +87,10 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+          <label class="form-label fw-bold">E-mail <span class="text-danger">*</span></label>
           <input [(ngModel)]="formData.email" type="email" class="form-control" placeholder="VD: admin@abp.io" />
         </div>
+
         <div class="form-check">
           <input [(ngModel)]="formData.isActive" type="checkbox" class="form-check-input" id="activeCheck" />
           <label class="form-check-label fw-semibold" for="activeCheck">Kích hoạt tài khoản</label>

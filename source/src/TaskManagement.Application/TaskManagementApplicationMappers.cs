@@ -12,14 +12,14 @@ using TaskManagement.Tags;
 namespace TaskManagement;
 
 #region Books
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementBookToBookDtoMapper : MapperBase<Book, BookDto>
 {
     public override partial BookDto Map(Book source);
     public override partial void Map(Book source, BookDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateBookDtoToBookMapper : MapperBase<CreateUpdateBookDto, Book>
 {
     public override partial Book Map(CreateUpdateBookDto source);
@@ -28,28 +28,28 @@ public partial class TaskManagementCreateUpdateBookDtoToBookMapper : MapperBase<
 #endregion
 
 #region Languages
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementLanguageToLanguageDtoMapper : MapperBase<Language, LanguageDto>
 {
     public override partial LanguageDto Map(Language source);
     public override partial void Map(Language source, LanguageDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateLanguageDtoToLanguageMapper : MapperBase<CreateUpdateLanguageDto, Language>
 {
     public override partial Language Map(CreateUpdateLanguageDto source);
     public override partial void Map(CreateUpdateLanguageDto source, Language destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementInputLanguageDtoToLanguageRequestMapper : MapperBase<InputLanguageDto, LanguageRequest>
 {
     public override partial LanguageRequest Map(InputLanguageDto source);
     public override partial void Map(InputLanguageDto source, LanguageRequest destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementLanguageQueryResponseToLanguageDtoMapper : MapperBase<LanguageQueryResponse, LanguageDto>
 {
     public override partial LanguageDto Map(LanguageQueryResponse source);
@@ -58,14 +58,14 @@ public partial class TaskManagementLanguageQueryResponseToLanguageDtoMapper : Ma
 #endregion
 
 #region LanguageTexts
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementLanguageTextToLanguageTextDtoMapper : MapperBase<LanguageText, LanguageTextDto>
 {
     public override partial LanguageTextDto Map(LanguageText source);
     public override partial void Map(LanguageText source, LanguageTextDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateLanguageTextDtoToLanguageTextMapper : MapperBase<CreateUpdateLanguageTextDto, LanguageText>
 {
     public override partial LanguageText Map(CreateUpdateLanguageTextDto source);
@@ -74,42 +74,42 @@ public partial class TaskManagementCreateUpdateLanguageTextDtoToLanguageTextMapp
 #endregion
 
 #region SysMasterLists
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagement_GetSysMasterListInput_To_SysMasterListRequest_Mapper : MapperBase<GetSysMasterListInput, SysMasterListRequest>
 {
     public override partial SysMasterListRequest Map(GetSysMasterListInput source);
     public override partial void Map(GetSysMasterListInput source, SysMasterListRequest destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagement_PageSysMasterListQueryResponse_To_SysMasterListDto_Mapper : MapperBase<PageSysMasterListQueryResponse, SysMasterListDto>
 {
     public override partial SysMasterListDto Map(PageSysMasterListQueryResponse source);
     public override partial void Map(PageSysMasterListQueryResponse source, SysMasterListDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagement_InfoSysMasterListQueryResponse_To_SysMasterListDto_Mapper : MapperBase<InfoSysMasterListQueryResponse, SysMasterListDto>
 {
     public override partial SysMasterListDto Map(InfoSysMasterListQueryResponse source);
     public override partial void Map(InfoSysMasterListQueryResponse source, SysMasterListDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagement_SysMasterListQueryResponse_To_SysMasterListDto_Mapper : MapperBase<SysMasterListQueryResponse, SysMasterListDto>
 {
     public override partial SysMasterListDto Map(SysMasterListQueryResponse source);
     public override partial void Map(SysMasterListQueryResponse source, SysMasterListDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagement_CreateUpdateSysMasterListDto_To_SysMasterListInsertOrUpdateRequest_Mapper : MapperBase<CreateUpdateSysMasterListDto, SysMasterListInsertOrUpdateRequest>
 {
     public override partial SysMasterListInsertOrUpdateRequest Map(CreateUpdateSysMasterListDto source);
     public override partial void Map(CreateUpdateSysMasterListDto source, SysMasterListInsertOrUpdateRequest destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagement_DeleteSysMasterListDto_To_SysMasterListDeleteRequest_Mapper : MapperBase<DeleteSysMasterListDto, SysMasterListDeleteRequest>
 {
     public override partial SysMasterListDeleteRequest Map(DeleteSysMasterListDto source);
@@ -118,14 +118,14 @@ public partial class TaskManagement_DeleteSysMasterListDto_To_SysMasterListDelet
 #endregion
 
 #region Categories
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementCategoryToCategoryDtoMapper : MapperBase<Category, CategoryDto>
 {
     public override partial CategoryDto Map(Category source);
     public override partial void Map(Category source, CategoryDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateCategoryDtoToCategoryMapper : MapperBase<CreateUpdateCategoryDto, Category>
 {
     public override partial Category Map(CreateUpdateCategoryDto source);
@@ -134,14 +134,18 @@ public partial class TaskManagementCreateUpdateCategoryDtoToCategoryMapper : Map
 #endregion
 
 #region Tags
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementTagToTagDtoMapper : MapperBase<Tag, TagDto>
 {
+    
+    [MapperIgnoreTarget(nameof(TagDto.CategoryName))]
     public override partial TagDto Map(Tag source);
+
+    [MapperIgnoreTarget(nameof(TagDto.CategoryName))]
     public override partial void Map(Tag source, TagDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateTagDtoToTagMapper : MapperBase<CreateUpdateTagDto, Tag>
 {
     public override partial Tag Map(CreateUpdateTagDto source);
@@ -150,14 +154,14 @@ public partial class TaskManagementCreateUpdateTagDtoToTagMapper : MapperBase<Cr
 #endregion
 
 #region Departments
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementDepartmentToDepartmentDtoMapper : MapperBase<Department, DepartmentDto>
 {
     public override partial DepartmentDto Map(Department source);
     public override partial void Map(Department source, DepartmentDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementDepartmentToDepartmentTreeDtoMapper : MapperBase<Department, DepartmentTreeDto>
 {
     [MapperIgnoreTarget(nameof(DepartmentTreeDto.Children))]
@@ -167,10 +171,17 @@ public partial class TaskManagementDepartmentToDepartmentTreeDtoMapper : MapperB
     public override partial void Map(Department source, DepartmentTreeDto destination);
 }
 
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateUpdateDepartmentDtoToDepartmentMapper : MapperBase<CreateUpdateDepartmentDto, Department>
 {
     public override partial Department Map(CreateUpdateDepartmentDto source);
     public override partial void Map(CreateUpdateDepartmentDto source, Department destination);
+}
+
+[Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.None)]
+public partial class TaskManagementDepartmentToCreateUpdateDepartmentDtoMapper : MapperBase<Department, CreateUpdateDepartmentDto>
+{
+    public override partial CreateUpdateDepartmentDto Map(Department source);
+    public override partial void Map(Department source, CreateUpdateDepartmentDto destination);
 }
 #endregion
