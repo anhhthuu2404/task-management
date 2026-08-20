@@ -59,7 +59,14 @@ public static class TaskManagementPermissions
         public const string ManageUsers = Default + ".ManageUsers";
         public const string AssignUser = Default + ".AssignUser";
     }
-      
+    public static class Tasks
+    {
+        public const string Default = GroupName + ".Tasks";
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";   
+        public const string Delete = Default + ".Delete";
+    }
+
     //Add your own permission names. Example:
     //public const string MyPermission1 = GroupName + ".MyPermission1";
 }

@@ -18,7 +18,8 @@ import { finalize } from 'rxjs/operators';
 
 import { TagService } from '../proxy/tags/tag.service';
 import { TagDto } from '../proxy/tags/models';
-import { CategoryService } from '../proxy/categories/category.service'; 
+import { CategoryService } from '../proxy/categories/category.service';
+import { CategoryDto } from '../proxy/categories/models';
 
 @Component({
   selector: 'app-tag',
@@ -49,12 +50,12 @@ export class TagComponent implements OnInit {
   private readonly noti = inject(ToasterService);
   public readonly list = inject(ListService);
 
-  items: PagedResultDto<any> = { items: [], totalCount: 0 };
-  categories: any[] = [];
-  selected = {} as any;
+  items: PagedResultDto<TagDto> = { items: [], totalCount: 0 };
+  categories: CategoryDto[] = [];
+  selected = {} as TagDto;
   form!: FormGroup;
   searchForm!: FormGroup;
-  
+
   isModalOpen = false;
   loading = false;
   isSaving = false;
@@ -63,14 +64,14 @@ export class TagComponent implements OnInit {
 
   ngOnInit() {
     this.buildSearchForm();
-    this.loadCategoriesAndTags();
+    this.loadCategoriesThenInitList();
   }
 
-  loadCategoriesAndTags() {
+  loadCategoriesThenInitList() {
     this.loading = true;
     this.categoryService.getList({ skipCount: 0, maxResultCount: 1000 } as any).subscribe({
-      next: (res: any) => {
-        this.categories = res?.items || res?.result?.items || res?.result || (Array.isArray(res) ? res : []);
+      next: (res) => {
+        this.categories = res?.items || [];
         this.initTagListStream();
       },
       error: (err) => {
@@ -85,11 +86,11 @@ export class TagComponent implements OnInit {
     const streamCreator = (query: any) => {
       this.loading = true;
       const searchVal = this.searchForm?.value;
-      return this.service.getList({ 
-        ...query, 
+      return this.service.getList({
+        ...query,
         filter: searchVal?.keyword || '',
-        categoryId: searchVal?.categoryId || null 
-      }).pipe(
+        categoryId: searchVal?.categoryId || null
+      } as any).pipe(
         finalize(() => (this.loading = false))
       );
     };
@@ -99,34 +100,24 @@ export class TagComponent implements OnInit {
     });
   }
 
-  // Hàm tra cứu tên danh mục an toàn 100%, ép kiểu string để khớp ID
-  getCategoryName(row: any): string {
-    // 1. Ưu tiên đọc trực tiếp từ Backend C# gửi sang (nếu có)
-    if (row?.categoryName) return row.categoryName;
-    if (row?.CategoryName) return row.CategoryName;
+  getCategoryName(row: TagDto | any): string {
+    if (!row) return '';
+    const directName = row.categoryName || row.CategoryName;
+    if (directName) return directName;
 
-    // 2. Lấy ID từ dòng hiện tại
-    const catId = row?.categoryId || row?.CategoryId;
+    const catId = row.categoryId || row.CategoryId;
     if (!catId) return '';
 
-    // 3. Nếu danh mục đã load xong, tìm kiếm bằng cách ép sang chuỗilowercase để khớp hoàn toàn
-    if (this.categories && this.categories.length > 0) {
-      const matchCat = this.categories.find((c: any) => {
-        const cId = c.id || c.Id;
-        return cId && String(cId).toLowerCase() === String(catId).toLowerCase();
-      });
-      if (matchCat) {
-        return matchCat.name || matchCat.Name;
-      }
-    }
-
-    return '';
+    const matchCat = this.categories.find(
+      (c) => String(c.id).toLowerCase() === String(catId).toLowerCase()
+    );
+    return matchCat?.name || '';
   }
 
   buildSearchForm() {
     this.searchForm = this.fb.group({
       keyword: [''],
-      categoryId: [''],
+      categoryId: [null],
     });
   }
 
@@ -136,7 +127,7 @@ export class TagComponent implements OnInit {
   }
 
   reset() {
-    this.searchForm.reset({ keyword: '', categoryId: '' });
+    this.searchForm.reset({ keyword: '', categoryId: null });
     this.list.page = 0;
     this.list.get();
   }
@@ -151,16 +142,17 @@ export class TagComponent implements OnInit {
     this.service.get(id).subscribe(item => {
       this.selected = item;
       this.buildForm();
-      this.form.patchValue(item);
       this.isModalOpen = true;
     });
   }
 
   buildForm() {
+    const rawCatId = (this.selected as any).categoryId || (this.selected as any).CategoryId;
     this.form = this.fb.group({
       id: [this.selected.id || null],
-      name: [this.selected.name || '', [Validators.required, Validators.maxLength(100)]],
-      categoryId: [this.selected.categoryId || this.selected.CategoryId || null],
+      name: [this.selected.name || '', [Validators.required, Validators.maxLength(64)]],
+      colorCode: [(this.selected as any).colorCode || '#0d6efd'],
+      categoryId: [rawCatId ? String(rawCatId) : null],
     });
   }
 
@@ -173,14 +165,15 @@ export class TagComponent implements OnInit {
     this.isSaving = true;
     const formVal = this.form.value;
     const dto = {
-      ...formVal,
       name: formVal.name?.trim(),
+      colorCode: formVal.colorCode || '',
       categoryId: formVal.categoryId ? formVal.categoryId : null
     };
 
-    const request = this.selected.id
-      ? this.service.update(this.selected.id, dto)
-      : this.service.create(dto);
+    const targetId = this.selected.id;
+    const request = targetId
+      ? this.service.update(targetId, dto as any)
+      : this.service.create(dto as any);
 
     request
       .pipe(finalize(() => (this.isSaving = false)))

@@ -61,6 +61,21 @@ function configureRoutes() {
       layout: eLayoutType.application,
     },
     {
+      path: '/tasks/create',
+      name: 'Quản lý Nhiệm vụ',
+      iconClass: 'fas fa-tasks',
+      order: 8,
+      layout: eLayoutType.application,
+      
+    },
+    {
+      path: '/tasks',
+      name: 'Danh sách Nhiệm vụ',
+      iconClass: 'fas fa-list-check',
+      order: 9,
+      layout: eLayoutType.application,
+    },
+    {
       path: '/language-texts',
       name: '::Menu:LanguageTexts',
       iconClass: 'fa fa-language',
@@ -80,11 +95,3 @@ function configureRoutes() {
     },
   ]);
 }
-/*
-Mapping nhanh để nhớ
-[UI hiển thị]         [parentName đúng]
-Quản trị             AbpUiNavigation::Menu:Administration
-Quản lý danh tính    AbpIdentity::Menu:IdentityManagement
-Quản lý người thuê    AbpTenantManagement::Menu:TenantManagement
-Cài đặt              AbpSettingManagement::Menu:Settings
-*/

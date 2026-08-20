@@ -10,8 +10,8 @@
         <div class="col-md-4 mb-2">
           <label class="form-label">Lọc theo danh mục</label>
           <select class="form-select" formControlName="categoryId">
-            <option value="">-- Tất cả danh mục --</option>
-            <option *ngFor="let cat of categories" [value]="cat.id || cat.Id">
+            <option [ngValue]="null">-- Tất cả danh mục --</option>
+            <option *ngFor="let cat of categories" [ngValue]="cat.id || cat.Id">
               {{ cat.name || cat.Name }}
             </option>
           </select>
@@ -42,7 +42,7 @@
         default
       >
         <!-- Cột Thao tác -->
-        <ngx-datatable-column [name]="'Thao tác'" [sortable]="false" [maxWidth]="120">
+        <ngx-datatable-column name="Thao tác" [sortable]="false" [maxWidth]="120">
           <ng-template let-row="row" ngx-datatable-cell-template>
             <div class="btn-group btn-group-sm" role="group">
               <button class="btn btn-primary" (click)="edit(row.id || row.Id)" title="Sửa">
@@ -56,7 +56,7 @@
         </ngx-datatable-column>
 
         <!-- Cột Tên Thẻ -->
-        <ngx-datatable-column [name]="'Tên thẻ'" prop="name">
+        <ngx-datatable-column name="Tên thẻ" prop="name" [sortable]="true">
           <ng-template let-row="row" ngx-datatable-cell-template>
             <span class="badge bg-primary text-white p-2">
               <i class="fa fa-tag me-1"></i> {{ row.name || row.Name }}
@@ -64,14 +64,14 @@
           </ng-template>
         </ngx-datatable-column>
 
-        <!-- Cột Danh Mục Thời Gian -->
-        <ngx-datatable-column name="Danh mục thời gian">
+        <!-- Cột Danh Mục -->
+        <ngx-datatable-column name="Danh mục" prop="categoryName" [sortable]="false">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <span class="badge bg-info text-dark" *ngIf="getCategoryName(row)">
+            <span class="badge bg-secondary text-white p-2" *ngIf="getCategoryName(row)">
               <i class="fa fa-folder me-1"></i> {{ getCategoryName(row) }}
             </span>
             <span class="text-muted small fst-italic" *ngIf="!getCategoryName(row)">
-              chưa có danh mục
+              Chưa gán danh mục
             </span>
           </ng-template>
         </ngx-datatable-column>
@@ -82,7 +82,7 @@
   <!-- Modal Thêm/Sửa Thẻ -->
   <abp-modal [(visible)]="isModalOpen" [options]="modalOptions">
     <ng-template #abpHeader>
-      <h3>{{ selected.id ? 'Sửa Thẻ' : 'Thêm Thẻ Mới' }}</h3>
+      <h3>{{ selected.id || selected.Id ? 'Sửa Thẻ' : 'Thêm Thẻ Mới' }}</h3>
     </ng-template>
 
     <ng-template #abpBody>
@@ -91,7 +91,7 @@
           <label class="form-label">Tên thẻ <span class="text-danger">*</span></label>
           <input type="text" class="form-control" formControlName="name" placeholder="Nhập tên thẻ..." />
           <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="text-danger mt-1 small">
-            Vui lòng nhập tên thẻ hợp lệ (tối đa 100 ký tự).
+            Vui lòng nhập tên thẻ hợp lệ (tối đa 64 ký tự).
           </div>
         </div>
 

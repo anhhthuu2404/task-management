@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
@@ -18,12 +19,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc;
+using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
@@ -54,7 +55,7 @@ namespace TaskManagement;
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpSwashbuckleModule),
     typeof(AbpAspNetCoreSerilogModule)
-    )]
+)]
 public class TaskManagementHttpApiHostModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
@@ -71,7 +72,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
                 options.UseAspNetCore();
             });
 
-            // Ép OpenIddict Server nhận đúng Issuer URL từ AppSettings (https://localhost:44399)
             builder.AddServer(options =>
             {
                 if (!string.IsNullOrEmpty(configuration["AuthServer:Authority"]))
@@ -99,7 +99,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
-        var hostingEnvironment = context.Services.GetHostingEnvironment();
 
         if (!configuration.GetValue<bool>("App:DisablePII"))
         {
@@ -120,6 +119,11 @@ public class TaskManagementHttpApiHostModule : AbpModule
             });
         }
 
+        Configure<AbpAntiForgeryOptions>(options =>
+        {
+            options.AutoValidate = false;
+        });
+
         ConfigureAuthentication(context);
         ConfigureUrls(configuration);
         ConfigureBundles();
@@ -129,26 +133,13 @@ public class TaskManagementHttpApiHostModule : AbpModule
         ConfigureVirtualFileSystem(context);
         ConfigureCors(context, configuration);
 
-        // Bật hiển thị thông tin lỗi chi tiết gửi về phía Client
         Configure<Volo.Abp.AspNetCore.ExceptionHandling.AbpExceptionHandlingOptions>(options =>
         {
             options.SendExceptionsDetailsToClients = true;
         });
-
-        // Đăng ký Contributor trong Host - Language Text
-        context.Services.AddTransient<DatabaseLocalizationContributor>();
-        Configure<AbpLocalizationOptions>(options =>
-        {
-            var contributor = context.Services.GetRequiredService<DatabaseLocalizationContributor>();
-
-            options.Resources
-                .Get<TaskManagementResource>()
-                .Contributors
-                .Add(contributor);
-        });
     }
 
-    private void ConfigureAuthentication(ServiceConfigurationContext context)
+    private static void ConfigureAuthentication(ServiceConfigurationContext context)
     {
         context.Services.ForwardIdentityAuthenticationForBearer(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
         context.Services.Configure<AbpClaimsPrincipalFactoryOptions>(options =>
@@ -162,9 +153,9 @@ public class TaskManagementHttpApiHostModule : AbpModule
         Configure<AppUrlOptions>(options =>
         {
             options.Applications["MVC"].RootUrl = configuration["App:SelfUrl"];
-            options.Applications["Angular"].RootUrl = configuration["App:AngularUrl"];
+            options.Applications["Angular"].RootUrl = configuration["App:ClientUrl"] ?? configuration["App:AngularUrl"];
             options.Applications["Angular"].Urls[AccountUrlNames.PasswordReset] = "account/reset-password";
-            options.RedirectAllowedUrls.AddRange(configuration["App:RedirectAllowedUrls"]?.Split(',') ?? Array.Empty<string>());
+            options.RedirectAllowedUrls.AddRange(configuration["App:RedirectAllowedUrls"]?.Split(',') ?? []);
         });
     }
 
@@ -174,18 +165,12 @@ public class TaskManagementHttpApiHostModule : AbpModule
         {
             options.StyleBundles.Configure(
                 LeptonXLiteThemeBundles.Styles.Global,
-                bundle =>
-                {
-                    bundle.AddFiles("/global-styles.css");
-                }
+                bundle => bundle.AddFiles("/global-styles.css")
             );
 
             options.ScriptBundles.Configure(
                 LeptonXLiteThemeBundles.Scripts.Global,
-                bundle =>
-                {
-                    bundle.AddFiles("/global-scripts.js");
-                }
+                bundle => bundle.AddFiles("/global-scripts.js")
             );
         });
     }
@@ -229,7 +214,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
             });
     }
 
-    private void ConfigureCors(ServiceConfigurationContext context, IConfiguration configuration)
+    private static void ConfigureCors(ServiceConfigurationContext context, IConfiguration configuration)
     {
         context.Services.AddCors(options =>
         {
@@ -240,7 +225,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
                         configuration["App:CorsOrigins"]?
                             .Split(",", StringSplitOptions.RemoveEmptyEntries)
                             .Select(o => o.Trim().RemovePostFix("/"))
-                            .ToArray() ?? Array.Empty<string>()
+                            .ToArray() ?? []
                     )
                     .WithAbpExposedHeaders()
                     .SetIsOriginAllowedToAllowWildcardSubdomains()
@@ -251,7 +236,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
         });
     }
 
-    private void ConfigureHealthChecks(ServiceConfigurationContext context)
+    private static void ConfigureHealthChecks(ServiceConfigurationContext context)
     {
         context.Services.AddTaskManagementHealthChecks();
     }
@@ -261,12 +246,24 @@ public class TaskManagementHttpApiHostModule : AbpModule
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
 
+        using (var scope = app.ApplicationServices.CreateScope())
+        {
+            var localizationOptions = scope.ServiceProvider.GetRequiredService<IOptions<AbpLocalizationOptions>>().Value;
+            var resource = localizationOptions.Resources.Get<TaskManagementResource>();
+            resource.Contributors.Add(new DatabaseLocalizationContributor(app.ApplicationServices));
+        }
+
         app.UseForwardedHeaders();
 
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
         }
+
+        app.UseStaticFiles();
+        app.UseRouting();
+
+        app.UseCors();
 
         app.UseAbpRequestLocalization();
 
@@ -275,11 +272,9 @@ public class TaskManagementHttpApiHostModule : AbpModule
             app.UseErrorPage();
         }
 
-        app.UseRouting();
         app.MapAbpStaticAssets();
         app.UseAbpStudioLink();
         app.UseAbpSecurityHeaders();
-        app.UseCors();
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
 

@@ -59,8 +59,23 @@ export const APP_ROUTES: Routes = [
     canActivate: [authGuard],
   },
   {
-  path: 'roles',
-  loadComponent: () => import('./role/role.component').then(m => m.RoleComponent), 
-  canActivate: [authGuard],
-},
+    path: 'roles',
+    loadComponent: () => import('./role/role.component').then(m => m.RoleComponent), 
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks/create',
+    loadComponent: () => import('./tasks/create-task.component').then(m => m.CreateTaskComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks',
+    loadComponent: () => import('./tasks/task-list.component').then(m => m.TaskListComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks/edit/:id',
+    loadComponent: () => import('./tasks/task-form.component').then(m => m.TaskFormComponent),
+    canActivate: [authGuard],
+  },
 ];

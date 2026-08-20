@@ -1,107 +1,93 @@
-<abp-page title="Quản lý Danh mục (Categories)">
+<abp-page title="Quản lý Danh mục">
   <abp-page-toolbar-container class="col">
     <div class="text-lg-end pt-2 pt-lg-0">
       <button class="btn btn-primary" type="button" (click)="create()">
-        <i class="fa fa-plus me-1"></i>
-        <span>Thêm danh mục</span>
+        <i class="fa fa-plus me-1"></i> Thêm danh mục
       </button>
     </div>
   </abp-page-toolbar-container>
 
   <div class="card">
     <div class="card-body">
+      <!-- Search Form -->
       <form [formGroup]="searchForm" (ngSubmit)="search()" class="mb-3">
         <div class="row g-2">
-          <div class="col-md-4">
+          <div class="col-md-8">
             <input
               type="text"
               class="form-control"
               placeholder="Tìm kiếm danh mục..."
-              formControlName="keyword"
+              formControlName="filter"
             />
           </div>
-          <div class="col-md-4">
-            <button type="submit" class="btn btn-primary me-2">
-              <i class="fa fa-search me-1"></i>Tìm kiếm
+          <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-search me-1"></i> Tìm kiếm
             </button>
             <button type="button" class="btn btn-outline-secondary" (click)="reset()">
-              Đặt lại
+              <i class="fa fa-refresh me-1"></i> Làm mới
             </button>
           </div>
         </div>
       </form>
 
-      <ngx-datatable [rows]="items.items" [count]="items.totalCount" [list]="list" default>
-        <ngx-datatable-column [name]="'Thao tác'" [sortable]="false" [width]="100">
+      <!-- Data Table -->
+      <ngx-datatable
+        [rows]="items.items"
+        [count]="items.totalCount"
+        [list]="list"
+        default
+      >
+        <ngx-datatable-column name="Tên danh mục" prop="name"></ngx-datatable-column>
+        <ngx-datatable-column name="Mô tả" prop="description"></ngx-datatable-column>
+        <ngx-datatable-column name="Trạng thái" prop="isActive">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-primary me-1"
-              (click)="edit(row.id)"
-              title="Sửa"
-            >
-              <i class="fa fa-pencil"></i>
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-danger"
-              (click)="delete(row.id)"
-              title="Xóa"
-            >
-              <i class="fa fa-trash"></i>
-            </button>
+            <span class="badge" [ngClass]="row.isActive ? 'bg-success' : 'bg-secondary'">
+              {{ row.isActive ? 'Hoạt động' : 'Tắt' }}
+            </span>
           </ng-template>
         </ngx-datatable-column>
-
-        <ngx-datatable-column name="Tên danh mục" prop="name"></ngx-datatable-column>
-
-        <ngx-datatable-column name="Phạm vi (Scope)" prop="projectId">
+        <ngx-datatable-column name="Thao tác" [sortable]="false">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <span *ngIf="!row.projectId" class="badge bg-success">Toàn hệ thống (Global)</span>
-            <span *ngIf="row.projectId" class="badge bg-info">Theo Dự án (#{{ row.projectId }})</span>
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="openEditModal(row)">
+              <i class="fa fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteCategory(row)">
+              <i class="fa fa-trash"></i>
+            </button>
           </ng-template>
         </ngx-datatable-column>
       </ngx-datatable>
     </div>
   </div>
 
-  <abp-modal [(visible)]="isModalOpen">
+  <!-- Create/Edit Modal -->
+  <abp-modal [(visible)]="isModalOpen" [options]="modalOptions">
     <ng-template #abpHeader>
-      <h3>{{ (selected.id ? 'Sửa danh mục' : 'Thêm danh mục mới') }}</h3>
+      <h3>{{ isEditMode ? 'Cập nhật danh mục' : 'Thêm mới danh mục' }}</h3>
     </ng-template>
 
     <ng-template #abpBody>
-      <form [formGroup]="form" (ngSubmit)="save()" *ngIf="form">
-        <div class="form-group mb-3">
-          <label for="category-name" class="form-label">Tên danh mục</label>
-          <span class="text-danger"> * </span>
-          <input
-            type="text"
-            id="category-name"
-            class="form-control"
-            formControlName="name"
-            autofocus
-          />
+      <form (ngSubmit)="saveCategory()">
+        <div class="mb-3">
+          <label class="form-label required">Tên danh mục</label>
+          <input type="text" class="form-control" [(ngModel)]="formData.name" name="name" required />
         </div>
+        <div class="mb-3">
+          <label class="form-label">Mô tả</label>
 
-        <div class="form-group mb-3">
-          <label for="category-project" class="form-label">Project ID (Để trống nếu dùng Toàn hệ thống)</label>
-          <input
-            type="number"
-            id="category-project"
-            class="form-control"
-            formControlName="projectId"
-            placeholder="Nhập Mã dự án (nếu có)"
-          />
+          <textarea class="form-control" [(ngModel)]="formData.description" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="isActive" [(ngModel)]="formData.isActive" name="isActive" />
+          <label class="form-check-label" for="isActive">Hoạt động</label>
         </div>
       </form>
     </ng-template>
 
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" abpClose>Hủy</button>
-      <button class="btn btn-primary" (click)="save()" [disabled]="form?.invalid">
-        <i class="fa fa-check me-1"></i>Lưu
-      </button>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()">Hủy</button>
+      <button type="button" class="btn btn-primary" (click)="saveCategory()">Lưu</button>
     </ng-template>
   </abp-modal>
 </abp-page>

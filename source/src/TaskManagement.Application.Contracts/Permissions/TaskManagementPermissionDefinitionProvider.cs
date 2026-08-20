@@ -9,23 +9,28 @@ public class TaskManagementPermissionDefinitionProvider : PermissionDefinitionPr
 {
     public override void Define(IPermissionDefinitionContext context)
     {
-        var myGroup = context.AddGroup(TaskManagementPermissions.GroupName);
+        // Khởi tạo nhóm duy nhất 1 lần kèm tên hiển thị Localized
+        var myGroup = context.AddGroup(TaskManagementPermissions.GroupName, L("Permission:TaskManagement"));
 
+        // Books
         var booksPermission = myGroup.AddPermission(TaskManagementPermissions.Books.Default, L("Permission:Books"));
         booksPermission.AddChild(TaskManagementPermissions.Books.Create, L("Permission:Books.Create"));
         booksPermission.AddChild(TaskManagementPermissions.Books.Edit, L("Permission:Books.Edit"));
         booksPermission.AddChild(TaskManagementPermissions.Books.Delete, L("Permission:Books.Delete"));
 
+        // Languages
         var languagesPermission = myGroup.AddPermission(TaskManagementPermissions.Languages.Default, L("Permission:Languages"));
         languagesPermission.AddChild(TaskManagementPermissions.Languages.Create, L("Permission:Languages.Create"));
         languagesPermission.AddChild(TaskManagementPermissions.Languages.Edit, L("Permission:Languages.Edit"));
         languagesPermission.AddChild(TaskManagementPermissions.Languages.Delete, L("Permission:Languages.Delete"));
 
+        // LanguageTexts
         var languageTextsPermission = myGroup.AddPermission(TaskManagementPermissions.LanguageTexts.Default, L("Permission:LanguageTexts"));
         languageTextsPermission.AddChild(TaskManagementPermissions.LanguageTexts.Create, L("Permission:LanguageTexts.Create"));
         languageTextsPermission.AddChild(TaskManagementPermissions.LanguageTexts.Edit, L("Permission:LanguageTexts.Edit"));
         languageTextsPermission.AddChild(TaskManagementPermissions.LanguageTexts.Delete, L("Permission:LanguageTexts.Delete"));
 
+        // SysMasterLists
         var sysMasterListsPermission = myGroup.AddPermission(TaskManagementPermissions.SysMasterLists.Default, L("Permission:SysMasterLists"));
         sysMasterListsPermission.AddChild(TaskManagementPermissions.SysMasterLists.Create, L("Permission:SysMasterLists.Create"));
         sysMasterListsPermission.AddChild(TaskManagementPermissions.SysMasterLists.Edit, L("Permission:SysMasterLists.Edit"));
@@ -50,6 +55,12 @@ public class TaskManagementPermissionDefinitionProvider : PermissionDefinitionPr
         departmentsPermission.AddChild(TaskManagementPermissions.Departments.Delete, L("Permission:Departments.Delete"));
         departmentsPermission.AddChild(TaskManagementPermissions.Departments.ManageUsers, L("Permission:Departments.ManageUsers"));
         departmentsPermission.AddChild(TaskManagementPermissions.Departments.AssignUser, L("Permission:Departments.AssignUser"));
+
+        // 4. Phân quyền Tasks (Sử dụng trực tiếp myGroup đã khai báo)
+        var tasksPermission = myGroup.AddPermission(TaskManagementPermissions.Tasks.Default, L("Permission:Tasks"));
+        tasksPermission.AddChild(TaskManagementPermissions.Tasks.Create, L("Permission:Tasks.Create"));
+        tasksPermission.AddChild(TaskManagementPermissions.Tasks.Edit, L("Permission:Tasks.Edit"));
+        tasksPermission.AddChild(TaskManagementPermissions.Tasks.Delete, L("Permission:Tasks.Delete"));
     }
 
     private static LocalizableString L(string name)

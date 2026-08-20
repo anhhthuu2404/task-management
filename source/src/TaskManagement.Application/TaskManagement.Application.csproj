@@ -8,6 +8,11 @@
 		<RootNamespace>TaskManagement</RootNamespace>
 	</PropertyGroup>
 
+	<!-- Bổ sung ASP.NET Core Framework Reference cho Class Library -->
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<Compile Remove="Caching\**" />
 		<Compile Remove="LanguageImportExport\**" />
@@ -33,13 +38,11 @@
 		<!-- Riok.Mapperly cấu hình nạp đầy đủ asset -->
 		<PackageReference Include="Riok.Mapperly" Version="4.3.1" PrivateAssets="none" IncludeAssets="all" />
 		<PackageReference Include="Volo.Abp.Mapperly" Version="10.0.1" />
-
 		<!-- Thư viện AutoMapper -->
 		<PackageReference Include="AutoMapper" Version="16.2.0" />
 		<PackageReference Include="AutoMapper.Collection" Version="13.0.0" />
 		<PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.11" />
 		<PackageReference Include="Volo.Abp.AutoMapper" Version="10.0.1" />
-
 		<!-- ABP Application Modules -->
 		<PackageReference Include="Volo.Abp.PermissionManagement.Application" Version="10.0.0" />
 		<PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="10.0.0" />

@@ -1,0 +1,120 @@
+<div class="card">
+  <div class="card-header">
+    <h4 class="card-title text-primary my-1">
+      <i class="fas fa-tasks me-2"></i>Tạo mới công việc
+    </h4>
+  </div>
+  <div class="card-body">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <!-- Tiêu đề -->
+      <div class="mb-3">
+        <label class="form-label text-danger font-weight-bold">* Tiêu đề công việc</label>
+        <input
+          type="text"
+          formControlName="title"
+          class="form-control"
+          [class.is-invalid]="form.get('title')?.invalid && form.get('title')?.touched"
+          placeholder="Nhập tiêu đề công việc..."
+        />
+        <div class="invalid-feedback">Tiêu đề không được để trống.</div>
+      </div>
+
+      <div class="row">
+        <!-- Danh mục -->
+        <div class="col-md-6 mb-3">
+          <label class="form-label text-danger font-weight-bold">* Danh mục</label>
+          <select 
+            formControlName="categoryId" 
+            class="form-select"
+            [class.is-invalid]="form.get('categoryId')?.invalid && form.get('categoryId')?.touched"
+          >
+            <option value="">-- Chọn danh mục --</option>
+            <option *ngFor="let item of categories" [value]="item.id">
+              {{ item.name }}
+            </option>
+          </select>
+          <div class="invalid-feedback">Vui lòng chọn danh mục.</div>
+        </div>
+
+        <!-- Người thực hiện -->
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Người thực hiện</label>
+          <select formControlName="assigneeId" class="form-select">
+            <option [value]="null">-- Chưa phân công --</option>
+            <option *ngFor="let user of users" [value]="user.id">
+              {{ user.userName }} ({{ user.name }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Mức độ ưu tiên -->
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Mức độ ưu tiên</label>
+          <select formControlName="priority" class="form-select">
+            <option [value]="0">Thấp</option>
+            <option [value]="1">Trung bình</option>
+            <option [value]="2">Cao</option>
+            <option [value]="3">Khẩn cấp</option>
+          </select>
+        </div>
+
+        <!-- Hạn hoàn thành -->
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Hạn hoàn thành</label>
+          <input type="date" formControlName="dueDate" class="form-control" />
+        </div>
+      </div>
+
+      <!-- Mô tả chi tiết -->
+      <div class="mb-3">
+        <label class="form-label">Mô tả chi tiết</label>
+        <textarea
+          formControlName="description"
+          class="form-control"
+          rows="4"
+          placeholder="Nhập mô tả chi tiết công việc..."
+        ></textarea>
+      </div>
+
+      <!-- Tệp đính kèm -->
+      <div class="mb-3">
+        <label class="form-label">Tệp đính kèm</label>
+        <input
+          type="file"
+          multiple
+          class="form-control"
+          (change)="onFileSelect($event)"
+        />
+
+        <ul class="list-group mt-2" *ngIf="selectedFiles.length > 0">
+          <li
+            *ngFor="let file of selectedFiles; let i = index"
+            class="list-group-item d-flex justify-content-between align-items-center"
+          >
+            <span><i class="fas fa-paperclip me-2"></i>{{ file.name }}</span>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-danger"
+              (click)="removeFile(i)"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Nút thao tác -->
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting">
+          Hủy
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || isSubmitting">
+          <i class="fas fa-save me-1"></i>
+          {{ isSubmitting ? 'Đang lưu...' : 'Lưu công việc' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

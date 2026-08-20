@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using TaskManagement.Categories;
 using TaskManagement.Permissions;
 using Volo.Abp;
@@ -13,16 +12,8 @@ using Volo.Abp.Domain.Repositories;
 
 namespace TaskManagement.Tags;
 
-public class TagAppService :
-    CrudAppService<
-        Tag,
-        TagDto,
-        Guid,
-        PagedAndSortedResultRequestDto, // Giữ nguyên để khớp 100% với ITagAppService
-        CreateUpdateTagDto>,
-    ITagAppService
+public class TagAppService : CrudAppService<Tag, TagDto, Guid, GetTagListInput, CreateUpdateTagDto>, ITagAppService
 {
-    private readonly IRepository<Tag, Guid> _repository;
     private readonly IRepository<Category, Guid> _categoryRepository;
 
     public TagAppService(
@@ -30,9 +21,9 @@ public class TagAppService :
         IRepository<Category, Guid> categoryRepository)
         : base(repository)
     {
-        _repository = repository;
         _categoryRepository = categoryRepository;
 
+        // Cấu hình Phân quyền (Permissions)
         GetPolicyName = TaskManagementPermissions.Tags.Default;
         GetListPolicyName = TaskManagementPermissions.Tags.Default;
         CreatePolicyName = TaskManagementPermissions.Tags.Create;
@@ -40,27 +31,22 @@ public class TagAppService :
         DeletePolicyName = TaskManagementPermissions.Tags.Delete;
     }
 
-    public override async Task<PagedResultDto<TagDto>> GetListAsync(PagedAndSortedResultRequestDto input)
+    public override async Task<PagedResultDto<TagDto>> GetListAsync(GetTagListInput input)
     {
-        var tagQuery = await _repository.GetQueryableAsync();
+        var tagQuery = await Repository.GetQueryableAsync();
         var categoryQuery = await _categoryRepository.GetQueryableAsync();
 
-        // Ép kiểu an toàn để lấy Filter và CategoryId từ Angular gửi lên
-        if (input is GetTagListInput filterInput)
+        if (!string.IsNullOrWhiteSpace(input.Filter))
         {
-            if (!string.IsNullOrWhiteSpace(filterInput.Filter))
-            {
-                var filterTrimmed = filterInput.Filter.Trim();
-                tagQuery = tagQuery.Where(x => x.Name.Contains(filterTrimmed));
-            }
-
-            if (filterInput.CategoryId.HasValue && filterInput.CategoryId.Value != Guid.Empty)
-            {
-                tagQuery = tagQuery.Where(x => x.CategoryId == filterInput.CategoryId.Value);
-            }
+            var filter = input.Filter.Trim();
+            tagQuery = tagQuery.Where(x => x.Name.Contains(filter));
         }
 
-        // LEFT JOIN
+        if (input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty)
+        {
+            tagQuery = tagQuery.Where(x => x.CategoryId == input.CategoryId.Value);
+        }
+
         var query = from tag in tagQuery
                     join category in categoryQuery on tag.CategoryId equals category.Id into categories
                     from category in categories.DefaultIfEmpty()
@@ -68,12 +54,22 @@ public class TagAppService :
 
         var totalCount = await AsyncExecuter.CountAsync(query);
 
-        // Xử lý Sorting an toàn với StringComparison
-        string sorting = string.IsNullOrWhiteSpace(input.Sorting)
-            ? "tag.CreationTime descending"
-            : (input.Sorting.Contains("name", StringComparison.OrdinalIgnoreCase)
-                ? input.Sorting.Replace("name", "tag.Name", StringComparison.OrdinalIgnoreCase)
-                : $"tag.{input.Sorting}");
+        string sorting = "tag.CreationTime descending";
+        if (!string.IsNullOrWhiteSpace(input.Sorting))
+        {
+            var parts = input.Sorting.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var field = parts[0].ToLowerInvariant();
+            var dir = parts.Length > 1 && parts[1].StartsWith("desc", StringComparison.OrdinalIgnoreCase) ? "descending" : "ascending";
+
+            var mappedField = field switch
+            {
+                "name" => "tag.Name",
+                "categoryname" => "category.Name",
+                "creationtime" => "tag.CreationTime",
+                _ => "tag.CreationTime"
+            };
+            sorting = $"{mappedField} {dir}";
+        }
 
         query = query.OrderBy(sorting);
 
@@ -81,64 +77,40 @@ public class TagAppService :
             query.Skip(input.SkipCount).Take(input.MaxResultCount)
         );
 
-        // Mapped dữ liệu & dùng Null-coalescing (??) để xử lý triệt để Warning Nullable
         var dtos = items.Select(x => new TagDto
         {
             Id = x.tag.Id,
             Name = x.tag.Name,
-            ColorCode = x.tag.ColorCode ?? string.Empty,
+            ColorCode = x.tag.ColorCode,
             CategoryId = x.tag.CategoryId,
             CategoryName = x.category?.Name,
-            CreationTime = x.tag.CreationTime,
-            CreatorId = x.tag.CreatorId,
-            LastModificationTime = x.tag.LastModificationTime,
-            LastModifierId = x.tag.LastModifierId,
-            IsDeleted = x.tag.IsDeleted,
-            DeleterId = x.tag.DeleterId,
-            DeletionTime = x.tag.DeletionTime
+            CreationTime = x.tag.CreationTime
         }).ToList();
 
         return new PagedResultDto<TagDto>(totalCount, dtos);
     }
 
-    public override async Task<TagDto> GetAsync(Guid id)
+    public override async Task<TagDto> CreateAsync(CreateUpdateTagDto input)
     {
-        var tagQuery = await _repository.GetQueryableAsync();
-        var categoryQuery = await _categoryRepository.GetQueryableAsync();
-
-        var query = from tag in tagQuery
-                    where tag.Id == id
-                    join category in categoryQuery on tag.CategoryId equals category.Id into categories
-                    from category in categories.DefaultIfEmpty()
-                    select new { tag, category };
-
-        var item = await AsyncExecuter.FirstOrDefaultAsync(query);
-
-        if (item == null)
-        {
-            throw new UserFriendlyException("Không tìm thấy thẻ này!");
-        }
-
-        return new TagDto
-        {
-            Id = item.tag.Id,
-            Name = item.tag.Name,
-            ColorCode = item.tag.ColorCode ?? string.Empty,
-            CategoryId = item.tag.CategoryId,
-            CategoryName = item.category?.Name,
-            CreationTime = item.tag.CreationTime,
-            CreatorId = item.tag.CreatorId,
-            LastModificationTime = item.tag.LastModificationTime,
-            LastModifierId = item.tag.LastModifierId,
-            IsDeleted = item.tag.IsDeleted,
-            DeleterId = item.tag.DeleterId,
-            DeletionTime = item.tag.DeletionTime
-        };
+        await ValidateCategoryAsync(input.CategoryId);
+        return await base.CreateAsync(input);
     }
-}
 
-public class GetTagListInput : PagedAndSortedResultRequestDto
-{
-    public string? Filter { get; set; }
-    public Guid? CategoryId { get; set; }
+    public override async Task<TagDto> UpdateAsync(Guid id, CreateUpdateTagDto input)
+    {
+        await ValidateCategoryAsync(input.CategoryId);
+        return await base.UpdateAsync(id, input);
+    }
+
+    private async Task ValidateCategoryAsync(Guid? categoryId)
+    {
+        if (categoryId.HasValue && categoryId.Value != Guid.Empty)
+        {
+            var exists = await _categoryRepository.AnyAsync(c => c.Id == categoryId.Value);
+            if (!exists)
+            {
+                throw new UserFriendlyException("Danh mục được chọn không tồn tại trong hệ thống.");
+            }
+        }
+    }
 }

@@ -1,12 +1,13 @@
-using Azure;
-//using TaskManagement.Languages;
-//using TaskManagement.LanguageTexts;
 using Microsoft.EntityFrameworkCore;
 using TaskManagement.Books;
+using TaskManagement.Categories;
+using TaskManagement.Departments;
 using TaskManagement.Employees;
 using TaskManagement.LocalizationManagement.Languages;
 using TaskManagement.LocalizationManagement.LanguageTexts;
 using TaskManagement.SysMasterLists;
+using TaskManagement.Tags;
+using TaskManagement.Tasks;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
 using Volo.Abp.BlobStoring.Database.EntityFrameworkCore;
@@ -22,22 +23,18 @@ using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
-using TaskManagement.Categories;
-using TaskManagement.Tags;
-using TaskManagement.Departments;
 
 namespace TaskManagement.EntityFrameworkCore;
 
 [ReplaceDbContext(typeof(IIdentityDbContext))]
 [ReplaceDbContext(typeof(ITenantManagementDbContext))]
 [ConnectionStringName("Default")]
-public class TaskManagementDbContext :
-    AbpDbContext<TaskManagementDbContext>,
+public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> options) :
+    AbpDbContext<TaskManagementDbContext>(options),
     ITenantManagementDbContext,
     IIdentityDbContext
 {
-    /* Add DbSet properties for your Aggregate Roots / Entities here. */
-
+    /* Aggregate Roots / Entities */
     public DbSet<Book> Books { get; set; }
     public DbSet<Language> Languages { get; set; }
     public DbSet<LanguageText> LanguageTexts { get; set; }
@@ -47,18 +44,12 @@ public class TaskManagementDbContext :
     public DbSet<Tag> Tags { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<UserDepartment> UserDepartments { get; set; }
-    #region Entities from the modules
 
-    /* Notice: We only implemented IIdentityProDbContext and ISaasDbContext
-     * and replaced them for this DbContext. This allows you to perform JOIN
-     * queries for the entities of these modules over the repositories easily. You
-     * typically don't need that for other modules. But, if you need, you can
-     * implement the DbContext interface of the needed module and use ReplaceDbContext
-     * attribute just like IIdentityProDbContext and ISaasDbContext.
-     *
-     * More info: Replacing a DbContext of a module ensures that the related module
-     * uses this DbContext on runtime. Otherwise, it will use its own DbContext class.
-     */
+    // Module Tasks
+    public DbSet<TaskItem> Tasks { get; set; }
+    public DbSet<TaskAttachment> TaskAttachments { get; set; }
+
+    #region Entities from ABP Modules
 
     // Identity
     public DbSet<IdentityUser> Users { get; set; }
@@ -76,18 +67,11 @@ public class TaskManagementDbContext :
 
     #endregion
 
-    public TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> options)
-        : base(options)
-    {
-
-    }
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
-        /* Include modules to your migration db context */
-
+        /* ABP Framework Modules */
         builder.ConfigurePermissionManagement();
         builder.ConfigureSettingManagement();
         builder.ConfigureBackgroundJobs();
@@ -98,27 +82,29 @@ public class TaskManagementDbContext :
         builder.ConfigureTenantManagement();
         builder.ConfigureBlobStoring();
 
+        /* Application Entities Configuration */
         builder.Entity<Book>(b =>
         {
-            b.ToTable(TaskManagementConsts.DbTablePrefix + "Books",
-                TaskManagementConsts.DbSchema);
-            b.ConfigureByConvention(); //auto configure for the base class props
+            b.ToTable(TaskManagementConsts.DbTablePrefix + "Books", TaskManagementConsts.DbSchema);
+            b.ConfigureByConvention();
             b.Property(x => x.Name).IsRequired().HasMaxLength(128);
         });
 
         builder.Entity<Category>(b =>
         {
-            b.ToTable("Categories"); // Tên bảng PascalCase, số nhiều
+            b.ToTable("Categories");
             b.ConfigureByConvention();
             b.Property(x => x.Name).IsRequired().HasMaxLength(128);
             b.Property(x => x.ColorCode).HasMaxLength(32);
         });
+
         builder.Entity<Tag>(b =>
         {
             b.ToTable("Tags");
             b.ConfigureByConvention();
             b.Property(x => x.Name).IsRequired().HasMaxLength(64);
         });
+
         builder.Entity<Department>(b =>
         {
             b.ToTable("Departments");
@@ -130,17 +116,39 @@ public class TaskManagementDbContext :
              .HasForeignKey(x => x.ParentId)
              .OnDelete(DeleteBehavior.Restrict);
         });
+
         builder.Entity<UserDepartment>(b =>
         {
             b.ToTable("UserDepartments");
             b.ConfigureByConvention();
-            b.HasKey(x => new { x.UserId, x.DepartmentId }); // Khóa chính kết hợp
+            b.HasKey(x => new { x.UserId, x.DepartmentId });
+        });
+
+        builder.Entity<TaskItem>(b =>
+        {
+            b.ToTable("Tasks");
+            b.ConfigureByConvention();
+            b.Property(x => x.Title).IsRequired().HasMaxLength(256);
+            b.Property(x => x.Description).HasMaxLength(2000);
+
+            b.HasMany(x => x.Attachments)
+             .WithOne()
+             .HasForeignKey(x => x.TaskId)
+             .IsRequired()
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<TaskAttachment>(b =>
+        {
+            b.ToTable("TaskAttachments");
+            b.ConfigureByConvention();
+            b.Property(x => x.FileName).IsRequired().HasMaxLength(256);
+            b.Property(x => x.FilePath).IsRequired().HasMaxLength(512);
         });
 
         builder.ApplyConfiguration(new LanguageEfCoreMapping());
         builder.ApplyConfiguration(new LanguageTextEfCoreMapping());
         builder.ApplyConfiguration(new EmployeeEfCoreMapping());
         builder.ApplyConfiguration(new SysMasterListEfCoreMapping());
-
     }
 }

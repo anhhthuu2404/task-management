@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TaskManagement.Application.Contracts\TaskManagement.Application.Contracts.csproj" />
+    <ProjectReference Include="..\TaskManagement.Domain\TaskManagement.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace TaskManagement.Tags;
 
@@ -9,5 +10,7 @@ public class CreateUpdateTagDto
     public string Name { get; set; } = string.Empty;
 
     [StringLength(32)]
-    public string ColorCode { get; set; } = string.Empty;
+    public string? ColorCode { get; set; }
+
+    public Guid? CategoryId { get; set; } // Bắt buộc có để lưu vào DB
 }

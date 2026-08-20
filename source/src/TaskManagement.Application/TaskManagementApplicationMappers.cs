@@ -1,5 +1,4 @@
 ﻿using Riok.Mapperly.Abstractions;
-using Volo.Abp.Mapperly;
 using TaskManagement.Books;
 using TaskManagement.Categories;
 using TaskManagement.Departments;
@@ -8,6 +7,8 @@ using TaskManagement.LocalizationManagement.LanguageTexts;
 using TaskManagement.Provider;
 using TaskManagement.SysMasterLists;
 using TaskManagement.Tags;
+using TaskManagement.Tasks;
+using Volo.Abp.Mapperly;
 
 namespace TaskManagement;
 
@@ -137,7 +138,6 @@ public partial class TaskManagementCreateUpdateCategoryDtoToCategoryMapper : Map
 [Riok.Mapperly.Abstractions.Mapper(RequiredMappingStrategy = Riok.Mapperly.Abstractions.RequiredMappingStrategy.Target)]
 public partial class TaskManagementTagToTagDtoMapper : MapperBase<Tag, TagDto>
 {
-    
     [MapperIgnoreTarget(nameof(TagDto.CategoryName))]
     public override partial TagDto Map(Tag source);
 
@@ -183,5 +183,47 @@ public partial class TaskManagementDepartmentToCreateUpdateDepartmentDtoMapper :
 {
     public override partial CreateUpdateDepartmentDto Map(Department source);
     public override partial void Map(Department source, CreateUpdateDepartmentDto destination);
+}
+#endregion
+
+#region Tasks
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskItemToTaskDtoMapper : MapperBase<TaskItem, TaskDto>
+{
+    public override partial TaskDto Map(TaskItem source);
+    public override partial void Map(TaskItem source, TaskDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskAttachmentToTaskAttachmentDtoMapper : MapperBase<TaskAttachment, TaskAttachmentDto>
+{
+    public override partial TaskAttachmentDto Map(TaskAttachment source);
+    public override partial void Map(TaskAttachment source, TaskAttachmentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementCreateTaskInputDtoToTaskItemMapper : MapperBase<CreateTaskInputDto, TaskItem>
+{
+    [MapperIgnoreSource(nameof(CreateTaskInputDto.Files))]
+    [MapProperty(nameof(CreateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
+    public override partial TaskItem Map(CreateTaskInputDto source);
+
+    [MapperIgnoreSource(nameof(CreateTaskInputDto.Files))]
+    [MapProperty(nameof(CreateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
+    public override partial void Map(CreateTaskInputDto source, TaskItem destination);
+
+    private string MapStringFallback(string? source) => source ?? string.Empty;
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementUpdateTaskInputDtoToTaskItemMapper : MapperBase<UpdateTaskInputDto, TaskItem>
+{
+    [MapProperty(nameof(UpdateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
+    public override partial TaskItem Map(UpdateTaskInputDto source);
+
+    [MapProperty(nameof(UpdateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
+    public override partial void Map(UpdateTaskInputDto source, TaskItem destination);
+
+    private string MapStringFallback(string? source) => source ?? string.Empty;
 }
 #endregion
