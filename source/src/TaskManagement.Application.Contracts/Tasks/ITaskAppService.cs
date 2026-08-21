@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
 namespace TaskManagement.Tasks;
 
-public interface ITaskAppService : IApplicationService
+public interface ITaskAppService : ICrudAppService<
+    TaskDto,
+    Guid,
+    GetTaskListInputDto,
+    CreateTaskInputDto,
+    UpdateTaskInputDto>
 {
-    Task<TaskDto> GetAsync(Guid id);
-    Task<PagedResultDto<TaskDto>> GetListAsync(PagedAndSortedResultRequestDto input);
-    Task<TaskDto> CreateAsync(CreateTaskInputDto input);
-    Task<TaskDto> UpdateAsync(Guid id, UpdateTaskInputDto input);
-    Task DeleteAsync(Guid id);
+    Task<TaskDto> UpdateStatusAsync(Guid id, TaskItemStatus status);
+    Task<TaskDto> UpdateAssigneeAsync(Guid id, Guid? assigneeId);
 }

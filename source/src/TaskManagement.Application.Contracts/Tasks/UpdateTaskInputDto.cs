@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace TaskManagement.Tasks;
@@ -6,7 +7,7 @@ namespace TaskManagement.Tasks;
 public class UpdateTaskInputDto
 {
     [Required]
-    [StringLength(256)]
+    [StringLength(128)]
     public string Title { get; set; } = string.Empty;
 
     public string? Description { get; set; }
@@ -14,9 +15,16 @@ public class UpdateTaskInputDto
     [Required]
     public Guid CategoryId { get; set; }
 
-    public int Priority { get; set; } = 1;
+    public Guid? AssigneeId { get; set; }
+
+    [Required]
+    public int Priority { get; set; }
+
+    [Required]
+    public int Status { get; set; }
 
     public DateTime? DueDate { get; set; }
 
-    public Guid? AssigneeId { get; set; }
+    public List<TaskAttachmentDto>? Attachments { get; set; }
+
 }

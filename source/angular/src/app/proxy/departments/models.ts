@@ -3,7 +3,7 @@ import type { FullAuditedEntityDto, PagedAndSortedResultRequestDto } from '@abp/
 export interface AssignUserToDepartmentDto {
   userId?: string;
   departmentId?: string;
-  isManager: boolean;
+  isManager?: boolean;
 }
 
 export interface CreateUpdateDepartmentDto {
@@ -11,7 +11,7 @@ export interface CreateUpdateDepartmentDto {
   name: string;
   description?: string;
   parentId?: string;
-  isActive: boolean;
+  isActive?: boolean;
 }
 
 export interface DepartmentDto extends FullAuditedEntityDto<string> {
@@ -19,19 +19,19 @@ export interface DepartmentDto extends FullAuditedEntityDto<string> {
   name?: string;
   description?: string;
   parentId?: string;
-  isActive: boolean;
-  members: DepartmentMemberDto[];
+  isActive?: boolean;
+  members?: DepartmentMemberDto[];
 }
 
 export interface DepartmentMemberDto {
   userId?: string;
   userName?: string;
   email?: string;
-  isManager: boolean;
+  isManager?: boolean;
 }
 
 export interface DepartmentTreeDto extends DepartmentDto {
-  children: DepartmentTreeDto[];
+  children?: DepartmentTreeDto[];
 }
 
 export interface GetDepartmentListDto extends PagedAndSortedResultRequestDto {

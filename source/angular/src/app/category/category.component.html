@@ -1,7 +1,7 @@
 <abp-page title="Quản lý Danh mục">
   <abp-page-toolbar-container class="col">
     <div class="text-lg-end pt-2 pt-lg-0">
-      <button class="btn btn-primary" type="button" (click)="create()">
+      <button class="btn btn-primary" type="button" (click)="createCategory()">
         <i class="fa fa-plus me-1"></i> Thêm danh mục
       </button>
     </div>
@@ -16,7 +16,7 @@
             <input
               type="text"
               class="form-control"
-              placeholder="Tìm kiếm danh mục..."
+              placeholder="Tìm kiếm theo tên hoặc mô tả..."
               formControlName="filter"
             />
           </div>
@@ -33,26 +33,33 @@
 
       <!-- Data Table -->
       <ngx-datatable
-        [rows]="items.items"
-        [count]="items.totalCount"
+        [rows]="category.items"
+        [count]="category.totalCount"
         [list]="list"
         default
       >
         <ngx-datatable-column name="Tên danh mục" prop="name"></ngx-datatable-column>
-        <ngx-datatable-column name="Mô tả" prop="description"></ngx-datatable-column>
+        
+        <ngx-datatable-column name="Mô tả" prop="description">
+          <ng-template let-row="row" ngx-datatable-cell-template>
+            <span>{{ row?.description || 'Chưa có mô tả' }}</span>
+          </ng-template>
+        </ngx-datatable-column>
+
         <ngx-datatable-column name="Trạng thái" prop="isActive">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <span class="badge" [ngClass]="row.isActive ? 'bg-success' : 'bg-secondary'">
-              {{ row.isActive ? 'Hoạt động' : 'Tắt' }}
+            <span class="badge" [ngClass]="row?.isActive ? 'bg-success' : 'bg-secondary'">
+              {{ row?.isActive ? 'Hoạt động' : 'Khóa' }}
             </span>
           </ng-template>
         </ngx-datatable-column>
+
         <ngx-datatable-column name="Thao tác" [sortable]="false">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="openEditModal(row)">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="editCategory(row.id)">
               <i class="fa fa-edit"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="deleteCategory(row)">
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteCategory(row.id)">
               <i class="fa fa-trash"></i>
             </button>
           </ng-template>
@@ -62,32 +69,46 @@
   </div>
 
   <!-- Create/Edit Modal -->
-  <abp-modal [(visible)]="isModalOpen" [options]="modalOptions">
+  <abp-modal [(visible)]="isModalOpen">
     <ng-template #abpHeader>
-      <h3>{{ isEditMode ? 'Cập nhật danh mục' : 'Thêm mới danh mục' }}</h3>
+      <h3>{{ selectedCategory?.id ? 'Cập nhật danh mục' : 'Thêm mới danh mục' }}</h3>
     </ng-template>
 
     <ng-template #abpBody>
-      <form (ngSubmit)="saveCategory()">
+      <form id="category-form" *ngIf="form" [formGroup]="form" (ngSubmit)="saveCategory()">
         <div class="mb-3">
           <label class="form-label required">Tên danh mục</label>
-          <input type="text" class="form-control" [(ngModel)]="formData.name" name="name" required />
+          <input type="text" class="form-control" formControlName="name" autofocus />
+          <div
+            class="text-danger mt-1"
+            *ngIf="form.get('name')?.invalid && (form.get('name')?.dirty || form.get('name')?.touched)"
+          >
+            Vui lòng nhập tên danh mục.
+          </div>
         </div>
+
         <div class="mb-3">
           <label class="form-label">Mô tả</label>
-
-          <textarea class="form-control" [(ngModel)]="formData.description" name="description" rows="3"></textarea>
+          <textarea
+            class="form-control"
+            formControlName="description"
+            rows="3"
+            placeholder="Nhập mô tả chi tiết cho danh mục này..."
+          ></textarea>
         </div>
+
         <div class="form-check mb-3">
-          <input type="checkbox" class="form-check-input" id="isActive" [(ngModel)]="formData.isActive" name="isActive" />
+          <input type="checkbox" class="form-check-input" id="isActive" formControlName="isActive" />
           <label class="form-check-label" for="isActive">Hoạt động</label>
         </div>
       </form>
     </ng-template>
 
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" (click)="closeModal()">Hủy</button>
-      <button type="button" class="btn btn-primary" (click)="saveCategory()">Lưu</button>
+      <button type="button" class="btn btn-secondary" abpClose>Hủy</button>
+      <button form="category-form" type="submit" class="btn btn-primary" [disabled]="form?.invalid || isSaving">
+        <i class="fa fa-check me-1"></i> Lưu
+      </button>
     </ng-template>
   </abp-modal>
 </abp-page>

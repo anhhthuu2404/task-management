@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { ListService, PagedResultDto } from '@abp/ng.core';
@@ -25,6 +25,25 @@ import { CategoryDto } from '../proxy/categories/models';
   selector: 'app-tag',
   standalone: true,
   templateUrl: './tag.component.html',
+  encapsulation: ViewEncapsulation.None,
+  styles: [`
+    app-tag .ngx-datatable {
+      width: 100% !important;
+    }
+    
+    app-tag .ngx-datatable .datatable-header-inner,
+    app-tag .ngx-datatable .datatable-body-row {
+      width: 100% !important;
+      display: flex !important;
+    }
+
+    app-tag .ngx-datatable .datatable-header-cell,
+    app-tag .ngx-datatable .datatable-body-cell {
+      display: flex !important;
+      align-items: center;
+      margin: 0 !important;
+    }
+  `],
   imports: [
     CommonModule,
     FormsModule,
@@ -96,7 +115,7 @@ export class TagComponent implements OnInit {
     };
 
     this.list.hookToQuery(streamCreator).subscribe(res => {
-      this.items = res;
+      this.items = res || { items: [], totalCount: 0 };
     });
   }
 

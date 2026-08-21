@@ -1,8 +1,4 @@
-﻿using TaskManagement.EntityFrameworkCore;
-using TaskManagement.HealthChecks;
-using TaskManagement.Localization;
-using TaskManagement.MultiTenancy;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -19,6 +15,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using TaskManagement.EntityFrameworkCore;
+using TaskManagement.HealthChecks;
+using TaskManagement.Localization;
+using TaskManagement.MultiTenancy;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
@@ -210,28 +210,41 @@ public class TaskManagementHttpApiHostModule : AbpModule
             {
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskManagement API", Version = "v1" });
                 options.DocInclusionPredicate((docName, description) => true);
-                options.CustomSchemaIds(type => type.FullName);
+                options.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
             });
     }
 
     private static void ConfigureCors(ServiceConfigurationContext context, IConfiguration configuration)
     {
+        var corsOrigins = configuration["App:CorsOrigins"]?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(o => o.Trim().TrimEnd('/'))
+            .ToArray() ?? [];
+
         context.Services.AddCors(options =>
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder
-                    .WithOrigins(
-                        configuration["App:CorsOrigins"]?
-                            .Split(",", StringSplitOptions.RemoveEmptyEntries)
-                            .Select(o => o.Trim().RemovePostFix("/"))
-                            .ToArray() ?? []
-                    )
-                    .WithAbpExposedHeaders()
-                    .SetIsOriginAllowedToAllowWildcardSubdomains()
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
+                if (corsOrigins.Length > 0)
+                {
+                    builder
+                        .WithOrigins(corsOrigins)
+                        .WithAbpExposedHeaders()
+                        .SetIsOriginAllowedToAllowWildcardSubdomains()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
+                else
+                {
+                    // Fallback cho môi trường Dev nếu chưa khai báo appsettings.json
+                    builder
+                        .SetIsOriginAllowed(_ => true)
+                        .WithAbpExposedHeaders()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
             });
         });
     }
@@ -263,6 +276,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
         app.UseStaticFiles();
         app.UseRouting();
 
+        // Middleware CORS đặt ngay sau Routing và trước Authentication
         app.UseCors();
 
         app.UseAbpRequestLocalization();

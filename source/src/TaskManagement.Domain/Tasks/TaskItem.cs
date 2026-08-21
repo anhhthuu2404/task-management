@@ -15,6 +15,9 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
     public DateTime? DueDate { get; set; }
     public Guid CategoryId { get; set; }
     public Guid? AssigneeId { get; set; }
+    public string? FileName { get; set; }
+    public string? FileUrl { get; set; }
+    public int ProgressPercent { get; set; }
 
     public virtual ICollection<TaskAttachment> Attachments { get; set; } = [];
 

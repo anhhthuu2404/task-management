@@ -1,24 +1,22 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
-using Volo.Abp.Domain.Entities.Auditing;
+using Volo.Abp.Domain.Entities;
 
 namespace TaskManagement.Tasks;
 
-[Table("TaskAttachments")]
-public class TaskAttachment : CreationAuditedEntity<Guid>
+public class TaskAttachment : Entity<Guid>
 {
-    public Guid TaskId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
-    public long FileSize { get; set; }
+    public string FileUrl { get; set; } = string.Empty;
+    public Guid TaskId { get; set; }
+    public Guid TaskItemId { get; set; }
 
-    protected TaskAttachment() { }
-
-    public TaskAttachment(Guid id, Guid taskId, string fileName, string filePath, long fileSize) : base(id)
+    // Constructor mặc định cho EF Core & AutoMapper
+    public TaskAttachment()
     {
-        TaskId = taskId;
-        FileName = fileName;
-        FilePath = filePath;
-        FileSize = fileSize;
+    }
+
+    public TaskAttachment(Guid id) : base(id)
+    {
     }
 }

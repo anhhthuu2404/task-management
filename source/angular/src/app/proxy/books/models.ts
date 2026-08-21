@@ -5,7 +5,7 @@ export interface BookDto extends AuditedEntityDto<string> {
   name?: string;
   type?: BookType;
   publishDate?: string;
-  price: number;
+  price?: number;
 }
 
 export interface CreateUpdateBookDto {

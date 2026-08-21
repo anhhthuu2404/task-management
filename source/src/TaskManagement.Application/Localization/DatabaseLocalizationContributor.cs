@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using System;
 using System.Collections.Generic;
@@ -7,27 +8,25 @@ using System.Threading;
 using System.Threading.Tasks;
 using TaskManagement.LocalizationManagement.LanguageTexts;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Linq;
 using Volo.Abp.Localization;
-using Volo.Abp.Threading;
 using Volo.Abp.Uow;
 
 namespace TaskManagement.Localization;
 
-public class DatabaseLocalizationContributor : ILocalizationResourceContributor
+// 1. Áp dụng Primary Constructor
+public class DatabaseLocalizationContributor(IServiceProvider serviceProvider) : ILocalizationResourceContributor
 {
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IServiceScopeFactory _serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private readonly object _syncLock = new();
+
+    // 2. Dùng Lock của C# 13 / .NET 9 thay cho object
+    private readonly Lock _syncLock = new();
 
     private List<LanguageText>? _cachedTexts;
     private List<string>? _cachedCultures;
 
     public bool IsDynamic => true;
-
-    public DatabaseLocalizationContributor(IServiceProvider serviceProvider)
-    {
-        _serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
-    }
 
     public void InvalidateCache()
     {
@@ -58,6 +57,7 @@ public class DatabaseLocalizationContributor : ILocalizationResourceContributor
     {
         EnsureCacheLoaded();
 
+        // 3. Đơn giản hóa Collection initialization []
         var texts = _cachedTexts?
             .Where(x => x.CultureName == cultureName)
             .ToList() ?? [];
@@ -85,7 +85,7 @@ public class DatabaseLocalizationContributor : ILocalizationResourceContributor
     public async Task<IEnumerable<string>> GetSupportedCulturesAsync()
     {
         await EnsureCacheLoadedAsync();
-        return _cachedCultures ?? Enumerable.Empty<string>();
+        return _cachedCultures ?? [];
     }
 
     private void EnsureCacheLoaded()
@@ -102,17 +102,23 @@ public class DatabaseLocalizationContributor : ILocalizationResourceContributor
                 using var scope = _serviceScopeFactory.CreateScope();
                 var uowManager = scope.ServiceProvider.GetRequiredService<IUnitOfWorkManager>();
 
-                // 🟢 Đặt requiresNew: true để cách ly hoàn toàn UOW
                 using var uow = uowManager.Begin(requiresNew: true);
                 var languageTextRepository = scope.ServiceProvider.GetRequiredService<IRepository<LanguageText, Guid>>();
+                var asyncExecuter = scope.ServiceProvider.GetRequiredService<IAsyncQueryableExecuter>();
 
-                _cachedTexts = AsyncHelper.RunSync(() => languageTextRepository.GetListAsync());
+               
+                _cachedTexts = Task.Run(async () =>
+                {
+                    var queryable = (await languageTextRepository.GetQueryableAsync()).AsNoTracking();
+                    return await asyncExecuter.ToListAsync(queryable);
+                }).GetAwaiter().GetResult();
+
                 _cachedCultures = _cachedTexts
                     .Select(x => x.CultureName)
                     .Distinct()
                     .ToList();
 
-                AsyncHelper.RunSync(() => uow.CompleteAsync());
+                Task.Run(async () => await uow.CompleteAsync()).GetAwaiter().GetResult();
             }
         }
     }
@@ -134,8 +140,11 @@ public class DatabaseLocalizationContributor : ILocalizationResourceContributor
 
                 using var uow = uowManager.Begin(requiresNew: true);
                 var languageTextRepository = scope.ServiceProvider.GetRequiredService<IRepository<LanguageText, Guid>>();
+                var asyncExecuter = scope.ServiceProvider.GetRequiredService<IAsyncQueryableExecuter>();
 
-                _cachedTexts = await languageTextRepository.GetListAsync();
+                var queryable = (await languageTextRepository.GetQueryableAsync()).AsNoTracking();
+                _cachedTexts = await asyncExecuter.ToListAsync(queryable);
+
                 _cachedCultures = _cachedTexts
                     .Select(x => x.CultureName)
                     .Distinct()

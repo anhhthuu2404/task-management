@@ -1,0 +1,269 @@
+<div class="card border-0 shadow-sm rounded-3">
+  <!-- Card Header -->
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <h5 class="card-title fw-bold text-dark mb-0">Quản lý công việc</h5>
+    <a *ngIf="canCreate" [routerLink]="['/tasks/create']" class="btn btn-primary btn-sm px-3">
+      <i class="fa fa-plus me-1"></i> Tạo công việc mới
+    </a>
+  </div>
+
+  <!-- Filters Section (Đã tối ưu layout linh hoạt, hết lỗi xén chữ) -->
+  <div class="card-body bg-light border-top border-bottom py-3">
+    <div class="row g-2 align-items-center">
+      <!-- Tìm kiếm -->
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          placeholder="Tìm theo tiêu đề..."
+          [(ngModel)]="filters.keyword"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+
+      <!-- Lọc Danh mục -->
+      <div class="col-6 col-sm-6 col-md-4 col-lg">
+        <select class="form-select form-select-sm px-2" [(ngModel)]="filters.categoryId" (change)="onSearch()">
+          <option value="">-- Danh mục --</option>
+          <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+        </select>
+      </div>
+
+      <!-- Lọc Người làm -->
+      <div class="col-6 col-sm-6 col-md-4 col-lg">
+        <select class="form-select form-select-sm px-2" [(ngModel)]="filters.assigneeId" (change)="onSearch()">
+          <option value="">-- Người làm --</option>
+          <option *ngFor="let u of users" [value]="u.id">{{ u.name || u.userName }}</option>
+        </select>
+      </div>
+
+      <!-- Lọc Độ ưu tiên -->
+      <div class="col-6 col-sm-6 col-md-4 col-lg">
+        <select class="form-select form-select-sm px-2" [(ngModel)]="filters.priority" (change)="onSearch()">
+          <option [ngValue]="null">-- Độ ưu tiên --</option>
+          <option [ngValue]="0">Thấp</option>
+          <option [ngValue]="1">Trung bình</option>
+          <option [ngValue]="2">Cao</option>
+          <option [ngValue]="3">Khẩn cấp</option>
+        </select>
+      </div>
+
+      <!-- Lọc Trạng thái -->
+      <div class="col-6 col-sm-6 col-md-4 col-lg">
+        <select class="form-select form-select-sm px-2" [(ngModel)]="filters.status" (change)="onSearch()">
+          <option [ngValue]="null">-- Trạng thái --</option>
+          <option [ngValue]="0">Mới</option>
+          <option [ngValue]="1">Đang làm</option>
+          <option [ngValue]="2">Hoàn thành</option>
+          <option [ngValue]="3">Đã hủy</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Switch & Button Tìm kiếm -->
+    <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="form-check form-switch small mb-0">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="onlyMyTasks"
+          [checked]="filters.onlyMyTasks"
+          (change)="toggleMyTasks()"
+        />
+        <label class="form-check-label text-dark fw-medium ms-1" for="onlyMyTasks">Chỉ hiện công việc của tôi</label>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm px-3" (click)="onSearch()">
+        <i class="fa fa-search me-1"></i> Tìm kiếm
+      </button>
+    </div>
+  </div>
+
+  <!-- Task Table -->
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light border-bottom">
+          <tr class="text-nowrap text-uppercase text-dark small fw-bold">
+            <th>Tiêu đề</th>
+            <th>Người thực hiện</th>
+            <th>Độ ưu tiên</th>
+            <th>Trạng thái</th>
+            <th>Tiến độ</th>
+            <th>Hạn chót</th>
+            <th>Tệp đính kèm</th>
+            <th class="text-end">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading -->
+          <tr *ngIf="isLoading">
+            <td colspan="8" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+              <span class="text-dark small">Đang tải dữ liệu...</span>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="!isLoading && taskList.length === 0">
+            <td colspan="8" class="text-center text-dark py-4">Không tìm thấy công việc nào.</td>
+          </tr>
+
+          <!-- Data Row -->
+          <tr *ngFor="let task of taskList">
+            <!-- Tiêu đề -->
+            <td>
+              <a
+                [routerLink]="['/tasks/detail', task.id]"
+                class="fw-bold text-decoration-none text-primary d-inline-block text-truncate"
+                style="max-width: 200px;"
+                [title]="task.title"
+              >
+                {{ task.title }}
+              </a>
+            </td>
+
+            <!-- Người thực hiện -->
+            <td class="text-nowrap">
+              <div ngbDropdown container="body" class="d-inline-block" *ngIf="canEdit; else readonlyAssignee">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-light border dropdown-toggle small text-dark fw-medium"
+                  ngbDropdownToggle
+                >
+                  <i class="fa fa-user me-1 text-secondary"></i>
+                  {{ task.assigneeName || 'Chưa phân công' }}
+                </button>
+                <div ngbDropdownMenu class="shadow-sm border" style="max-height: 200px; overflow-y: auto;">
+                  <button ngbDropdownItem class="small text-muted" (click)="updateTaskAssignee(task, null)">
+                    <i class="fa fa-user-times me-1"></i> Chưa phân công
+                  </button>
+                  <div class="dropdown-divider"></div>
+                  <button
+                    *ngFor="let u of users"
+                    ngbDropdownItem
+                    class="small text-dark"
+                    (click)="updateTaskAssignee(task, u.id)"
+                  >
+                    <i class="fa fa-user me-1 text-primary"></i> {{ u.name || u.userName }}
+                  </button>
+                </div>
+              </div>
+              <ng-template #readonlyAssignee>
+                <span class="small text-dark fw-medium">{{ task.assigneeName || 'Chưa phân công' }}</span>
+              </ng-template>
+            </td>
+
+            <!-- Độ ưu tiên -->
+            <td class="text-nowrap">
+              <span class="badge rounded-pill fw-semibold" [ngClass]="getPriorityBadge(task.priority).cssClass">
+                {{ getPriorityBadge(task.priority).text }}
+              </span>
+            </td>
+
+            <!-- Trạng thái -->
+            <td class="text-nowrap">
+              <div ngbDropdown container="body" class="d-inline-block" *ngIf="canEdit; else readonlyStatus">
+                <button
+                  type="button"
+                  class="btn btn-sm badge rounded-pill dropdown-toggle border-0 fw-semibold"
+                  [ngClass]="getStatusBadge(task.status).cssClass"
+                  ngbDropdownToggle
+                >
+                  {{ getStatusBadge(task.status).text }}
+                </button>
+                <div ngbDropdownMenu class="shadow-sm border">
+                  <button ngbDropdownItem class="small text-dark" (click)="updateTaskStatus(task, 0)">Mới</button>
+                  <button ngbDropdownItem class="small text-dark" (click)="updateTaskStatus(task, 1)">Đang làm</button>
+                  <button ngbDropdownItem class="small text-dark" (click)="updateTaskStatus(task, 2)">Hoàn thành</button>
+                  <button ngbDropdownItem class="small text-dark" (click)="updateTaskStatus(task, 3)">Hủy bỏ</button>
+                </div>
+              </div>
+              <ng-template #readonlyStatus>
+                <span class="badge rounded-pill fw-semibold" [ngClass]="getStatusBadge(task.status).cssClass">
+                  {{ getStatusBadge(task.status).text }}
+                </span>
+              </ng-template>
+            </td>
+
+            <!-- Tiến độ -->
+            <td>
+              <div class="d-flex align-items-center gap-2" style="min-width: 130px;">
+                <div class="progress flex-grow-1" style="height: 8px;">
+                  <div
+                    class="progress-bar"
+                    [ngClass]="task.progressPercent === 100 ? 'bg-success' : 'bg-primary'"
+                    role="progressbar"
+                    [style.width.%]="task.progressPercent"
+                  ></div>
+                </div>
+                <small class="fw-bold text-dark small" style="min-width: 35px;">{{ task.progressPercent }}%</small>
+              </div>
+            </td>
+
+            <!-- Hạn chót -->
+            <td class="text-nowrap small text-dark fw-medium">
+              {{ task.dueDate | date: 'dd/MM/yyyy' }}
+            </td>
+
+            <!-- Tệp đính kèm -->
+            <td>
+              <div class="d-flex flex-column gap-1" *ngIf="getFileList(task).length > 0; else noFile">
+                <a
+                  *ngFor="let file of getFileList(task)"
+                  [href]="file.url"
+                  target="_blank"
+                  class="btn btn-light btn-sm text-primary border d-inline-flex align-items-center gap-1 text-truncate py-1 px-2"
+                  style="max-width: 180px;"
+                  [title]="file.name"
+                >
+                  <i class="fa fa-paperclip me-1"></i>
+                  <span class="text-truncate small">{{ file.name }}</span>
+                </a>
+              </div>
+              <ng-template #noFile>
+                <span class="text-dark small">-</span>
+              </ng-template>
+            </td>
+
+            <!-- Hành động -->
+            <td class="text-end text-nowrap">
+              <div class="d-flex justify-content-end gap-1">
+                <a
+                  *ngIf="canEdit"
+                  [routerLink]="['/tasks/edit', task.id]"
+                  class="btn btn-sm btn-outline-primary px-2 py-1"
+                  title="Sửa"
+                >
+                  <i class="fa fa-edit"></i>
+                </a>
+                <button
+                  *ngIf="canDelete"
+                  (click)="deleteTask(task.id)"
+                  class="btn btn-sm btn-outline-danger px-2 py-1"
+                  title="Xóa"
+                >
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination Footer -->
+  <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center" *ngIf="totalCount > 0">
+    <div class="text-dark small">Tổng cộng: <strong class="text-dark">{{ totalCount }}</strong> bản ghi</div>
+    <ngb-pagination
+      [collectionSize]="totalCount"
+      [(page)]="page"
+      [pageSize]="filters.maxResultCount"
+      (pageChange)="onPageChange($event)"
+      [maxSize]="5"
+      [rotate]="true"
+      [boundaryLinks]="true"
+      class="mb-0"
+    ></ngb-pagination>
+  </div>
+</div>

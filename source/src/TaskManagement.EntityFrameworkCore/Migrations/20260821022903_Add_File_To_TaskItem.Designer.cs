@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TaskManagement.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace TaskManagement.Migrations
 {
     [DbContext(typeof(TaskManagementDbContext))]
-    partial class TaskManagementDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260821022903_Add_File_To_TaskItem")]
+    partial class Add_File_To_TaskItem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -720,6 +723,14 @@ namespace TaskManagement.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -730,14 +741,10 @@ namespace TaskManagement.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid>("TaskId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TaskItemId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -815,9 +822,6 @@ namespace TaskManagement.Migrations
                         .HasColumnName("LastModifierId");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProgressPercent")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")

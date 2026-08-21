@@ -1,169 +1,168 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { ListService, PagedResultDto } from '@abp/ng.core';
-import { ToasterService, ConfirmationService, Confirmation, ThemeSharedModule } from '@abp/ng.theme.shared';
+import {
+  NgxDatatableListDirective,
+  ModalComponent,
+  ModalCloseDirective,
+  ConfirmationService,
+  Confirmation,
+  ToasterService,
+  ThemeSharedModule,
+} from '@abp/ng.theme.shared';
 import { PageModule } from '@abp/ng.components/page';
-import { NgxDatatableModule } from '@swimlane/ngx-datatable';
-import { CategoryService, CategoryDto, CreateUpdateCategoryDto } from '../proxy/categories';
+import { NgxDatatableModule, ColumnChangesService } from '@swimlane/ngx-datatable';
+import { NgbDropdownModule, NgbModalOptions } from '@ng-bootstrap/ng-bootstrap';
+import { finalize } from 'rxjs/operators';
 
-export interface CategoryViewModel extends CategoryDto {
-  isDefault?: boolean;
-}
+import { CategoryService } from '../proxy/categories/category.service';
+import { CategoryDto } from '../proxy/categories/models';
 
 @Component({
   selector: 'app-category',
   standalone: true,
+  templateUrl: './category.component.html',
   imports: [
-    CommonModule, 
+    CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    NgxDatatableModule,
+    NgbDropdownModule,
+    ModalComponent,
+    ModalCloseDirective,
     PageModule,
-    ThemeSharedModule,  
-    NgxDatatableModule  
+    NgxDatatableListDirective,
+    ThemeSharedModule,
   ],
-  providers: [ListService],
-  templateUrl: './category.component.html'
+  providers: [
+    ListService,
+    ColumnChangesService,
+  ],
 })
 export class CategoryComponent implements OnInit {
-  public readonly list = inject(ListService);
-  private readonly categoryService = inject(CategoryService);
-  private readonly noti = inject(ToasterService);
-  private readonly confirmation = inject(ConfirmationService);
+  private readonly service = inject(CategoryService);
   private readonly fb = inject(FormBuilder);
+  private readonly confirmation = inject(ConfirmationService);
+  private readonly noti = inject(ToasterService);
+  public readonly list = inject(ListService);
 
-  items: PagedResultDto<CategoryViewModel> = { items: [], totalCount: 0 };
-  selectedCategory: CategoryViewModel | null = null;
+  category: PagedResultDto<CategoryDto> = { items: [], totalCount: 0 };
+  selectedCategory = {} as CategoryDto;
+  form!: FormGroup;
   searchForm!: FormGroup;
 
   isModalOpen = false;
-  isEditMode = false;
+  loading = false;
+  isSaving = false;
 
-  modalOptions = {
-    suppressUnsavedChangesWarning: true
-  };
+  modalOptions: NgbModalOptions = { size: 'md', centered: true };
 
-  formData: CreateUpdateCategoryDto = {
-    name: '',
-    description: '',
-    isActive: true
-  };
-
-  ngOnInit(): void {
+  ngOnInit() {
     this.buildSearchForm();
-    this.loadCategories();
+    this.buildForm();
+    this.initCategoryListStream();
   }
 
-  private buildSearchForm(): void {
-    this.searchForm = this.fb.group({
-      filter: ['']
-    });
-  }
-
-  loadCategories(): void {
-    const categoryStream = (query: any) =>
-      this.categoryService.getList({
+  private initCategoryListStream() {
+    const streamCreator = (query: any) => {
+      this.loading = true;
+      const searchVal = this.searchForm?.value;
+      return this.service.getList({
         ...query,
-        filter: this.searchForm?.value?.filter || ''
-      });
+        filter: searchVal?.filter || '',
+      } as any).pipe(
+        finalize(() => (this.loading = false))
+      );
+    };
 
-    this.list.hookToQuery(categoryStream).subscribe({
-      next: (res) => {
-        this.items = {
-          totalCount: res.totalCount,
-          items: (res.items || []).map((item) => ({
-            ...item,
-            isDefault: (item as CategoryViewModel).isDefault ?? false
-          }))
-        };
-      },
-      error: (err) => {
-        this.noti.error(err?.error?.error?.message || 'Không thể tải danh sách danh mục');
-      }
+    this.list.hookToQuery(streamCreator).subscribe(res => {
+      this.category = res || { items: [], totalCount: 0 };
     });
   }
 
-  create(): void {
-    this.openCreateModal();
+  buildSearchForm() {
+    this.searchForm = this.fb.group({
+      filter: [''],
+    });
   }
 
-  openCreateModal(): void {
-    this.isEditMode = false;
-    this.selectedCategory = null;
-    this.formData = {
-      name: '',
-      description: '',
-      isActive: true
-    };
-    this.isModalOpen = true;
-  }
-
-  openEditModal(category: CategoryViewModel): void {
-    this.isEditMode = true;
-    this.selectedCategory = category;
-    this.formData = {
-      name: category.name ?? '',
-      description: category.description ?? '',
-      isActive: category.isActive ?? true
-    };
-    this.isModalOpen = true;
-  }
-
-  search(): void {
+  search() {
+    this.list.page = 0;
     this.list.get();
   }
 
-  reset(): void {
+  reset() {
     this.searchForm.reset({ filter: '' });
+    this.list.page = 0;
     this.list.get();
   }
 
-  saveCategory(): void {
-    if (!this.formData.name) {
-      this.noti.warn('Vui lòng nhập Tên danh mục');
-      return;
-    }
+  createCategory() {
+    this.selectedCategory = {} as CategoryDto;
+    this.buildForm();
+    this.isModalOpen = true;
+  }
 
-    const request = this.isEditMode && this.selectedCategory?.id
-      ? this.categoryService.update(this.selectedCategory.id, this.formData, { skipHandleError: true })
-      : this.categoryService.create(this.formData, { skipHandleError: true });
-
-    request.subscribe({
-      next: () => {
-        this.noti.success(this.isEditMode ? 'Cập nhật danh mục thành công' : 'Tạo mới danh mục thành công');
-        this.closeModal();
-        this.list.get();
-      },
-      error: (err) => {
-        this.noti.error(err?.error?.error?.message || 'Có lỗi xảy ra khi lưu danh mục!');
-      }
+  editCategory(id: string) {
+    this.service.get(id).subscribe(item => {
+      this.selectedCategory = item;
+      this.buildForm();
+      this.isModalOpen = true;
     });
   }
 
-  deleteCategory(category: CategoryViewModel): void {
-    if (category.isDefault) {
-      this.noti.warn('Không thể xóa danh mục mặc định của hệ thống!');
+  buildForm() {
+    this.form = this.fb.group({
+      id: [this.selectedCategory?.id || null],
+      name: [this.selectedCategory?.name || '', [Validators.required, Validators.maxLength(128)]],
+      description: [(this.selectedCategory as any)?.description || ''],
+      isActive: [(this.selectedCategory as any)?.isActive ?? true],
+    });
+  }
+
+  saveCategory() {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
-    this.confirmation
-      .warn('Bạn có chắc chắn muốn xóa danh mục này?', 'Xác nhận xóa')
-      .subscribe((status) => {
-        if (status === Confirmation.Status.confirm && category.id) {
-          this.categoryService.delete(category.id, { skipHandleError: true }).subscribe({
-            next: () => {
-              this.noti.success('Xóa danh mục thành công');
-              this.list.get();
-            },
-            error: (err) => {
-              this.noti.error(err?.error?.error?.message || 'Không thể xóa danh mục này');
-            }
-          });
+    this.isSaving = true;
+    const formVal = this.form.value;
+    const dto = {
+      ...formVal,
+      name: formVal.name?.trim(),
+    };
+
+    const targetId = this.selectedCategory?.id;
+    const request = targetId
+      ? this.service.update(targetId, dto as any)
+      : this.service.create(dto as any);
+
+    request
+      .pipe(finalize(() => (this.isSaving = false)))
+      .subscribe({
+        next: () => {
+          this.isModalOpen = false;
+          this.list.get();
+          this.noti.success('Lưu thông tin danh mục thành công', 'Thông báo');
+        },
+        error: (err) => {
+          this.noti.error(err?.error?.error?.message || 'Có lỗi xảy ra', 'Thất bại');
         }
       });
   }
 
-  closeModal(): void {
-    this.isModalOpen = false;
+  deleteCategory(id: string) {
+    this.confirmation
+      .warn('Bạn có chắc chắn muốn xóa danh mục này?', 'Xác nhận xóa')
+      .subscribe(status => {
+        if (status === Confirmation.Status.confirm) {
+          this.service.delete(id).subscribe(() => {
+            this.list.get();
+            this.noti.success('Xóa danh mục thành công', 'Thông báo');
+          });
+        }
+      });
   }
 }

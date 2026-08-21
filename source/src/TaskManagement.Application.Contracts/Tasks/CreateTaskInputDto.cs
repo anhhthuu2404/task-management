@@ -1,13 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Volo.Abp.Content;
 
 namespace TaskManagement.Tasks;
+
+public class FileAttachmentDto
+{
+    public string FileName { get; set; } = string.Empty;
+    public string FileContent { get; set; } = string.Empty;
+}
 
 public class CreateTaskInputDto
 {
     [Required]
-    [StringLength(256)]
+    [StringLength(128)]
     public string Title { get; set; } = string.Empty;
 
     public string? Description { get; set; }
@@ -15,11 +21,15 @@ public class CreateTaskInputDto
     [Required]
     public Guid CategoryId { get; set; }
 
-    public int? Priority { get; set; } = 1;
+    public Guid? AssigneeId { get; set; }
+
+    [Required]
+    public int Priority { get; set; }
+
+    [Required]
+    public int Status { get; set; }
 
     public DateTime? DueDate { get; set; }
 
-    public Guid? AssigneeId { get; set; }
-
-    public IRemoteStreamContent[]? Files { get; set; }
+    public List<TaskAttachmentDto>? Attachments { get; set; }
 }

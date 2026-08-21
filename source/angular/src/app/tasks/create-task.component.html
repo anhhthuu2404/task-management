@@ -1,37 +1,30 @@
 <div class="card">
   <div class="card-header">
-    <h4 class="card-title text-primary my-1">
-      <i class="fas fa-tasks me-2"></i>Tạo mới công việc
-    </h4>
+    <h3 class="card-title">Tạo mới công việc</h3>
   </div>
   <div class="card-body">
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
       <!-- Tiêu đề -->
       <div class="mb-3">
-        <label class="form-label text-danger font-weight-bold">* Tiêu đề công việc</label>
-        <input
-          type="text"
-          formControlName="title"
-          class="form-control"
-          [class.is-invalid]="form.get('title')?.invalid && form.get('title')?.touched"
-          placeholder="Nhập tiêu đề công việc..."
-        />
-        <div class="invalid-feedback">Tiêu đề không được để trống.</div>
+        <label class="form-label required">Tiêu đề</label>
+        <input type="text" class="form-control" formControlName="title" [class.is-invalid]="form.get('title')?.touched && form.get('title')?.invalid" />
+        <div class="invalid-feedback" *ngIf="form.get('title')?.hasError('required')">Tiêu đề không được để trống.</div>
+        <div class="invalid-feedback" *ngIf="form.get('title')?.hasError('maxlength')">Tiêu đề tối đa 128 ký tự.</div>
+      </div>
+
+      <!-- Mô tả -->
+      <div class="mb-3">
+        <label class="form-label">Mô tả</label>
+        <textarea class="form-control" rows="3" formControlName="description"></textarea>
       </div>
 
       <div class="row">
         <!-- Danh mục -->
         <div class="col-md-6 mb-3">
-          <label class="form-label text-danger font-weight-bold">* Danh mục</label>
-          <select 
-            formControlName="categoryId" 
-            class="form-select"
-            [class.is-invalid]="form.get('categoryId')?.invalid && form.get('categoryId')?.touched"
-          >
+          <label class="form-label required">Danh mục</label>
+          <select class="form-select" formControlName="categoryId" [class.is-invalid]="form.get('categoryId')?.touched && form.get('categoryId')?.invalid">
             <option value="">-- Chọn danh mục --</option>
-            <option *ngFor="let item of categories" [value]="item.id">
-              {{ item.name }}
-            </option>
+            <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
           </select>
           <div class="invalid-feedback">Vui lòng chọn danh mục.</div>
         </div>
@@ -39,20 +32,18 @@
         <!-- Người thực hiện -->
         <div class="col-md-6 mb-3">
           <label class="form-label">Người thực hiện</label>
-          <select formControlName="assigneeId" class="form-select">
-            <option [value]="null">-- Chưa phân công --</option>
-            <option *ngFor="let user of users" [value]="user.id">
-              {{ user.userName }} ({{ user.name }})
-            </option>
+          <select class="form-select" formControlName="assigneeId">
+            <option [ngValue]="null">-- Chọn người thực hiện --</option>
+            <option *ngFor="let user of users" [value]="user.id">{{ user.name || user.userName }}</option>
           </select>
         </div>
       </div>
 
       <div class="row">
         <!-- Mức độ ưu tiên -->
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Mức độ ưu tiên</label>
-          <select formControlName="priority" class="form-select">
+        <div class="col-md-4 mb-3">
+          <label class="form-label required">Độ ưu tiên</label>
+          <select class="form-select" formControlName="priority">
             <option [value]="0">Thấp</option>
             <option [value]="1">Trung bình</option>
             <option [value]="2">Cao</option>
@@ -60,59 +51,52 @@
           </select>
         </div>
 
+        <!-- Trạng thái -->
+        <div class="col-md-4 mb-3">
+          <label class="form-label required">Trạng thái</label>
+          <select class="form-select" formControlName="status">
+            <option [value]="0">Mới</option>
+            <option [value]="1">Đang làm</option>
+            <option [value]="2">Hoàn thành</option>
+            <option [value]="3">Đã hủy</option>
+          </select>
+        </div>
+
         <!-- Hạn hoàn thành -->
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
           <label class="form-label">Hạn hoàn thành</label>
-          <input type="date" formControlName="dueDate" class="form-control" />
+          <input type="date" class="form-control" formControlName="dueDate" [min]="minDate" />
         </div>
       </div>
 
-      <!-- Mô tả chi tiết -->
-      <div class="mb-3">
-        <label class="form-label">Mô tả chi tiết</label>
-        <textarea
-          formControlName="description"
-          class="form-control"
-          rows="4"
-          placeholder="Nhập mô tả chi tiết công việc..."
-        ></textarea>
-      </div>
-
-      <!-- Tệp đính kèm -->
+      <!-- Tệp đính kèm Multi-Upload -->
       <div class="mb-3">
         <label class="form-label">Tệp đính kèm</label>
-        <input
-          type="file"
-          multiple
-          class="form-control"
-          (change)="onFileSelect($event)"
-        />
+        <input type="file" multiple class="form-control" (change)="onFileSelect($event)" [disabled]="isSubmitting" />
+        <small class="form-text text-muted">Hỗ trợ: PDF, DOCX, PNG, JPG, XLSX (Tối đa 10MB/file).</small>
 
+        <!-- Progress Bar -->
+        <div class="progress mt-2" *ngIf="uploadProgress > 0 && uploadProgress < 100">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" [style.width.%]="uploadProgress">
+            {{ uploadProgress }}%
+          </div>
+        </div>
+
+        <!-- Danh sách file đã chọn -->
         <ul class="list-group mt-2" *ngIf="selectedFiles.length > 0">
-          <li
-            *ngFor="let file of selectedFiles; let i = index"
-            class="list-group-item d-flex justify-content-between align-items-center"
-          >
-            <span><i class="fas fa-paperclip me-2"></i>{{ file.name }}</span>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-danger"
-              (click)="removeFile(i)"
-            >
-              <i class="fas fa-trash"></i>
-            </button>
+          <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let file of selectedFiles; let i = index">
+            <span>📄 {{ file.name }} <small class="text-muted">({{ (file.size / 1024 / 1024).toFixed(2) }} MB)</small></span>
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeFile(i)" [disabled]="isSubmitting">Xóa</button>
           </li>
         </ul>
       </div>
 
-      <!-- Nút thao tác -->
+      <!-- Action Buttons -->
       <div class="d-flex justify-content-end gap-2 mt-4">
-        <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSubmitting">
-          Hủy
-        </button>
-        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || isSubmitting">
-          <i class="fas fa-save me-1"></i>
-          {{ isSubmitting ? 'Đang lưu...' : 'Lưu công việc' }}
+        <button type="button" class="btn btn-secondary me-2" (click)="onCancel()" [disabled]="isSubmitting">Hủy</button>
+        <button type="submit" class="btn btn-primary" [disabled]="isSubmitting || form.invalid">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+          Lưu công việc
         </button>
       </div>
     </form>

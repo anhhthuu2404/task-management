@@ -3,7 +3,7 @@ export interface CreateUpdateLanguageDto {
   cultureName?: string;
   displayName?: string;
   icon?: string;
-  isDefault: boolean;
+  isDefault?: boolean;
 }
 
 export interface InputLanguageDto {
@@ -16,5 +16,5 @@ export interface LanguageDto {
   cultureName?: string;
   displayName?: string;
   icon?: string;
-  isDefault: boolean;
+  isDefault?: boolean;
 }

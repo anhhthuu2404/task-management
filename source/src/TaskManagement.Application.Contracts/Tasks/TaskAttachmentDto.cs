@@ -1,12 +1,11 @@
 ﻿using System;
-using Volo.Abp.Application.Dtos;
+using System.Collections.Generic;
+using System.Text;
 
 namespace TaskManagement.Tasks;
 
-public class TaskAttachmentDto : EntityDto<Guid>
+public class TaskAttachmentDto
 {
-    public Guid TaskId { get; set; }
-    public string FileName { get; set; } = string.Empty;
-    public string FilePath { get; set; } = string.Empty;
-    public long FileSize { get; set; }
+    public string FileName { get; set; } = default!;
+    public string FileContent { get; set; } = default!;
 }
