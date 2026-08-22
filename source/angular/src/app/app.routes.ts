@@ -64,18 +64,30 @@ export const APP_ROUTES: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'tasks/create',
-    loadComponent: () => import('./tasks/create-task.component').then(m => m.CreateTaskComponent),
-    canActivate: [authGuard],
-  },
-  {
     path: 'tasks',
-    loadComponent: () => import('./tasks/task-list.component').then(m => m.TaskListComponent),
     canActivate: [authGuard],
-  },
-  {
-    path: 'tasks/edit/:id',
-    loadComponent: () => import('./tasks/task-form.component').then(m => m.TaskFormComponent),
-    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'list',
+        pathMatch: 'full',
+      },
+      {
+        path: 'list', 
+        loadComponent: () => import('./tasks/task-list.component').then(m => m.TaskListComponent),
+      },
+      {
+        path: 'create',
+        loadComponent: () => import('./tasks/create-task.component').then(m => m.CreateTaskComponent),
+      },
+      {
+        path: 'edit/:id',
+        loadComponent: () => import('./tasks/task-form.component').then(m => m.TaskFormComponent),
+      },
+      {
+        path: 'detail/:id',
+        loadComponent: () => import('./tasks/task-detail.component').then(m => m.TaskDetailComponent),
+      },
+    ],
   },
 ];

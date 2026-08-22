@@ -3611,6 +3611,23 @@
               "name": "ITaskAppService",
               "methods": [
                 {
+                  "name": "GetTaskDetailAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskDetailDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+                  }
+                },
+                {
                   "name": "UpdateStatusAsync",
                   "parametersOnMethod": [
                     {
@@ -3633,6 +3650,258 @@
                   "returnValue": {
                     "type": "TaskManagement.Tasks.TaskDto",
                     "typeSimple": "TaskManagement.Tasks.TaskDto"
+                  }
+                },
+                {
+                  "name": "UpdateAssigneeAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "assigneeId",
+                      "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                      "type": "System.Guid?",
+                      "typeSimple": "string?",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskDto"
+                  }
+                },
+                {
+                  "name": "CreateSubTaskAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "taskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.CreateUpdateSubTaskDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                      "typeSimple": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.SubTaskDto",
+                    "typeSimple": "TaskManagement.Tasks.SubTaskDto"
+                  }
+                },
+                {
+                  "name": "UpdateSubTaskAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "subTaskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.CreateUpdateSubTaskDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                      "typeSimple": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.SubTaskDto",
+                    "typeSimple": "TaskManagement.Tasks.SubTaskDto"
+                  }
+                },
+                {
+                  "name": "ToggleSubTaskStatusAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "subTaskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                },
+                {
+                  "name": "DeleteSubTaskAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "subTaskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                },
+                {
+                  "name": "CreateChecklistItemAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "taskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.CreateUpdateChecklistItemDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                      "typeSimple": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.ChecklistItemDto",
+                    "typeSimple": "TaskManagement.Tasks.ChecklistItemDto"
+                  }
+                },
+                {
+                  "name": "UpdateChecklistItemAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "itemId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.CreateUpdateChecklistItemDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                      "typeSimple": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.ChecklistItemDto",
+                    "typeSimple": "TaskManagement.Tasks.ChecklistItemDto"
+                  }
+                },
+                {
+                  "name": "ToggleChecklistItemStatusAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "itemId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                },
+                {
+                  "name": "DeleteChecklistItemAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "itemId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                },
+                {
+                  "name": "GetCommentsAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "taskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskCommentDto>",
+                    "typeSimple": "[TaskManagement.Tasks.TaskCommentDto]"
+                  }
+                },
+                {
+                  "name": "CreateCommentAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "taskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.CreateTaskCommentDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.CreateTaskCommentDto",
+                      "typeSimple": "TaskManagement.Tasks.CreateTaskCommentDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskCommentDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskCommentDto"
+                  }
+                },
+                {
+                  "name": "DeleteCommentAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "commentId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
                   }
                 },
                 {
@@ -3732,6 +4001,43 @@
             }
           ],
           "actions": {
+            "GetTaskDetailAsyncById": {
+              "uniqueName": "GetTaskDetailAsyncById",
+              "name": "GetTaskDetailAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/{id}/detail",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDetailDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
             "CreateAsyncByInput": {
               "uniqueName": "CreateAsyncByInput",
               "name": "CreateAsync",
@@ -3829,7 +4135,7 @@
             "UpdateStatusAsyncByIdAndStatus": {
               "uniqueName": "UpdateStatusAsyncByIdAndStatus",
               "name": "UpdateStatusAsync",
-              "httpMethod": "PUT",
+              "httpMethod": "POST",
               "url": "api/app/task/{id}/status",
               "supportedVersions": [],
               "parametersOnMethod": [
@@ -3872,13 +4178,634 @@
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
-                  "bindingSourceId": "ModelBinding",
+                  "bindingSourceId": "Query",
                   "descriptorName": ""
                 }
               ],
               "returnValue": {
                 "type": "TaskManagement.Tasks.TaskDto",
                 "typeSimple": "TaskManagement.Tasks.TaskDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "UpdateAssigneeAsyncByIdAndAssigneeId": {
+              "uniqueName": "UpdateAssigneeAsyncByIdAndAssigneeId",
+              "name": "UpdateAssigneeAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{id}/assignee",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "assigneeId",
+                  "typeAsString": "System.Nullable`1[[System.Guid, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], System.Private.CoreLib",
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "assigneeId",
+                  "name": "assigneeId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Query",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "CreateSubTaskAsyncByTaskIdAndInput": {
+              "uniqueName": "CreateSubTaskAsyncByTaskIdAndInput",
+              "name": "CreateSubTaskAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{taskId}/sub-task",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "taskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.CreateUpdateSubTaskDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "taskId",
+                  "name": "taskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.SubTaskDto",
+                "typeSimple": "TaskManagement.Tasks.SubTaskDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "UpdateSubTaskAsyncBySubTaskIdAndInput": {
+              "uniqueName": "UpdateSubTaskAsyncBySubTaskIdAndInput",
+              "name": "UpdateSubTaskAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/sub-task/{subTaskId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "subTaskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.CreateUpdateSubTaskDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "subTaskId",
+                  "name": "subTaskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateSubTaskDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.SubTaskDto",
+                "typeSimple": "TaskManagement.Tasks.SubTaskDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "ToggleSubTaskStatusAsyncBySubTaskId": {
+              "uniqueName": "ToggleSubTaskStatusAsyncBySubTaskId",
+              "name": "ToggleSubTaskStatusAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/sub-task/{subTaskId}/toggle",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "subTaskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "subTaskId",
+                  "name": "subTaskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "DeleteSubTaskAsyncBySubTaskId": {
+              "uniqueName": "DeleteSubTaskAsyncBySubTaskId",
+              "name": "DeleteSubTaskAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/task/sub-task/{subTaskId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "subTaskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "subTaskId",
+                  "name": "subTaskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "CreateChecklistItemAsyncByTaskIdAndInput": {
+              "uniqueName": "CreateChecklistItemAsyncByTaskIdAndInput",
+              "name": "CreateChecklistItemAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{taskId}/checklist-item",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "taskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.CreateUpdateChecklistItemDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "taskId",
+                  "name": "taskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.ChecklistItemDto",
+                "typeSimple": "TaskManagement.Tasks.ChecklistItemDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "UpdateChecklistItemAsyncByItemIdAndInput": {
+              "uniqueName": "UpdateChecklistItemAsyncByItemIdAndInput",
+              "name": "UpdateChecklistItemAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/checklist-item/{itemId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "itemId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.CreateUpdateChecklistItemDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "itemId",
+                  "name": "itemId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateUpdateChecklistItemDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.ChecklistItemDto",
+                "typeSimple": "TaskManagement.Tasks.ChecklistItemDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "ToggleChecklistItemStatusAsyncByItemId": {
+              "uniqueName": "ToggleChecklistItemStatusAsyncByItemId",
+              "name": "ToggleChecklistItemStatusAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/checklist-item/{itemId}/toggle",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "itemId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "itemId",
+                  "name": "itemId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "DeleteChecklistItemAsyncByItemId": {
+              "uniqueName": "DeleteChecklistItemAsyncByItemId",
+              "name": "DeleteChecklistItemAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/task/checklist-item/{itemId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "itemId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "itemId",
+                  "name": "itemId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "GetCommentsAsyncByTaskId": {
+              "uniqueName": "GetCommentsAsyncByTaskId",
+              "name": "GetCommentsAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/{taskId}/comments",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "taskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "taskId",
+                  "name": "taskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskCommentDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskCommentDto]"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "CreateCommentAsyncByTaskIdAndInput": {
+              "uniqueName": "CreateCommentAsyncByTaskIdAndInput",
+              "name": "CreateCommentAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{taskId}/comment",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "taskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.CreateTaskCommentDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.CreateTaskCommentDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateTaskCommentDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "taskId",
+                  "name": "taskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.CreateTaskCommentDto",
+                  "typeSimple": "TaskManagement.Tasks.CreateTaskCommentDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskCommentDto",
+                "typeSimple": "TaskManagement.Tasks.TaskCommentDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "UpdateCommentAsyncByCommentIdAndInput": {
+              "uniqueName": "UpdateCommentAsyncByCommentIdAndInput",
+              "name": "UpdateCommentAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/comment/{commentId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "commentId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.UpdateTaskCommentDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.UpdateTaskCommentDto",
+                  "typeSimple": "TaskManagement.Tasks.UpdateTaskCommentDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "commentId",
+                  "name": "commentId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.UpdateTaskCommentDto",
+                  "typeSimple": "TaskManagement.Tasks.UpdateTaskCommentDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskCommentDto",
+                "typeSimple": "TaskManagement.Tasks.TaskCommentDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+            },
+            "DeleteCommentAsyncByCommentId": {
+              "uniqueName": "DeleteCommentAsyncByCommentId",
+              "name": "DeleteCommentAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/task/comment/{commentId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "commentId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "commentId",
+                  "name": "commentId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
@@ -3977,6 +4904,18 @@
                 {
                   "nameOnMethod": "input",
                   "name": "Keyword",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Filter",
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
@@ -9649,6 +10588,153 @@
         }
       ]
     },
+    "TaskManagement.Tasks.ChecklistItemDto": {
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "TaskId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Title",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "IsDone",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.CommentAttachmentDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "FileName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileContent",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileUrl",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.CreateTaskCommentDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Text",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileContent",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Attachments",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.CommentAttachmentDto]",
+          "typeSimple": "[TaskManagement.Tasks.CommentAttachmentDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
     "TaskManagement.Tasks.CreateTaskInputDto": {
       "baseType": null,
       "isEnum": false,
@@ -9754,6 +10840,60 @@
         }
       ]
     },
+    "TaskManagement.Tasks.CreateUpdateChecklistItemDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Title",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": 0,
+          "maxLength": 256,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.CreateUpdateSubTaskDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Title",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": 0,
+          "maxLength": 256,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "AssigneeId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
     "TaskManagement.Tasks.GetTaskListInputDto": {
       "baseType": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
       "isEnum": false,
@@ -9763,6 +10903,18 @@
       "properties": [
         {
           "name": "Keyword",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Filter",
           "jsonName": null,
           "type": "System.String",
           "typeSimple": "string",
@@ -9835,6 +10987,144 @@
         }
       ]
     },
+    "TaskManagement.Tasks.SubTaskDto": {
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "TaskId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Title",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "IsCompleted",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "AssigneeId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "AssigneeName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.TaskActivityLogDto": {
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "TaskId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Action",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "UserName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Details",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "CreationTime",
+          "jsonName": null,
+          "type": "System.DateTime",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
     "TaskManagement.Tasks.TaskAttachmentDto": {
       "baseType": null,
       "isEnum": false,
@@ -9865,11 +11155,197 @@
           "minimum": null,
           "maximum": null,
           "regex": null
+        },
+        {
+          "name": "FilePath",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileUrl",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.TaskCommentDto": {
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "TaskId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Text",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileUrl",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "CreatorId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "CreatorName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "CreationTime",
+          "jsonName": null,
+          "type": "System.DateTime",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Attachments",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.CommentAttachmentDto]",
+          "typeSimple": "[TaskManagement.Tasks.CommentAttachmentDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.TaskDetailDto": {
+      "baseType": "TaskManagement.Tasks.TaskDto",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Description",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "SubTasks",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.SubTaskDto]",
+          "typeSimple": "[TaskManagement.Tasks.SubTaskDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "ChecklistItems",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.ChecklistItemDto]",
+          "typeSimple": "[TaskManagement.Tasks.ChecklistItemDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "ActivityLogs",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.TaskActivityLogDto]",
+          "typeSimple": "[TaskManagement.Tasks.TaskActivityLogDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
         }
       ]
     },
     "TaskManagement.Tasks.TaskDto": {
-      "baseType": "Volo.Abp.Application.Dtos.FullAuditedEntityDto<System.Guid>",
+      "baseType": "Volo.Abp.Application.Dtos.AuditedEntityDto<System.Guid>",
       "isEnum": false,
       "enumNames": null,
       "enumValues": null,
@@ -10006,6 +11482,18 @@
           "minimum": null,
           "maximum": null,
           "regex": null
+        },
+        {
+          "name": "ProgressPercent",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
         }
       ]
     },
@@ -10015,11 +11503,13 @@
       "enumNames": [
         "New",
         "InProcess",
+        "InProgress",
         "Completed",
         "Canceled"
       ],
       "enumValues": [
         0,
+        1,
         1,
         2,
         3
@@ -10044,6 +11534,39 @@
       ],
       "genericArguments": null,
       "properties": null
+    },
+    "TaskManagement.Tasks.UpdateTaskCommentDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Text",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Attachments",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.CommentAttachmentDto]",
+          "typeSimple": "[TaskManagement.Tasks.CommentAttachmentDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
     },
     "TaskManagement.Tasks.UpdateTaskInputDto": {
       "baseType": null,

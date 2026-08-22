@@ -1,0 +1,289 @@
+<div class="container-fluid py-4">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="text-center my-5 py-5">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+    <p class="mt-3 text-muted fw-semibold">Đang tải thông tin công việc...</p>
+  </div>
+
+  <div *ngIf="!isLoading && taskDetail">
+    <!-- Header Controls -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+      <a routerLink="/tasks" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại
+      </a>
+      <div class="d-flex gap-2 align-items-center">
+        <!-- Status Dropdown Selector -->
+        <div class="dropdown">
+          <button class="btn btn-sm dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" [ngClass]="getStatusBadge(taskDetail.status).cssClass">
+            Trạng thái: {{ getStatusBadge(taskDetail.status).text }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(0)">Mới</a></li>
+            <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(1)">Đang làm</a></li>
+            <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(2)">Hoàn thành</a></li>
+            <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(3)">Đã hủy</a></li>
+          </ul>
+        </div>
+
+        <span class="badge px-3 py-2 rounded-pill" [ngClass]="getPriorityBadge(taskDetail.priority).cssClass">
+          Độ ưu tiên: {{ getPriorityBadge(taskDetail.priority).text }}
+        </span>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Left Main Panel -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-body p-4">
+            <h3 class="fw-bold mb-3">{{ taskDetail.title }}</h3>
+            <p class="text-secondary mb-0" style="white-space: pre-line;">
+              {{ taskDetail.description || 'Không có mô tả cho công việc này.' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white border-bottom-0 pt-3 px-4">
+            <ul class="nav nav-tabs card-header-tabs">
+              <li class="nav-item">
+                <button class="nav-link fw-semibold" [class.active]="activeTab === 'comments'" (click)="activeTab = 'comments'">
+                  Bình luận ({{ comments?.length || 0 }})
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link fw-semibold" [class.active]="activeTab === 'subtask'" (click)="activeTab = 'subtask'">
+                  Công việc con ({{ taskDetail.subTasks?.length || 0 }})
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link fw-semibold" [class.active]="activeTab === 'checklist'" (click)="activeTab = 'checklist'">
+                  Checklist ({{ taskDetail.checklistItems?.length || 0 }})
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link fw-semibold" [class.active]="activeTab === 'timeline'" (click)="activeTab = 'timeline'">
+                  Lịch sử
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card-body p-4">
+            <!-- TAB 1: COMMENTS -->
+            <div *ngIf="activeTab === 'comments'">
+              <div class="mb-4">
+                <textarea class="form-control mb-2" rows="3" placeholder="Nhập bình luận của bạn..." [(ngModel)]="newCommentText"></textarea>
+
+                <!-- Preview File Chờ Upload -->
+                <div *ngIf="selectedFiles.length > 0" class="d-flex flex-wrap gap-2 mb-2">
+                  <span *ngFor="let f of selectedFiles; let i = index" class="badge bg-light text-dark border p-2 d-flex align-items-center gap-1">
+                    <i [class]="'bi ' + getFileIcon(f.fileName)"></i>
+                    <span>{{ f.fileName }}</span>
+                    <i class="bi bi-x-lg cursor-pointer text-danger ms-1" style="font-size: 0.8rem;" (click)="removeSelectedFile(i)"></i>
+                  </span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <input type="file" #fileInput multiple (change)="onFilesSelected($event)" class="d-none">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill" (click)="fileInput.click()">
+                      <i class="bi bi-paperclip me-1"></i> Đính kèm tệp
+                    </button>
+                  </div>
+                  <button class="btn btn-primary px-4 rounded-pill" [disabled]="isUploading || (!newCommentText.trim() && selectedFiles.length === 0)" (click)="addComment()">
+                    {{ isUploading ? 'Đang gửi...' : 'Gửi bình luận' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Danh sách Comment -->
+              <div class="d-flex flex-column gap-3">
+                <div *ngFor="let c of comments" class="p-3 rounded bg-light border position-relative">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-primary">{{ c.creatorName || 'Người dùng' }}</strong>
+                    <div class="d-flex align-items-center gap-2">
+                      <small class="text-muted">{{ c.creationTime | date:'dd/MM/yyyy HH:mm' }}</small>
+                      <button class="btn btn-link text-secondary p-0 ms-2" title="Sửa" (click)="startEditComment(c)">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-link text-danger p-0 ms-1" title="Xóa" (click)="deleteComment(c.id)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Text View vs Edit Mode -->
+                  <div *ngIf="editingCommentId !== c.id">
+                    <p class="mb-2" style="white-space: pre-line;">{{ c.text }}</p>
+
+                    <!-- Danh sách file đính kèm (Xử lý chống trùng lặp) -->
+                    <div *ngIf="(c.attachments && c.attachments.length > 0) || c.fileUrl" class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
+                      <ng-container *ngIf="c.attachments && c.attachments.length > 0; else singleFile">
+                        <button *ngFor="let att of c.attachments" type="button" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-2" (click)="openFile(att.fileUrl)">
+                          <i [class]="'bi ' + getFileIcon(att.fileName)"></i>
+                          <span>{{ att.fileName }}</span>
+                        </button>
+                      </ng-container>
+
+                      <ng-template #singleFile>
+                        <button *ngIf="c.fileUrl" type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2" (click)="openFile(c.fileUrl)">
+                          <i [class]="'bi ' + getFileIcon(c.fileName || '')"></i>
+                          <span>{{ c.fileName || 'Tải file đính kèm' }}</span>
+                        </button>
+                      </ng-template>
+                    </div>
+                  </div>
+
+                  <!-- Form Sửa Comment -->
+                  <div *ngIf="editingCommentId === c.id" class="mt-2">
+                    <textarea class="form-control mb-2" rows="2" [(ngModel)]="editingCommentText"></textarea>
+                    <div class="d-flex justify-content-end gap-2">
+                      <button class="btn btn-sm btn-secondary" (click)="cancelEditComment()">Hủy</button>
+                      <button class="btn btn-sm btn-success" (click)="saveComment(c)">Lưu</button>
+                    </div>
+                  </div>
+                </div>
+
+                <p *ngIf="comments.length === 0" class="text-muted text-center my-3">Chưa có bình luận nào.</p>
+              </div>
+            </div>
+
+            <!-- TAB 2: SUBTASKS -->
+            <div *ngIf="activeTab === 'subtask'">
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Thêm công việc con mới..." [(ngModel)]="newSubTaskTitle" (keyup.enter)="addSubTask()">
+                <button class="btn btn-primary" (click)="addSubTask()">Thêm</button>
+              </div>
+
+              <ul class="list-group list-group-flush">
+                <li *ngFor="let st of taskDetail.subTasks" class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                  <div class="d-flex align-items-center flex-grow-1 me-3">
+                    <input type="checkbox" class="form-check-input me-2 mt-0" [checked]="st.isCompleted" (change)="toggleSubTask(st)">
+                    <span *ngIf="editingSubTaskId !== st.id" [class.text-decoration-line-through]="st.isCompleted" [class.text-muted]="st.isCompleted">
+                      {{ st.title }}
+                    </span>
+                    <input *ngIf="editingSubTaskId === st.id" type="text" class="form-control form-control-sm me-2" [(ngModel)]="editingSubTaskTitle" (keyup.enter)="saveSubTask(st)">
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <ng-container *ngIf="editingSubTaskId === st.id">
+                      <button class="btn btn-sm btn-success" (click)="saveSubTask(st)"><i class="bi bi-check"></i></button>
+                      <button class="btn btn-sm btn-secondary" (click)="cancelEditSubTask()"><i class="bi bi-x"></i></button>
+                    </ng-container>
+                    <ng-container *ngIf="editingSubTaskId !== st.id">
+                      <button class="btn btn-sm btn-light border" (click)="startEditSubTask(st)"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-light border text-danger" (click)="deleteSubTask(st.id)"><i class="bi bi-trash"></i></button>
+                    </ng-container>
+                  </div>
+                </li>
+              </ul>
+              <p *ngIf="!taskDetail.subTasks?.length" class="text-muted text-center my-3">Chưa có công việc con nào.</p>
+            </div>
+
+            <!-- TAB 3: CHECKLIST -->
+            <div *ngIf="activeTab === 'checklist'">
+              <div class="mb-3">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                  <span>Tiến độ Checklist</span>
+                  <span>{{ getChecklistProgress() }}%</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar bg-success" role="progressbar" [style.width.%]="getChecklistProgress()"></div>
+                </div>
+              </div>
+
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Thêm mục kiểm tra..." [(ngModel)]="newChecklistTitle" (keyup.enter)="addChecklistItem()">
+                <button class="btn btn-primary" (click)="addChecklistItem()">Thêm</button>
+              </div>
+
+              <ul class="list-group list-group-flush">
+                <li *ngFor="let item of taskDetail.checklistItems" class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                  <div class="d-flex align-items-center flex-grow-1 me-3">
+                    <input type="checkbox" class="form-check-input me-2 mt-0" [checked]="item.isDone" (change)="toggleChecklistItem(item)">
+                    <span *ngIf="editingChecklistItemId !== item.id" [class.text-decoration-line-through]="item.isDone" [class.text-muted]="item.isDone">
+                      {{ item.title }}
+                    </span>
+                    <input *ngIf="editingChecklistItemId === item.id" type="text" class="form-control form-control-sm me-2" [(ngModel)]="editingChecklistTitle" (keyup.enter)="saveChecklist(item)">
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <ng-container *ngIf="editingChecklistItemId === item.id">
+                      <button class="btn btn-sm btn-success" (click)="saveChecklist(item)"><i class="bi bi-check"></i></button>
+                      <button class="btn btn-sm btn-secondary" (click)="cancelEditChecklist()"><i class="bi bi-x"></i></button>
+                    </ng-container>
+                    <ng-container *ngIf="editingChecklistItemId !== item.id">
+                      <button class="btn btn-sm btn-light border" (click)="startEditChecklist(item)"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-light border text-danger" (click)="deleteChecklistItem(item.id)"><i class="bi bi-trash"></i></button>
+                    </ng-container>
+                  </div>
+                </li>
+              </ul>
+              <p *ngIf="!taskDetail.checklistItems?.length" class="text-muted text-center my-3">Chưa có hạng mục kiểm tra nào.</p>
+            </div>
+
+            <!-- TAB 4: TIMELINE -->
+            <div *ngIf="activeTab === 'timeline'">
+              <div class="timeline ps-2">
+                <div *ngFor="let log of taskDetail.activityLogs" class="mb-3 border-start border-2 ps-3 position-relative">
+                  <div class="fw-semibold">{{ log.action }}</div>
+                  <div class="small text-muted">Bởi {{ log.userName }} - {{ log.creationTime | date:'dd/MM/yyyy HH:mm' }}</div>
+                </div>
+                <p *ngIf="!taskDetail.activityLogs?.length" class="text-muted text-center my-3">Chưa có lịch sử hoạt động.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar Info Panel -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="fw-bold mb-0">Thông tin chi tiết</h6>
+          </div>
+          <div class="card-body p-4">
+            <div class="mb-3">
+              <label class="text-muted small fw-bold">Người thực hiện</label>
+              <div class="d-flex align-items-center mt-1">
+                <div class="avatar bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:32px; height:32px">
+                  {{ (taskDetail.assigneeName || 'U').charAt(0).toUpperCase() }}
+                </div>
+                <span class="fw-semibold">{{ taskDetail.assigneeName || 'Chưa phân công' }}</span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-muted small fw-bold">Tiến độ chung</label>
+              <div class="d-flex align-items-center gap-2 mt-1">
+                <div class="progress flex-grow-1" style="height: 10px;">
+                  <div class="progress-bar" role="progressbar" [style.width.%]="taskDetail.progressPercent"></div>
+                </div>
+                <span class="fw-bold small">{{ taskDetail.progressPercent }}%</span>
+              </div>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="mb-3">
+              <label class="text-muted small fw-bold">Ngày hết hạn</label>
+              <div class="fw-semibold text-dark mt-1">
+                {{ taskDetail.dueDate ? (taskDetail.dueDate | date:'dd/MM/yyyy') : 'Chưa đặt' }}
+              </div>
+            </div>
+
+            <div class="mb-0">
+              <label class="text-muted small fw-bold">Ngày tạo</label>
+              <div class="text-secondary mt-1">
+                {{ taskDetail.creationTime | date:'dd/MM/yyyy HH:mm' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

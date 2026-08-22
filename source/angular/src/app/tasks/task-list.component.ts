@@ -43,7 +43,7 @@ export class TaskListComponent implements OnInit {
   isLoading = false;
 
   filters = {
-    keyword: '',
+    filter: '', 
     categoryId: '',
     assigneeId: '',
     priority: null as number | null,
@@ -51,7 +51,7 @@ export class TaskListComponent implements OnInit {
     onlyMyTasks: false,
     skipCount: 0,
     maxResultCount: 10,
-    sorting: 'creationTime DESC'
+    sorting: 'CreationTime DESC'
   };
 
   page = 1;
@@ -82,7 +82,10 @@ export class TaskListComponent implements OnInit {
         this.totalCount = res.totalCount || 0;
         this.isLoading = false;
       },
-      error: () => (this.isLoading = false)
+      error: (err) => {
+        console.error('Lỗi khi tải danh sách công việc:', err);
+        this.isLoading = false;
+      }
     });
   }
 
@@ -101,7 +104,6 @@ export class TaskListComponent implements OnInit {
     this.fetchTasks();
   }
 
-  // Đổi trạng thái trực tiếp
   updateTaskStatus(task: TaskDto, newStatus: number): void {
     const oldStatus = task.status;
     const oldProgress = task.progressPercent;
@@ -124,7 +126,6 @@ export class TaskListComponent implements OnInit {
     });
   }
 
-  // Đổi người thực hiện trực tiếp
   updateTaskAssignee(task: TaskDto, assigneeId: string | null): void {
     const selectedUser = this.users.find(u => u.id === assigneeId);
     const oldAssigneeId = task.assigneeId;

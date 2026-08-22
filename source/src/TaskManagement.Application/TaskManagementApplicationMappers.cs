@@ -188,19 +188,8 @@ public partial class TaskManagementDepartmentToCreateUpdateDepartmentDtoMapper :
 
 #region Tasks
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
-public partial class TaskManagementTaskAttachmentToTaskAttachmentDtoMapper : MapperBase<TaskAttachment, TaskAttachmentDto>
-{
-    public override partial TaskAttachmentDto Map(TaskAttachment source);
-    public override partial void Map(TaskAttachment source, TaskAttachmentDto destination);
-}
-
-[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementTaskItemToTaskDtoMapper : MapperBase<TaskItem, TaskDto>
 {
-    // Liên kết Mapper con cho TaskAttachment đúng cú pháp Riok.Mapperly
-    [UseMapper]
-    private readonly TaskManagementTaskAttachmentToTaskAttachmentDtoMapper _attachmentMapper = new();
-
     [MapperIgnoreTarget(nameof(TaskDto.AssigneeName))]
     [MapperIgnoreTarget(nameof(TaskDto.AssigneeUserName))]
     public override partial TaskDto Map(TaskItem source);
@@ -213,32 +202,83 @@ public partial class TaskManagementTaskItemToTaskDtoMapper : MapperBase<TaskItem
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementCreateTaskInputDtoToTaskItemMapper : MapperBase<CreateTaskInputDto, TaskItem>
 {
-    [MapProperty(nameof(CreateTaskInputDto.Title), nameof(TaskItem.Title), Use = nameof(MapStringFallback))]
-    [MapProperty(nameof(CreateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
-    [MapperIgnoreTarget(nameof(TaskItem.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.Id))]
+    [MapperIgnoreSource(nameof(CreateTaskInputDto.Attachments))]
     public override partial TaskItem Map(CreateTaskInputDto source);
 
-    [MapProperty(nameof(CreateTaskInputDto.Title), nameof(TaskItem.Title), Use = nameof(MapStringFallback))]
-    [MapProperty(nameof(CreateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
-    [MapperIgnoreTarget(nameof(TaskItem.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.Id))]
+    [MapperIgnoreSource(nameof(CreateTaskInputDto.Attachments))]
     public override partial void Map(CreateTaskInputDto source, TaskItem destination);
-
-    private static string MapStringFallback(string? source) => source ?? string.Empty;
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementUpdateTaskInputDtoToTaskItemMapper : MapperBase<UpdateTaskInputDto, TaskItem>
 {
-    [MapProperty(nameof(UpdateTaskInputDto.Title), nameof(TaskItem.Title), Use = nameof(MapStringFallback))]
-    [MapProperty(nameof(UpdateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
-    [MapperIgnoreTarget(nameof(TaskItem.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.Id))]
+    [MapperIgnoreSource(nameof(UpdateTaskInputDto.Attachments))]
     public override partial TaskItem Map(UpdateTaskInputDto source);
 
-    [MapProperty(nameof(UpdateTaskInputDto.Title), nameof(TaskItem.Title), Use = nameof(MapStringFallback))]
-    [MapProperty(nameof(UpdateTaskInputDto.Description), nameof(TaskItem.Description), Use = nameof(MapStringFallback))]
-    [MapperIgnoreTarget(nameof(TaskItem.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.Id))]
+    [MapperIgnoreSource(nameof(UpdateTaskInputDto.Attachments))]
     public override partial void Map(UpdateTaskInputDto source, TaskItem destination);
+}
 
-    private static string MapStringFallback(string? source) => source ?? string.Empty;
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskAttachmentToTaskAttachmentDtoMapper : MapperBase<TaskAttachment, TaskAttachmentDto>
+{
+    public override partial TaskAttachmentDto Map(TaskAttachment source);
+    public override partial void Map(TaskAttachment source, TaskAttachmentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementSubTaskToSubTaskDtoMapper : MapperBase<SubTask, SubTaskDto>
+{
+    [MapperIgnoreTarget(nameof(SubTaskDto.AssigneeName))]
+    public override partial SubTaskDto Map(SubTask source);
+
+    [MapperIgnoreTarget(nameof(SubTaskDto.AssigneeName))]
+    public override partial void Map(SubTask source, SubTaskDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskChecklistItemToChecklistItemDtoMapper : MapperBase<TaskChecklistItem, ChecklistItemDto>
+{
+    public override partial ChecklistItemDto Map(TaskChecklistItem source);
+    public override partial void Map(TaskChecklistItem source, ChecklistItemDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskActivityLogToTaskActivityLogDtoMapper : MapperBase<TaskActivityLog, TaskActivityLogDto>
+{
+    public override partial TaskActivityLogDto Map(TaskActivityLog source);
+    public override partial void Map(TaskActivityLog source, TaskActivityLogDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskCommentToTaskCommentDtoMapper : MapperBase<TaskComment, TaskCommentDto>
+{
+    [MapperIgnoreTarget(nameof(TaskCommentDto.CreatorName))]
+    public override partial TaskCommentDto Map(TaskComment source);
+
+    [MapperIgnoreTarget(nameof(TaskCommentDto.CreatorName))]
+    public override partial void Map(TaskComment source, TaskCommentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskItemToTaskDetailDtoMapper : MapperBase<TaskItem, TaskDetailDto>
+{
+    [MapperIgnoreTarget(nameof(TaskDetailDto.AssigneeName))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.AssigneeUserName))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.SubTasks))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.ChecklistItems))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.ActivityLogs))]
+    public override partial TaskDetailDto Map(TaskItem source);
+
+    [MapperIgnoreTarget(nameof(TaskDetailDto.AssigneeName))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.AssigneeUserName))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.SubTasks))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.ChecklistItems))]
+    [MapperIgnoreTarget(nameof(TaskDetailDto.ActivityLogs))]
+    public override partial void Map(TaskItem source, TaskDetailDto destination);
 }
 #endregion

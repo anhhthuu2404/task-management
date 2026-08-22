@@ -9,7 +9,7 @@ namespace TaskManagement.Tasks;
 public class TaskItem : FullAuditedAggregateRoot<Guid>
 {
     public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; } 
     public TaskPriority Priority { get; set; }
     public TaskItemStatus Status { get; set; }
     public DateTime? DueDate { get; set; }
@@ -24,7 +24,6 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
     public TaskItem()
     {
         Title = string.Empty;
-        Description = string.Empty;
     }
 
     public TaskItem(
@@ -36,7 +35,6 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
         DateTime? dueDate = null) : base(id)
     {
         Title = title;
-        Description = string.Empty;
         CategoryId = categoryId;
         Priority = priority;
         Status = TaskItemStatus.New;

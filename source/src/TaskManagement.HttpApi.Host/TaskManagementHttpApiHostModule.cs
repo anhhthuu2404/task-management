@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -74,9 +75,10 @@ public class TaskManagementHttpApiHostModule : AbpModule
 
             builder.AddServer(options =>
             {
-                if (!string.IsNullOrEmpty(configuration["AuthServer:Authority"]))
+                var authority = configuration["AuthServer:Authority"];
+                if (!string.IsNullOrEmpty(authority))
                 {
-                    options.SetIssuer(new Uri(configuration["AuthServer:Authority"]!));
+                    options.SetIssuer(new Uri(authority));
                 }
             });
         });
@@ -91,7 +93,11 @@ public class TaskManagementHttpApiHostModule : AbpModule
             PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
             {
                 serverBuilder.AddProductionEncryptionAndSigningCertificate("openiddict.pfx", configuration["AuthServer:CertificatePassPhrase"]!);
-                serverBuilder.SetIssuer(new Uri(configuration["AuthServer:Authority"]!));
+                var authority = configuration["AuthServer:Authority"];
+                if (!string.IsNullOrEmpty(authority))
+                {
+                    serverBuilder.SetIssuer(new Uri(authority));
+                }
             });
         }
     }
@@ -201,8 +207,10 @@ public class TaskManagementHttpApiHostModule : AbpModule
 
     private static void ConfigureSwagger(ServiceConfigurationContext context, IConfiguration configuration)
     {
+        var authority = configuration["AuthServer:Authority"] ?? configuration["App:SelfUrl"] ?? "https://localhost:44399";
+
         context.Services.AddAbpSwaggerGenWithOidc(
-            configuration["AuthServer:Authority"]!,
+            authority,
             ["TaskManagement"],
             [AbpSwaggerOidcFlows.AuthorizationCode],
             null,
@@ -210,7 +218,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
             {
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskManagement API", Version = "v1" });
                 options.DocInclusionPredicate((docName, description) => true);
-                options.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
+                options.CustomSchemaIds(type => type.FullName);
             });
     }
 
@@ -237,7 +245,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
                 }
                 else
                 {
-                    // Fallback cho môi trường Dev nếu chưa khai báo appsettings.json
                     builder
                         .SetIsOriginAllowed(_ => true)
                         .WithAbpExposedHeaders()
@@ -274,11 +281,23 @@ public class TaskManagementHttpApiHostModule : AbpModule
         }
 
         app.UseStaticFiles();
+
+     
+        app.UseSwagger();
+        app.UseAbpSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskManagement API");
+
+            var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
+            var clientId = configuration["AuthServer:SwaggerClientId"];
+            if (!string.IsNullOrEmpty(clientId))
+            {
+                options.OAuthClientId(clientId);
+            }
+        });
+
         app.UseRouting();
-
-        // Middleware CORS đặt ngay sau Routing và trước Authentication
         app.UseCors();
-
         app.UseAbpRequestLocalization();
 
         if (!env.IsDevelopment())
@@ -301,14 +320,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
         app.UseDynamicClaims();
         app.UseAuthorization();
 
-        app.UseSwagger();
-        app.UseAbpSwaggerUI(options =>
-        {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskManagement API");
-
-            var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
-            options.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
-        });
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();

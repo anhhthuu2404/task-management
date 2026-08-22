@@ -8,4 +8,7 @@ public class TaskAttachmentDto
 {
     public string FileName { get; set; } = default!;
     public string FileContent { get; set; } = default!;
+    public string? FilePath { get; set; } 
+    public string? FileUrl { get; set; }
+ 
 }

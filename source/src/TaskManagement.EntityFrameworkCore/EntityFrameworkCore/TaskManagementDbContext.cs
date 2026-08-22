@@ -48,6 +48,11 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
     // Module Tasks
     public DbSet<TaskItem> Tasks { get; set; }
     public DbSet<TaskAttachment> TaskAttachments { get; set; }
+    public DbSet<SubTask> SubTasks { get; set; }
+    public DbSet<TaskChecklistItem> TaskChecklistItems { get; set; }
+    public DbSet<TaskActivityLog> TaskActivityLogs { get; set; }
+    public DbSet<TaskComment> TaskComments { get; set; }
+    
 
     #region Entities from ABP Modules
 
@@ -150,5 +155,32 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
         builder.ApplyConfiguration(new LanguageTextEfCoreMapping());
         builder.ApplyConfiguration(new EmployeeEfCoreMapping());
         builder.ApplyConfiguration(new SysMasterListEfCoreMapping());
+
+        builder.Entity<SubTask>(b => {
+            b.ToTable("SubTasks");
+            b.ConfigureByConvention();
+            b.Property(x => x.Title).IsRequired().HasMaxLength(256);
+            b.HasOne(x => x.Task).WithMany().HasForeignKey(x => x.TaskId);
+        });
+
+        builder.Entity<TaskChecklistItem>(b => {
+            b.ToTable("TaskChecklistItems");
+            b.ConfigureByConvention(); 
+            b.Property(x => x.Title).IsRequired().HasMaxLength(256);
+            b.HasOne(x => x.Task).WithMany().HasForeignKey(x => x.TaskId);
+        });
+
+        builder.Entity<TaskActivityLog>(b => {
+            b.ToTable("TaskActivityLogs");
+            b.ConfigureByConvention(); 
+            b.Property(x => x.Action).IsRequired().HasMaxLength(500);
+            b.HasOne(x => x.Task).WithMany().HasForeignKey(x => x.TaskId);
+        });
+        builder.Entity<TaskComment>(b =>
+        {
+            b.ToTable("AppTaskComments");
+            b.ConfigureByConvention();
+            b.Property(x => x.Text).IsRequired().HasMaxLength(2000);
+        });
     }
 }

@@ -47,6 +47,7 @@ public class TaskManagementEntityFrameworkCoreModule : AbpModule
                 /* Remove "includeAllEntities: true" to create
                  * default repositories only for aggregate roots */
             options.AddDefaultRepositories(includeAllEntities: true);
+          
         });
 
         if (AbpStudioAnalyzeHelper.IsInAnalyzeMode)
