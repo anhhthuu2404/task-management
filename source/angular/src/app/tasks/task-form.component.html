@@ -60,10 +60,10 @@
         <div class="col-md-4 mb-3">
           <label class="form-label fw-bold">Mức độ ưu tiên <span class="text-danger">*</span></label>
           <select class="form-select" formControlName="priority">
-            <option [value]="0">Thấp</option>
-            <option [value]="1">Trung bình</option>
-            <option [value]="2">Cao</option>
-            <option [value]="3">Khẩn cấp</option>
+            <option [ngValue]="0">Thấp</option>
+            <option [ngValue]="1">Trung bình</option>
+            <option [ngValue]="2">Cao</option>
+            <option [ngValue]="3">Khẩn cấp</option>
           </select>
         </div>
 
@@ -71,10 +71,10 @@
         <div class="col-md-4 mb-3">
           <label class="form-label fw-bold">Trạng thái <span class="text-danger">*</span></label>
           <select class="form-select" formControlName="status">
-            <option [value]="0">Mới tạo</option>
-            <option [value]="1">Đang thực hiện</option>
-            <option [value]="2">Hoàn thành</option>
-            <option [value]="3">Đã hủy</option>
+            <option [ngValue]="0">Mới tạo</option>
+            <option [ngValue]="1">Đang thực hiện</option>
+            <option [ngValue]="2">Hoàn thành</option>
+            <option [ngValue]="3">Đã hủy</option>
           </select>
         </div>
 

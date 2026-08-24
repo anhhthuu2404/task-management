@@ -1,91 +1,239 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { RestService } from '@abp/ng.core';
 
-export interface CommentAttachment {
-  fileName: string;
-  fileContent?: string;
+export enum TaskStatus {
+  New = 0,
+  InProgress = 1,
+  InReview = 2,
+  Completed = 3,
+  Cancelled = 4
+}
+
+export enum TaskPriority {
+  Low = 0,
+  Medium = 1,
+  High = 2,
+  Urgent = 3
+}
+
+export interface TaskFileDto {
+  id?: string;
+  fileName?: string;
+  name?: string;
   fileUrl?: string;
+  url?: string;
+  path?: string;
 }
 
-export interface CommentInput {
+export interface TaskDto {
+  id: string;
+  title: string;
+  assigneeName?: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  progress?: number;
+  dueDate?: string;
+}
+
+export interface SubTaskDto {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+}
+
+export interface ChecklistItemDto {
+  id: string;
+  title: string;
+  isDone: boolean;
+}
+
+export interface CommentDto {
+  id: string;
   text: string;
-  attachments?: CommentAttachment[];
+  creatorName?: string;
+  creationTime?: string;
+  attachments?: TaskFileDto[];
 }
 
-export interface SubTaskInput {
-  title: string;
-  assigneeId?: string;
+export interface ActivityLogDto {
+  id?: string;
+  userName?: string;
+  creatorName?: string;
+  action?: string;
+  description?: string;
+  message?: string;
+  creationTime?: string;
 }
 
-export interface ChecklistInput {
+export interface TaskDetailDto extends TaskDto {
+  description?: string;
+  submittedAt?: string;
+  submissionNote?: string;
+  reportNote?: string;
+  note?: string;
+  submissionFiles?: TaskFileDto[];
+  reportFiles?: TaskFileDto[];
+  attachments?: TaskFileDto[];
+  files?: TaskFileDto[];
+  subTasks?: SubTaskDto[];
+  checklistItems?: ChecklistItemDto[];
+  comments?: CommentDto[];
+  activityLogs?: ActivityLogDto[];
+}
+
+export interface SubmitReportInput {
+  note: string;
+  attachments: { fileName: string; fileContent: string }[];
+}
+
+export interface RejectTaskInput {
+  reason: string;
+}
+
+export interface CreateCommentInput {
+  taskId: string;
+  text: string;
+  attachments?: { fileName: string; fileContent: string }[];
+}
+
+export interface UpdateSubTaskInput {
   title: string;
+  isCompleted?: boolean;
+}
+
+export interface UpdateChecklistItemInput {
+  title: string;
+  isDone?: boolean;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class TaskService {
-  private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'https://localhost:44399/api/app/task';
+  private apiName = 'Default';
 
-  // --- Task Detail & Main Actions ---
-  getTaskDetail(id: string): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/${id}/detail`);
+  constructor(private restService: RestService) {}
+
+  getTasks(params: any): Observable<{ items: TaskDto[]; totalCount: number }> {
+    return this.restService.request<any, { items: TaskDto[]; totalCount: number }>({
+      method: 'GET',
+      url: '/api/app/task',
+      params
+    }, { apiName: this.apiName });
   }
 
-  updateStatus(id: string, status: number): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/${id}/status?status=${status}`, {});
+  getTaskDetail(id: string): Observable<TaskDetailDto> {
+    return this.restService.request<any, TaskDetailDto>({
+      method: 'GET',
+      url: `/api/app/task/${id}`
+    }, { apiName: this.apiName });
   }
 
-  // --- Comment Actions ---
-  getComments(taskId: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/${taskId}/comments`);
+  submitForReview(id: string, input: SubmitReportInput): Observable<void> {
+    return this.restService.request<SubmitReportInput, void>({
+      method: 'POST',
+      url: `/api/app/task/${id}/submit-for-review`,
+      body: input
+    }, { apiName: this.apiName });
   }
 
-  createComment(taskId: string, input: CommentInput): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/${taskId}/comment`, input);
+  approveTask(id: string): Observable<void> {
+    return this.restService.request<any, void>({
+      method: 'POST',
+      url: `/api/app/task/${id}/approve`
+    }, { apiName: this.apiName });
   }
 
-  updateComment(commentId: string, text: string): Observable<any> {
-    return this.http.put<any>(`${this.baseUrl}/comment/${commentId}`, { text });
+  rejectTask(id: string, input: RejectTaskInput): Observable<void> {
+    return this.restService.request<RejectTaskInput, void>({
+      method: 'POST',
+      url: `/api/app/task/${id}/reject`,
+      body: input
+    }, { apiName: this.apiName });
+  }
+
+  updateStatus(id: string, status: TaskStatus): Observable<void> {
+    return this.restService.request<any, void>({
+      method: 'PUT',
+      url: `/api/app/task/${id}/status`,
+      params: { status }
+    }, { apiName: this.apiName });
+  }
+
+  // --- COMMENTS ---
+  createComment(input: CreateCommentInput): Observable<CommentDto> {
+    return this.restService.request<CreateCommentInput, CommentDto>({
+      method: 'POST',
+      url: `/api/app/task/${input.taskId}/comment`,
+      body: input
+    }, { apiName: this.apiName });
+  }
+
+  addComment(taskId: string, input: any): Observable<CommentDto> {
+    return this.createComment({ ...input, taskId });
+  }
+
+  updateComment(commentId: string, input: { text: string }): Observable<void> {
+    return this.restService.request<{ text: string }, void>({
+      method: 'PUT',
+      url: `/api/app/task/comment/${commentId}`,
+      body: input
+    }, { apiName: this.apiName });
   }
 
   deleteComment(commentId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/comment/${commentId}`);
+    return this.restService.request<any, void>({
+      method: 'DELETE',
+      url: `/api/app/task/comment/${commentId}`
+    }, { apiName: this.apiName });
   }
 
-  // --- SubTask Actions ---
-  createSubTask(taskId: string, input: SubTaskInput): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/${taskId}/sub-task`, input);
+  // --- SUBTASKS ---
+  createSubTask(taskId: string, input: { title: string }): Observable<SubTaskDto> {
+    return this.restService.request<{ title: string }, SubTaskDto>({
+      method: 'POST',
+      url: `/api/app/task/${taskId}/sub-task`,
+      body: input
+    }, { apiName: this.apiName });
   }
 
-  updateSubTask(subTaskId: string, input: SubTaskInput): Observable<any> {
-    return this.http.put<any>(`${this.baseUrl}/sub-task/${subTaskId}`, input);
-  }
-
-  toggleSubTask(subTaskId: string): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/sub-task/${subTaskId}/toggle`, {});
+  updateSubTask(subTaskId: string, input: UpdateSubTaskInput): Observable<void> {
+    return this.restService.request<UpdateSubTaskInput, void>({
+      method: 'PUT',
+      url: `/api/app/task/sub-task/${subTaskId}`,
+      body: input
+    }, { apiName: this.apiName });
   }
 
   deleteSubTask(subTaskId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/sub-task/${subTaskId}`);
+    return this.restService.request<any, void>({
+      method: 'DELETE',
+      url: `/api/app/task/sub-task/${subTaskId}`
+    }, { apiName: this.apiName });
   }
 
-  // --- Checklist Actions ---
-  createChecklist(taskId: string, input: ChecklistInput): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/${taskId}/checklist-item`, input);
+  // --- CHECKLIST ITEMS ---
+  createChecklistItem(taskId: string, input: { title: string }): Observable<ChecklistItemDto> {
+    return this.restService.request<{ title: string }, ChecklistItemDto>({
+      method: 'POST',
+      url: `/api/app/task/${taskId}/checklist-item`,
+      body: input
+    }, { apiName: this.apiName });
   }
 
-  updateChecklist(itemId: string, input: ChecklistInput): Observable<any> {
-    return this.http.put<any>(`${this.baseUrl}/checklist-item/${itemId}`, input);
+  updateChecklistItem(itemId: string, input: UpdateChecklistItemInput): Observable<void> {
+    return this.restService.request<UpdateChecklistItemInput, void>({
+      method: 'PUT',
+      url: `/api/app/task/checklist-item/${itemId}`,
+      body: input
+    }, { apiName: this.apiName });
   }
 
-  toggleChecklist(itemId: string): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/checklist-item/${itemId}/toggle`, {});
-  }
-
-  deleteChecklist(itemId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/checklist-item/${itemId}`);
+  deleteChecklistItem(itemId: string): Observable<void> {
+    return this.restService.request<any, void>({
+      method: 'DELETE',
+      url: `/api/app/task/checklist-item/${itemId}`
+    }, { apiName: this.apiName });
   }
 }

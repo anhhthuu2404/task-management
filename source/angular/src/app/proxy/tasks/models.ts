@@ -51,12 +51,21 @@ export interface GetTaskListInputDto extends PagedAndSortedResultRequestDto {
   onlyMyTasks?: boolean;
 }
 
+export interface RejectTaskInputDto {
+  reason: string;
+}
+
 export interface SubTaskDto extends EntityDto<string> {
   taskId?: string;
   title?: string;
   isCompleted?: boolean;
   assigneeId?: string;
   assigneeName?: string;
+}
+
+export interface SubmitReviewInputDto {
+  note?: string;
+  attachments?: TaskAttachmentDto[];
 }
 
 export interface TaskActivityLogDto extends EntityDto<string> {
@@ -86,10 +95,11 @@ export interface TaskCommentDto extends EntityDto<string> {
 }
 
 export interface TaskDetailDto extends TaskDto {
-  description?: string;
   subTasks?: SubTaskDto[];
   checklistItems?: ChecklistItemDto[];
   activityLogs?: TaskActivityLogDto[];
+  submittedAt?: string;
+  comments?: TaskCommentDto[];
 }
 
 export interface TaskDto extends AuditedEntityDto<string> {
@@ -105,6 +115,14 @@ export interface TaskDto extends AuditedEntityDto<string> {
   fileName?: string;
   fileUrl?: string;
   progressPercent?: number;
+  submissionNote?: string;
+  submissionFiles?: TaskFileDto[];
+}
+
+export interface TaskFileDto {
+  fileName?: string;
+  fileUrl?: string;
+  fileContent?: string;
 }
 
 export interface UpdateTaskCommentDto {

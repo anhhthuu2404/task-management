@@ -16,6 +16,11 @@ public interface ITaskAppService : ICrudAppService<
     Task<TaskDto> UpdateStatusAsync(Guid id, TaskItemStatus status);
     Task<TaskDto> UpdateAssigneeAsync(Guid id, Guid? assigneeId);
 
+    // Workflow Review
+    Task<TaskDetailDto> SubmitForReviewAsync(Guid id, SubmitReviewInputDto? input = null);
+    Task<TaskDetailDto> ApproveAsync(Guid id);
+    Task<TaskDetailDto> RejectAsync(Guid id, RejectTaskInputDto input);
+
     // SubTask
     Task<SubTaskDto> CreateSubTaskAsync(Guid taskId, CreateUpdateSubTaskDto input);
     Task<SubTaskDto> UpdateSubTaskAsync(Guid subTaskId, CreateUpdateSubTaskDto input);
@@ -28,8 +33,9 @@ public interface ITaskAppService : ICrudAppService<
     Task ToggleChecklistItemStatusAsync(Guid itemId);
     Task DeleteChecklistItemAsync(Guid itemId);
 
-    // Comment
+    // Comments
     Task<List<TaskCommentDto>> GetCommentsAsync(Guid taskId);
     Task<TaskCommentDto> CreateCommentAsync(Guid taskId, CreateTaskCommentDto input);
+    Task<TaskCommentDto> UpdateCommentAsync(Guid commentId, UpdateTaskCommentDto input);
     Task DeleteCommentAsync(Guid commentId);
 }

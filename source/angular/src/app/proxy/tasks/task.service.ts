@@ -1,4 +1,4 @@
-import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, SubTaskDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
+import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
 import type { TaskItemStatus } from './task-item-status.enum';
 import { RestService, Rest } from '@abp/ng.core';
 import type { PagedResultDto } from '@abp/ng.core';
@@ -10,6 +10,14 @@ import { Injectable, inject } from '@angular/core';
 export class TaskService {
   private restService = inject(RestService);
   apiName = 'Default';
+  
+
+  approve = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDetailDto>({
+      method: 'POST',
+      url: `/api/app/task/${id}/approve`,
+    },
+    { apiName: this.apiName,...config });
   
 
   create = (input: CreateTaskInputDto, config?: Partial<Rest.Config>) =>
@@ -113,6 +121,24 @@ export class TaskService {
     { apiName: this.apiName,...config });
   
 
+  reject = (id: string, input: RejectTaskInputDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDetailDto>({
+      method: 'POST',
+      url: `/api/app/task/${id}/reject`,
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  submitForReview = (id: string, input?: SubmitReviewInputDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDetailDto>({
+      method: 'POST',
+      url: `/api/app/task/${id}/submit-for-review`,
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+  
+
   toggleChecklistItemStatus = (itemId: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, void>({
       method: 'PUT',
@@ -167,7 +193,7 @@ export class TaskService {
 
   updateStatus = (id: string, status: TaskItemStatus, config?: Partial<Rest.Config>) =>
     this.restService.request<any, TaskDto>({
-      method: 'POST',
+      method: 'PUT',
       url: `/api/app/task/${id}/status`,
       params: { status },
     },

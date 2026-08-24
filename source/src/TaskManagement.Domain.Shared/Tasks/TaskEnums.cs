@@ -3,10 +3,10 @@
 public enum TaskItemStatus
 {
     New = 0,
-    InProcess = 1,
     InProgress = 1,
-    Completed = 2,
-    Canceled = 3
+    InReview = 2,
+    Completed = 3,
+    Canceled = 4
 }
 
 public enum TaskPriority
@@ -16,6 +16,8 @@ public enum TaskPriority
     High = 2,
     Urgent = 3
 }
+
+
 public enum TaskItemPriority
 {
     Low = 0,

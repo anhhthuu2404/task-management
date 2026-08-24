@@ -18,13 +18,13 @@ export class TaskFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly toaster = inject(ToasterService);
 
-  // Đổi thành '/api/app/tasks' nếu Swagger backend của bạn dùng số nhiều
   private readonly taskApiUrl = '/api/app/task'; 
   private readonly categoryApiUrl = '/api/app/category';
 
   form!: FormGroup;
   taskId: string | null = null;
   isEditMode = false;
+
   selectedFile: File | null = null;
   fileBase64: string | null = null;
   currentFileName: string | null = null;
@@ -80,10 +80,10 @@ export class TaskFormComponent implements OnInit {
   loadTaskDetail(id: string): void {
     this.rest.request<any, any>({
       method: 'GET',
-      url: `${this.taskApiUrl}/${id}`,
+      url: `${this.taskApiUrl}/${id}/detail`,
     }).subscribe({
       next: (res: any) => {
-        this.currentFileName = res.fileName || null;
+        this.currentFileName = res.fileName || res.attachmentName || null;
         this.form.patchValue({
           title: res.title,
           description: res.description,
@@ -108,11 +108,21 @@ export class TaskFormComponent implements OnInit {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
+      const file = input.files[0];
+      
+      // Kiểm tra dung lượng tối đa 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        this.toaster.error('Dung lượng tệp đính kèm không được vượt quá 10MB.');
+        input.value = '';
+        return;
+      }
+
+      this.selectedFile = file;
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        this.fileBase64 = result.split(',')[1] || result;
+        // Giữ nguyên chuỗi Base64 (hoặc bỏ tiền tố data URI)
+        this.fileBase64 = result;
       };
       reader.readAsDataURL(this.selectedFile);
     }
@@ -125,13 +135,26 @@ export class TaskFormComponent implements OnInit {
     }
 
     this.isSubmitting = true;
+    const formVal = this.form.value;
+
+    // Chuẩn bị mảng attachments theo đúng CreateTaskInputDto / UpdateTaskInputDto ở Backend
+    const attachments: any[] = [];
+    if (this.selectedFile && this.fileBase64) {
+      attachments.push({
+        fileName: this.selectedFile.name,
+        fileContent: this.fileBase64
+      });
+    }
 
     const dto = {
-      ...this.form.value,
-      priority: Number(this.form.value.priority),
-      status: Number(this.form.value.status),
-      fileName: this.selectedFile ? this.selectedFile.name : this.currentFileName,
-      fileContent: this.fileBase64 || null
+      title: formVal.title,
+      description: formVal.description,
+      categoryId: formVal.categoryId,
+      assigneeId: formVal.assigneeId || null,
+      priority: Number(formVal.priority),
+      status: Number(formVal.status),
+      dueDate: formVal.dueDate ? new Date(formVal.dueDate).toISOString() : null,
+      attachments: attachments // Đã chuyển sang mảng attachments đúng định dạng
     };
 
     const request$ = this.isEditMode

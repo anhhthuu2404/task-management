@@ -3678,6 +3678,73 @@
                   }
                 },
                 {
+                  "name": "SubmitForReviewAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.SubmitReviewInputDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.SubmitReviewInputDto",
+                      "typeSimple": "TaskManagement.Tasks.SubmitReviewInputDto",
+                      "isOptional": true,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskDetailDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+                  }
+                },
+                {
+                  "name": "ApproveAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskDetailDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+                  }
+                },
+                {
+                  "name": "RejectAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.RejectTaskInputDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.RejectTaskInputDto",
+                      "typeSimple": "TaskManagement.Tasks.RejectTaskInputDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskDetailDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+                  }
+                },
+                {
                   "name": "CreateSubTaskAsync",
                   "parametersOnMethod": [
                     {
@@ -3878,6 +3945,31 @@
                       "typeAsString": "TaskManagement.Tasks.CreateTaskCommentDto, TaskManagement.Application.Contracts",
                       "type": "TaskManagement.Tasks.CreateTaskCommentDto",
                       "typeSimple": "TaskManagement.Tasks.CreateTaskCommentDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Tasks.TaskCommentDto",
+                    "typeSimple": "TaskManagement.Tasks.TaskCommentDto"
+                  }
+                },
+                {
+                  "name": "UpdateCommentAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "commentId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Tasks.UpdateTaskCommentDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Tasks.UpdateTaskCommentDto",
+                      "typeSimple": "TaskManagement.Tasks.UpdateTaskCommentDto",
                       "isOptional": false,
                       "defaultValue": null
                     }
@@ -4135,7 +4227,7 @@
             "UpdateStatusAsyncByIdAndStatus": {
               "uniqueName": "UpdateStatusAsyncByIdAndStatus",
               "name": "UpdateStatusAsync",
-              "httpMethod": "POST",
+              "httpMethod": "PUT",
               "url": "api/app/task/{id}/status",
               "supportedVersions": [],
               "parametersOnMethod": [
@@ -4242,6 +4334,157 @@
               "returnValue": {
                 "type": "TaskManagement.Tasks.TaskDto",
                 "typeSimple": "TaskManagement.Tasks.TaskDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "SubmitForReviewAsyncByIdAndInput": {
+              "uniqueName": "SubmitForReviewAsyncByIdAndInput",
+              "name": "SubmitForReviewAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{id}/submit-for-review",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.SubmitReviewInputDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "typeSimple": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "isOptional": true,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "typeSimple": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDetailDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "ApproveAsyncById": {
+              "uniqueName": "ApproveAsyncById",
+              "name": "ApproveAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{id}/approve",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDetailDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "RejectAsyncByIdAndInput": {
+              "uniqueName": "RejectAsyncByIdAndInput",
+              "name": "RejectAsync",
+              "httpMethod": "POST",
+              "url": "api/app/task/{id}/reject",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.RejectTaskInputDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.RejectTaskInputDto",
+                  "typeSimple": "TaskManagement.Tasks.RejectTaskInputDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.RejectTaskInputDto",
+                  "typeSimple": "TaskManagement.Tasks.RejectTaskInputDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDetailDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
@@ -4771,7 +5014,7 @@
                 "typeSimple": "TaskManagement.Tasks.TaskCommentDto"
               },
               "allowAnonymous": false,
-              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
             },
             "DeleteCommentAsyncByCommentId": {
               "uniqueName": "DeleteCommentAsyncByCommentId",
@@ -10987,6 +11230,60 @@
         }
       ]
     },
+    "TaskManagement.Tasks.RejectTaskInputDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Reason",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": true,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.SubmitReviewInputDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Note",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Attachments",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.TaskAttachmentDto]",
+          "typeSimple": "[TaskManagement.Tasks.TaskAttachmentDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
     "TaskManagement.Tasks.SubTaskDto": {
       "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
       "isEnum": false,
@@ -11295,18 +11592,6 @@
       "genericArguments": null,
       "properties": [
         {
-          "name": "Description",
-          "jsonName": null,
-          "type": "System.String",
-          "typeSimple": "string",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null
-        },
-        {
           "name": "SubTasks",
           "jsonName": null,
           "type": "[TaskManagement.Tasks.SubTaskDto]",
@@ -11335,6 +11620,30 @@
           "jsonName": null,
           "type": "[TaskManagement.Tasks.TaskActivityLogDto]",
           "typeSimple": "[TaskManagement.Tasks.TaskActivityLogDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "SubmittedAt",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Comments",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.TaskCommentDto]",
+          "typeSimple": "[TaskManagement.Tasks.TaskCommentDto]",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
@@ -11494,6 +11803,75 @@
           "minimum": null,
           "maximum": null,
           "regex": null
+        },
+        {
+          "name": "SubmissionNote",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "SubmissionFiles",
+          "jsonName": null,
+          "type": "[TaskManagement.Tasks.TaskFileDto]",
+          "typeSimple": "[TaskManagement.Tasks.TaskFileDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.TaskFileDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "FileName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileUrl",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FileContent",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
         }
       ]
     },
@@ -11502,17 +11880,17 @@
       "isEnum": true,
       "enumNames": [
         "New",
-        "InProcess",
         "InProgress",
+        "InReview",
         "Completed",
         "Canceled"
       ],
       "enumValues": [
         0,
         1,
-        1,
         2,
-        3
+        3,
+        4
       ],
       "genericArguments": null,
       "properties": null

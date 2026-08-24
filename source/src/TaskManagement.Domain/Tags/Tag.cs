@@ -12,6 +12,8 @@ public class Tag : FullAuditedAggregateRoot<Guid>
     public string? ColorCode { get; set; }
     public bool IsActive { get; set; } = true;
     public Guid? CategoryId { get; set; }
+    public string? SubmissionNote { get; set; }
+    public string? SubmissionFilesJson { get; set; }
 
     [MapperConstructor] 
     public Tag() { }
