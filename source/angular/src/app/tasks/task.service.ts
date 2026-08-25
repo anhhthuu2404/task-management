@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RestService } from '@abp/ng.core';
 
+// --- ENUMS ---
 export enum TaskStatus {
   New = 0,
   InProgress = 1,
@@ -17,6 +18,7 @@ export enum TaskPriority {
   Urgent = 3
 }
 
+// --- FILE & ATTACHMENT DTOS ---
 export interface TaskFileDto {
   id?: string;
   fileName?: string;
@@ -26,6 +28,13 @@ export interface TaskFileDto {
   path?: string;
 }
 
+export interface CommentAttachmentDto {
+  fileName: string;
+  fileContent?: string;
+  fileUrl?: string;
+}
+
+// --- TASK DTOS ---
 export interface TaskDto {
   id: string;
   title: string;
@@ -48,14 +57,32 @@ export interface ChecklistItemDto {
   isDone: boolean;
 }
 
-export interface CommentDto {
+// --- COMMENT DTOS ---
+export interface TaskCommentDto {
   id: string;
+  taskId: string;
   text: string;
+  fileUrl?: string;
+  fileName?: string;
+  creatorId?: string;
   creatorName?: string;
-  creationTime?: string;
-  attachments?: TaskFileDto[];
+  creationTime: string;
+  attachments: CommentAttachmentDto[];
 }
 
+export interface CreateTaskCommentDto {
+  text: string;
+  fileName?: string;
+  fileContent?: string;
+  attachments?: CommentAttachmentDto[];
+}
+
+export interface UpdateTaskCommentDto {
+  text: string;
+  attachments?: CommentAttachmentDto[];
+}
+
+// --- ACTIVITY LOG DTO ---
 export interface ActivityLogDto {
   id?: string;
   userName?: string;
@@ -78,10 +105,11 @@ export interface TaskDetailDto extends TaskDto {
   files?: TaskFileDto[];
   subTasks?: SubTaskDto[];
   checklistItems?: ChecklistItemDto[];
-  comments?: CommentDto[];
+  comments?: TaskCommentDto[];
   activityLogs?: ActivityLogDto[];
 }
 
+// --- INPUT DTOS ---
 export interface SubmitReportInput {
   note: string;
   attachments: { fileName: string; fileContent: string }[];
@@ -89,12 +117,6 @@ export interface SubmitReportInput {
 
 export interface RejectTaskInput {
   reason: string;
-}
-
-export interface CreateCommentInput {
-  taskId: string;
-  text: string;
-  attachments?: { fileName: string; fileContent: string }[];
 }
 
 export interface UpdateSubTaskInput {
@@ -115,6 +137,7 @@ export class TaskService {
 
   constructor(private restService: RestService) {}
 
+  // --- TASK API ---
   getTasks(params: any): Observable<{ items: TaskDto[]; totalCount: number }> {
     return this.restService.request<any, { items: TaskDto[]; totalCount: number }>({
       method: 'GET',
@@ -126,6 +149,13 @@ export class TaskService {
   getTaskDetail(id: string): Observable<TaskDetailDto> {
     return this.restService.request<any, TaskDetailDto>({
       method: 'GET',
+      url: `/api/app/task/${id}/detail`
+    }, { apiName: this.apiName });
+  }
+
+  deleteTask(id: string): Observable<void> {
+    return this.restService.request<any, void>({
+      method: 'DELETE',
       url: `/api/app/task/${id}`
     }, { apiName: this.apiName });
   }
@@ -135,6 +165,22 @@ export class TaskService {
       method: 'POST',
       url: `/api/app/task/${id}/submit-for-review`,
       body: input
+    }, { apiName: this.apiName });
+  }
+
+  // --- SUBMISSION MANAGEMENT API ---
+  updateSubmission(id: string, input: SubmitReportInput): Observable<void> {
+    return this.restService.request<SubmitReportInput, void>({
+      method: 'PUT',
+      url: `/api/app/task/${id}/submission`,
+      body: input
+    }, { apiName: this.apiName });
+  }
+
+  deleteSubmission(id: string): Observable<void> {
+    return this.restService.request<any, void>({
+      method: 'DELETE',
+      url: `/api/app/task/${id}/submission`
     }, { apiName: this.apiName });
   }
 
@@ -161,21 +207,17 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- COMMENTS ---
-  createComment(input: CreateCommentInput): Observable<CommentDto> {
-    return this.restService.request<CreateCommentInput, CommentDto>({
+  // --- COMMENTS API ---
+  createComment(taskId: string, input: CreateTaskCommentDto): Observable<TaskCommentDto> {
+    return this.restService.request<CreateTaskCommentDto, TaskCommentDto>({
       method: 'POST',
-      url: `/api/app/task/${input.taskId}/comment`,
+      url: `/api/app/task/${taskId}/comment`,
       body: input
     }, { apiName: this.apiName });
   }
 
-  addComment(taskId: string, input: any): Observable<CommentDto> {
-    return this.createComment({ ...input, taskId });
-  }
-
-  updateComment(commentId: string, input: { text: string }): Observable<void> {
-    return this.restService.request<{ text: string }, void>({
+  updateComment(commentId: string, input: UpdateTaskCommentDto): Observable<void> {
+    return this.restService.request<UpdateTaskCommentDto, void>({
       method: 'PUT',
       url: `/api/app/task/comment/${commentId}`,
       body: input
@@ -189,7 +231,7 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- SUBTASKS ---
+  // --- SUBTASKS API ---
   createSubTask(taskId: string, input: { title: string }): Observable<SubTaskDto> {
     return this.restService.request<{ title: string }, SubTaskDto>({
       method: 'POST',
@@ -213,7 +255,7 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- CHECKLIST ITEMS ---
+  // --- CHECKLIST ITEMS API ---
   createChecklistItem(taskId: string, input: { title: string }): Observable<ChecklistItemDto> {
     return this.restService.request<{ title: string }, ChecklistItemDto>({
       method: 'POST',
@@ -236,4 +278,11 @@ export class TaskService {
       url: `/api/app/task/checklist-item/${itemId}`
     }, { apiName: this.apiName });
   }
+  getTaskTimeline(taskId: string): Observable<any[]> {
+  return this.restService.request<any, any[]>({
+    method: 'GET',
+    url: `/api/app/task/${taskId}/timeline`
+  },
+  { apiName: this.apiName });
+   }
 }

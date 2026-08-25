@@ -17,7 +17,6 @@ public enum TaskPriority
     Urgent = 3
 }
 
-
 public enum TaskItemPriority
 {
     Low = 0,

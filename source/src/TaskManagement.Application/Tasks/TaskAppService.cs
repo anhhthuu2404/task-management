@@ -41,10 +41,7 @@ public class TaskAppService(
     protected override string? UpdatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Edit;
     protected override string? DeletePolicyName { get; set; } = TaskManagementPermissions.Tasks.Delete;
 
-    // ==========================================
-    // 1. QUERY & SEARCH LOGIC
-    // ==========================================
-
+    #region Query & Sorting Filter
     protected override async Task<IQueryable<TaskItem>> CreateFilteredQueryAsync(GetTaskListInputDto input)
     {
         var query = await Repository.GetQueryableAsync();
@@ -89,11 +86,9 @@ public class TaskAppService(
             };
         }
     }
+    #endregion
 
-    // ==========================================
-    // 2. MAIN TASK APIS (CRUD & DETAILS)
-    // ==========================================
-
+    #region Task Detail & CRUD
     [HttpGet("/api/app/task/{id}/detail")]
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<TaskDetailDto> GetTaskDetailAsync(Guid id)
@@ -146,8 +141,8 @@ public class TaskAppService(
         var logs = await activityLogRepository.GetListAsync(x => x.TaskId == id);
         dto.ActivityLogs = ObjectMapper.Map<List<TaskActivityLog>, List<TaskActivityLogDto>>(logs.OrderByDescending(x => x.CreationTime).ToList());
 
-        // --- XỬ LÝ LẤY DANH SÁCH BÌNH LUẬN ---
-        var comments = await commentRepository.GetListAsync(x => x.TaskId == id);
+        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
         var sortedComments = comments.OrderByDescending(x => x.CreationTime).ToList();
 
         var creatorIds = sortedComments
@@ -172,26 +167,48 @@ public class TaskAppService(
                 ? (!string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty))
                 : "Hệ thống";
 
-            cDto.Attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
+            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? []);
+            if (attachments.Count == 0)
+            {
+                attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
+            }
+            cDto.Attachments = attachments;
+
             commentDtos.Add(cDto);
         }
-        dto.Comments = commentDtos; // Gán danh sách bình luận vào DTO
+        dto.Comments = commentDtos;
 
-        // Thông tin nộp duyệt
         var lastSubmissionComment = comments
-            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.StartsWith("[NỘP TRÌNH DUYỆT]"))
+            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
             .OrderByDescending(x => x.CreationTime)
             .FirstOrDefault();
 
         if (lastSubmissionComment != null)
         {
             var rawText = lastSubmissionComment.Text;
-            var prefix = rawText.StartsWith("[NỘP TRÌNH DUYỆT]:") ? "[NỘP TRÌNH DUYỆT]:" : "[NỘP TRÌNH DUYỆT]";
 
-            dto.SubmissionNote = rawText[prefix.Length..].Trim();
+            if (rawText.Contains("[NỘP TRÌNH DUYỆT]:"))
+            {
+                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length).Trim();
+            }
+            else if (rawText.Contains("[NỘP TRÌNH DUYỆT]"))
+            {
+                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length).Trim();
+            }
+            else
+            {
+                dto.SubmissionNote = rawText;
+            }
+
             dto.SubmittedAt = lastSubmissionComment.CreationTime;
 
-            dto.SubmissionFiles = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName)
+            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
+            if (submissionAttachments.Count == 0)
+            {
+                submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
+            }
+
+            dto.SubmissionFiles = submissionAttachments
                 .Select(a => new TaskFileDto
                 {
                     FileName = a.FileName,
@@ -201,6 +218,21 @@ public class TaskAppService(
         }
 
         return dto;
+    }
+
+    [HttpGet("/api/app/task/{taskId}/timeline")]
+    [Authorize(TaskManagementPermissions.Tasks.Default)]
+    public async Task<List<TaskActivityLogDto>> GetTaskTimelineAsync(Guid taskId)
+    {
+        if (!await Repository.AnyAsync(x => x.Id == taskId))
+        {
+            throw new UserFriendlyException("Không tìm thấy công việc.");
+        }
+
+        var logs = await activityLogRepository.GetListAsync(x => x.TaskId == taskId);
+        var sortedLogs = logs.OrderByDescending(x => x.CreationTime).ToList();
+
+        return ObjectMapper.Map<List<TaskActivityLog>, List<TaskActivityLogDto>>(sortedLogs);
     }
 
     [UnitOfWork]
@@ -271,11 +303,9 @@ public class TaskAppService(
 
         return await MapToGetOutputDtoAsync(entity);
     }
+    #endregion
 
-    // ==========================================
-    // 3. WORKFLOW APPROVAL APIS
-    // ==========================================
-
+    #region Submission & Review
     [HttpPost("/api/app/task/{id}/submit-for-review")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
@@ -293,9 +323,9 @@ public class TaskAppService(
             throw new UserFriendlyException("Chỉ người thực hiện công việc này mới có quyền nộp duyệt!");
         }
 
-        if (task.Status != TaskItemStatus.InProgress)
+        if (task.Status == TaskItemStatus.Completed || task.Status == TaskItemStatus.Canceled)
         {
-            throw new UserFriendlyException("Chỉ công việc đang ở trạng thái 'Đang thực hiện' (InProgress) mới có thể nộp duyệt!");
+            throw new UserFriendlyException("Công việc đã hoàn thành hoặc đã bị hủy, không thể nộp duyệt!");
         }
 
         var noteContent = input?.Note?.Trim() ?? string.Empty;
@@ -327,6 +357,83 @@ public class TaskAppService(
 
         var logDetail = hasAttachments ? " (kèm tệp báo cáo kết quả)" : "";
         await LogActivityAsync(id, $"Đã gửi yêu cầu phê duyệt công việc{logDetail}");
+
+        return await GetTaskDetailAsync(id);
+    }
+
+    [HttpPut("/api/app/task/{id}/submission")]
+    [Authorize(TaskManagementPermissions.Tasks.Edit)]
+    [UnitOfWork]
+    public async Task<TaskDetailDto> UpdateSubmissionAsync(Guid id, [FromBody] SubmitReviewInputDto input)
+    {
+        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
+
+        var lastSubmissionComment = comments
+            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
+            .OrderByDescending(x => x.CreationTime)
+            .FirstOrDefault() ?? throw new UserFriendlyException("Không tìm thấy thông tin nộp bài duyệt cần chỉnh sửa.");
+
+        if (lastSubmissionComment.CreatorId != CurrentUser.Id)
+        {
+            throw new UserFriendlyException("Bạn không có quyền chỉnh sửa mục nộp bài này!");
+        }
+
+        var noteContent = input?.Note?.Trim() ?? string.Empty;
+        var newText = string.IsNullOrWhiteSpace(noteContent) ? "[NỘP TRÌNH DUYỆT]" : $"[NỘP TRÌNH DUYỆT]: {noteContent}";
+
+        lastSubmissionComment.Text = newText;
+
+        if (input?.Attachments != null && input.Attachments.Count > 0)
+        {
+            lastSubmissionComment.Attachments.Clear();
+            await ProcessCommentAttachmentsAsync(input.Attachments.Select(a => new CommentAttachmentDto
+            {
+                FileName = a.FileName,
+                FileContent = a.FileContent
+            }).ToList(), lastSubmissionComment);
+
+            if (lastSubmissionComment.Attachments != null && lastSubmissionComment.Attachments.Count > 0)
+            {
+                lastSubmissionComment.FileUrl = string.Join(";", lastSubmissionComment.Attachments.Select(a => a.FileUrl));
+                lastSubmissionComment.FileName = string.Join(";", lastSubmissionComment.Attachments.Select(a => a.FileName));
+            }
+        }
+
+        await commentRepository.UpdateAsync(lastSubmissionComment, autoSave: true);
+        await LogActivityAsync(id, "Đã cập nhật lại nội dung nộp bài duyệt");
+
+        return await GetTaskDetailAsync(id);
+    }
+
+    [HttpDelete("/api/app/task/{id}/submission")]
+    [Authorize(TaskManagementPermissions.Tasks.Edit)]
+    [UnitOfWork]
+    public async Task<TaskDetailDto> DeleteSubmissionAsync(Guid id)
+    {
+        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
+
+        var lastSubmissionComment = comments
+            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
+            .OrderByDescending(x => x.CreationTime)
+            .FirstOrDefault() ?? throw new UserFriendlyException("Không tìm thấy thông tin nộp bài duyệt để xóa.");
+
+        if (lastSubmissionComment.CreatorId != CurrentUser.Id)
+        {
+            throw new UserFriendlyException("Bạn không có quyền xóa mục nộp bài này!");
+        }
+
+        await commentRepository.DeleteAsync(lastSubmissionComment.Id, autoSave: true);
+
+        var task = await Repository.GetAsync(id);
+        if (task.Status == TaskItemStatus.InReview)
+        {
+            task.Status = TaskItemStatus.InProgress;
+            await Repository.UpdateAsync(task, autoSave: true);
+        }
+
+        await LogActivityAsync(id, "Đã hủy/xóa lượt nộp bài duyệt");
 
         return await GetTaskDetailAsync(id);
     }
@@ -392,11 +499,9 @@ public class TaskAppService(
 
         return await GetTaskDetailAsync(id);
     }
+    #endregion
 
-    // ==========================================
-    // 4. SUBTASK APIS
-    // ==========================================
-
+    #region SubTask Management
     [HttpPost("/api/app/task/{taskId}/sub-task")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
@@ -458,11 +563,9 @@ public class TaskAppService(
             await LogActivityAsync(subTask.TaskId, $"Đã xóa công việc phụ: '{subTask.Title}'");
         }
     }
+    #endregion
 
-    // ==========================================
-    // 5. CHECKLIST APIS
-    // ==========================================
-
+    #region Checklist Management
     [HttpPost("/api/app/task/{taskId}/checklist-item")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
@@ -522,16 +625,15 @@ public class TaskAppService(
             await LogActivityAsync(item.TaskId, $"Đã xóa mục kiểm tra: '{item.Title}'");
         }
     }
+    #endregion
 
-    // ==========================================
-    // 6. COMMENT APIS
-    // ==========================================
-
+    #region Comments Management
     [HttpGet("/api/app/task/{taskId}/comments")]
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskCommentDto>> GetCommentsAsync(Guid taskId)
     {
-        var comments = await commentRepository.GetListAsync(x => x.TaskId == taskId);
+        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == taskId));
         var sortedComments = comments.OrderByDescending(x => x.CreationTime).ToList();
 
         var creatorIds = sortedComments
@@ -556,7 +658,13 @@ public class TaskAppService(
                 ? (!string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty))
                 : "Hệ thống";
 
-            dto.Attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
+            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? []);
+            if (attachments.Count == 0)
+            {
+                attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
+            }
+            dto.Attachments = attachments;
+
             dtos.Add(dto);
         }
 
@@ -577,27 +685,56 @@ public class TaskAppService(
         var comment = new TaskComment(GuidGenerator.Create())
         {
             TaskId = taskId,
-            Text = input.Text ?? string.Empty
+            Text = input.Text ?? string.Empty,
+            CreatorId = CurrentUser.Id
         };
 
         await ProcessCommentAttachmentsAsync(input.Attachments, comment);
 
-        await commentRepository.InsertAsync(comment, autoSave: true);
-        await LogActivityAsync(taskId, $"Đã thêm bình luận mới{(string.IsNullOrEmpty(comment.FileName) ? "" : " (kèm tệp đính kèm)")}");
+        if (comment.Attachments != null && comment.Attachments.Count > 0)
+        {
+            comment.FileUrl = string.Join(";", comment.Attachments.Select(a => a.FileUrl));
+            comment.FileName = string.Join(";", comment.Attachments.Select(a => a.FileName));
+        }
 
-        var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(comment);
-        dto.CreatorName = CurrentUser.Name ?? CurrentUser.UserName ?? "Hệ thống";
-        dto.Attachments = ParseCommentAttachments(comment.FileUrl, comment.FileName);
+        var insertedComment = await commentRepository.InsertAsync(comment, autoSave: true);
+        await LogActivityAsync(taskId, $"Đã thêm bình luận mới{(comment.Attachments?.Count > 0 || !string.IsNullOrEmpty(comment.FileName) ? " (kèm tệp đính kèm)" : "")}");
+
+        var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(insertedComment);
+
+        dto.Id = insertedComment.Id;
+        dto.TaskId = taskId;
+        dto.CreatorId = CurrentUser.Id;
+        dto.CreationTime = insertedComment.CreationTime;
+
+        dto.CreatorName = !string.IsNullOrWhiteSpace(CurrentUser.Name)
+            ? CurrentUser.Name
+            : (CurrentUser.UserName ?? "Hệ thống");
+
+        if (insertedComment.Attachments != null && insertedComment.Attachments.Count > 0)
+        {
+            dto.Attachments = insertedComment.Attachments.Select(a => new CommentAttachmentDto
+            {
+                FileName = a.FileName,
+                FileUrl = a.FileUrl
+            }).ToList();
+        }
+        else
+        {
+            dto.Attachments = ParseCommentAttachments(insertedComment.FileUrl, insertedComment.FileName);
+        }
 
         return dto;
     }
 
     [HttpPut("/api/app/task/comment/{commentId}")]
-    [Authorize(TaskManagementPermissions.Tasks.Edit)]
+    [Authorize(TaskManagementPermissions.Tasks.Default)]
     [UnitOfWork]
     public async Task<TaskCommentDto> UpdateCommentAsync(Guid commentId, [FromBody] UpdateTaskCommentDto input)
     {
-        var comment = await commentRepository.GetAsync(commentId);
+        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var comment = await AsyncExecuter.FirstOrDefaultAsync(commentQuery.Where(x => x.Id == commentId))
+            ?? throw new UserFriendlyException("Không tìm thấy bình luận.");
 
         if (comment.CreatorId != CurrentUser.Id && !await AuthorizationService.IsGrantedAsync(TaskManagementPermissions.Tasks.Edit))
         {
@@ -609,13 +746,20 @@ public class TaskAppService(
         await LogActivityAsync(comment.TaskId, "Đã chỉnh sửa bình luận");
 
         var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(comment);
-        dto.CreatorName = CurrentUser.Name ?? CurrentUser.UserName ?? "Hệ thống";
-        dto.Attachments = ParseCommentAttachments(comment.FileUrl, comment.FileName);
+        dto.CreatorName = !string.IsNullOrWhiteSpace(CurrentUser.Name) ? CurrentUser.Name : (CurrentUser.UserName ?? "Hệ thống");
+
+        var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(comment.Attachments?.ToList() ?? []);
+        if (attachments.Count == 0)
+        {
+            attachments = ParseCommentAttachments(comment.FileUrl, comment.FileName);
+        }
+        dto.Attachments = attachments;
+
         return dto;
     }
 
     [HttpDelete("/api/app/task/comment/{commentId}")]
-    [Authorize(TaskManagementPermissions.Tasks.Delete)]
+    [Authorize(TaskManagementPermissions.Tasks.Default)]
     [UnitOfWork]
     public async Task DeleteCommentAsync(Guid commentId)
     {
@@ -631,11 +775,9 @@ public class TaskAppService(
             await LogActivityAsync(comment.TaskId, "Đã xóa một bình luận");
         }
     }
+    #endregion
 
-    // ==========================================
-    // 7. HELPER METHODS
-    // ==========================================
-
+    #region Helper Methods
     protected override async Task<TaskDto> MapToGetOutputDtoAsync(TaskItem entity)
     {
         var dto = await base.MapToGetOutputDtoAsync(entity);
@@ -652,20 +794,37 @@ public class TaskAppService(
             }
         }
 
-        var comments = await commentRepository.GetListAsync(x => x.TaskId == entity.Id);
+        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == entity.Id));
         var lastSubmissionComment = comments
-            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.StartsWith("[NỘP TRÌNH DUYỆT]"))
+            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
             .OrderByDescending(x => x.CreationTime)
             .FirstOrDefault();
 
         if (lastSubmissionComment != null)
         {
             var rawText = lastSubmissionComment.Text;
-            var prefix = rawText.StartsWith("[NỘP TRÌNH DUYỆT]:") ? "[NỘP TRÌNH DUYỆT]:" : "[NỘP TRÌNH DUYỆT]";
 
-            dto.SubmissionNote = rawText[prefix.Length..].Trim();
+            if (rawText.Contains("[NỘP TRÌNH DUYỆT]:"))
+            {
+                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length).Trim();
+            }
+            else if (rawText.Contains("[NỘP TRÌNH DUYỆT]"))
+            {
+                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length).Trim();
+            }
+            else
+            {
+                dto.SubmissionNote = rawText;
+            }
 
-            dto.SubmissionFiles = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName)
+            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
+            if (submissionAttachments.Count == 0)
+            {
+                submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
+            }
+
+            dto.SubmissionFiles = submissionAttachments
                 .Select(a => new TaskFileDto
                 {
                     FileName = a.FileName,
@@ -759,30 +918,14 @@ public class TaskAppService(
     {
         if (attachments == null || attachments.Count == 0) return;
 
-        var fileUrls = new List<string>();
-        var fileNames = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(comment.FileUrl))
-            fileUrls.AddRange(comment.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries));
-
-        if (!string.IsNullOrWhiteSpace(comment.FileName))
-            fileNames.AddRange(comment.FileName.Split(';', StringSplitOptions.RemoveEmptyEntries));
-
         foreach (var file in attachments)
         {
             if (!string.IsNullOrEmpty(file.FileContent) && !string.IsNullOrEmpty(file.FileName))
             {
                 var cleanFileName = Path.GetFileName(file.FileName);
                 var url = await SaveBase64FileAsync(cleanFileName, file.FileContent);
-                fileUrls.Add(url);
-                fileNames.Add(cleanFileName);
+                comment.AddAttachment(cleanFileName, url);
             }
-        }
-
-        if (fileUrls.Count > 0)
-        {
-            comment.FileUrl = string.Join(";", fileUrls);
-            comment.FileName = string.Join(";", fileNames);
         }
     }
 
@@ -809,6 +952,11 @@ public class TaskAppService(
     private async Task<string> SaveBase64FileAsync(string fileName, string base64Content)
     {
         var cleanBase64 = base64Content.Contains(',') ? base64Content.Split(',')[1] : base64Content;
+
+        if ((cleanBase64.Length * 3 / 4) > MaxFileSizeInBytes)
+        {
+            throw new UserFriendlyException($"Tệp '{fileName}' vượt quá dung lượng tối đa cho phép (10MB).");
+        }
 
         byte[] bytes;
         try
@@ -861,4 +1009,5 @@ public class TaskAppService(
         };
         await activityLogRepository.InsertAsync(log, autoSave: true);
     }
+    #endregion
 }

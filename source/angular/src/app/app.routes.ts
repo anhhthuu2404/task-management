@@ -88,6 +88,7 @@ export const APP_ROUTES: Routes = [
         path: 'detail/:id',
         loadComponent: () => import('./tasks/task-detail.component').then(m => m.TaskDetailComponent),
       },
+      
     ],
   },
 ];

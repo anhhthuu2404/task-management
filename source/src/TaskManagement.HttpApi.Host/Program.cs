@@ -45,6 +45,9 @@ public class Program
 
             await app.InitializeApplicationAsync();
 
+            // Cấu hình phục vụ file tĩnh từ wwwroot (dùng cho file đính kèm/nộp bài)
+            app.UseStaticFiles();
+
             app.Use(async (context, next) =>
             {
                 if (context.Request.Path == "/")

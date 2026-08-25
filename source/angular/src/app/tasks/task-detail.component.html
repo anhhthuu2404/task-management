@@ -1,390 +1,443 @@
-<div *ngIf="isLoading" class="d-flex justify-content-center align-items-center py-5">
-  <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">Đang tải...</span>
-  </div>
-</div>
-
-<div class="container-fluid py-4" *ngIf="!isLoading && taskDetail">
-
+<div class="container-fluid py-4 px-4 bg-light min-vh-100" style="font-size: 1.02rem;">
+  
   <!-- HEADER -->
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-secondary btn-sm rounded-circle" (click)="goBack()" title="Quay lại">
-        <i class="bi bi-arrow-left"></i>
-      </button>
-
-      <span class="fs-5 fw-bold text-dark me-2">
-        Chi tiết công việc #{{ taskDetail.id }}
-      </span>
+  <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
       
-      <span [class]="'badge rounded-pill me-3 ' + getStatusBadgeClass(taskDetail.status)">
-        {{ getStatusText(taskDetail.status) }}
-      </span>
-
-      <ng-container *ngIf="isStatusInReview()">
-        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" [disabled]="isActionLoading" (click)="approveTask()">
-          <i class="bi bi-check-circle me-1"></i> Phê duyệt
+      <!-- Tiêu đề và Trạng thái -->
+      <div class="d-flex align-items-center gap-3 flex-grow-1 overflow-hidden">
+        <button class="btn btn-light btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 40px; height: 40px;" (click)="goBack()" title="Quay lại">
+          <i class="bi bi-arrow-left fs-4 text-secondary"></i>
         </button>
-        <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" [disabled]="isActionLoading" (click)="openRejectModal()">
-          <i class="bi bi-x-circle me-1"></i> Từ chối
-        </button>
-      </ng-container>
-
-      <div class="dropdown">
-        <button class="btn btn-primary btn-sm rounded-pill dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" [disabled]="isActionLoading">
-          Đổi trạng thái
-        </button>
-        <ul class="dropdown-menu shadow border-0">
-          <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(TaskStatus.New)">Mới</a></li>
-          <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(TaskStatus.InProgress)">Đang làm</a></li>
-          <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(TaskStatus.InReview)">Chờ duyệt</a></li>
-          <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(TaskStatus.Completed)">Hoàn thành</a></li>
-          <li><a class="dropdown-item cursor-pointer" (click)="changeStatus(TaskStatus.Cancelled)">Đã hủy</a></li>
-        </ul>
-      </div>
-    </div>
-
-    <button *ngIf="isStatusInProgress()" type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" (click)="openSubmitModal()">
-      <i class="bi bi-send me-1"></i> Nộp báo cáo
-    </button>
-  </div>
-
-  <!-- BÁO CÁO KẾT QUẢ -->
-  <div *ngIf="shouldShowReportSection" class="alert alert-warning border-0 shadow-sm mb-4 p-4 rounded-3" style="background-color: #fde8d0;">
-    <div class="d-flex align-items-start gap-3">
-      <i class="bi bi-file-earmark-check fs-1 text-warning flex-shrink-0"></i>
-      <div class="flex-grow-1 overflow-hidden">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="fw-bold mb-0 text-dark fs-6">Báo cáo kết quả công việc (Người thực hiện nộp)</h6>
+        <div class="overflow-hidden">
+          <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+            <h3 class="mb-0 text-truncate fw-bold text-dark fs-4" title="Chi tiết công việc #{{ taskId }}">
+              Chi tiết công việc #{{ taskId }}
+            </h3>
+            <span class="badge rounded-pill px-3 py-2 fw-semibold shadow-xs fs-6" [ngClass]="getStatusBadgeClass(taskDetail?.status)">
+              {{ getStatusText(taskDetail?.status) }}
+            </span>
+          </div>
+          <small class="text-muted fs-6">Quản lý tiến độ, báo cáo và thảo luận công việc</small>
         </div>
+      </div>
+
+      <!-- NÚT HÀNH ĐỘNG PHÂN QUYỀN THEO VAI TRÒ -->
+      <div class="d-flex align-items-center flex-wrap gap-2 flex-shrink-0">
         
-        <div class="bg-white p-3 rounded-3 shadow-sm border border-warning-subtle text-dark fw-medium mb-3" style="white-space: pre-line;">
-          <ng-container *ngIf="submissionNoteText; else emptyNote">
-            {{ submissionNoteText }}
-          </ng-container>
-          <ng-template #emptyNote>
-            <span class="text-muted fst-italic">(Người thực hiện không nhập nội dung ghi chú báo cáo)</span>
-          </ng-template>
-        </div>
+        <!-- Người thực hiện (Assignee): Nộp báo cáo / Gửi duyệt -->
+        <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm px-4 py-2 rounded-pill fs-6" 
+                (click)="openSubmitModal(false)" 
+                *ngIf="isAssignee && (taskDetail?.status === TaskStatus.InProgress || taskDetail?.status === TaskStatus.New)">
+          <i class="bi bi-send-fill"></i> Nộp báo cáo / Gửi duyệt
+        </button>
 
-        <div *ngIf="reportFilesList && reportFilesList.length > 0" class="pt-3 border-top border-warning-subtle">
-          <div class="fw-bold small mb-2 text-secondary">Tệp báo cáo đính kèm ({{ reportFilesList.length }} tệp):</div>
-          <div class="d-flex flex-wrap gap-2">
-            <a *ngFor="let file of reportFilesList" 
-               [href]="getFileUrl(file)" 
-               target="_blank" 
-               [title]="getFileName(file)"
-               class="btn btn-sm btn-white border rounded-pill d-inline-flex align-items-center gap-2 shadow-sm text-decoration-none text-dark bg-white px-3 py-2 overflow-hidden"
-               style="max-width: 100%;">
-              <i [class]="'bi flex-shrink-0 ' + getFileIcon(file)"></i>
-              <span class="fw-medium text-truncate" style="max-width: 250px;">{{ getFileName(file) }}</span>
-              <i class="bi bi-download ms-1 text-primary flex-shrink-0"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        <!-- Quản lý / Người giao (Manager): Duyệt hoặc Từ chối khi ở trạng thái Chờ duyệt -->
+        <ng-container *ngIf="isCreatorOrManager && taskDetail?.status === TaskStatus.InReview">
+          <button class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-4 py-2 rounded-pill fs-6" 
+                  (click)="approveTask()" [disabled]="isActionLoading">
+            <i class="bi bi-check-circle-fill"></i> Duyệt công việc
+          </button>
+          <button class="btn btn-warning text-white d-flex align-items-center gap-2 shadow-sm px-4 py-2 rounded-pill fs-6" 
+                  (click)="openRejectModal()" [disabled]="isActionLoading">
+            <i class="bi bi-x-circle-fill"></i> Từ chối duyệt
+          </button>
+        </ng-container>
 
-  <!-- MAIN ROW -->
-  <div class="row g-4">
-    <div class="col-lg-8">
-      
-      <div class="card shadow-sm border-0 mb-4 rounded-3">
-        <div class="card-body p-4">
-          <h3 class="fw-bold mb-3">{{ taskDetail.title }}</h3>
-          <p class="text-secondary mb-0" style="white-space: pre-line;">
-            {{ taskDetail.description || 'Không có mô tả cho công việc này.' }}
-          </p>
+        <!-- DROPDOWN TRẠNG THÁI (Dành cho Quản lý / Admin) -->
+        <div class="position-relative status-dropdown-container" *ngIf="isCreatorOrManager">
+          <button class="btn btn-white bg-white border text-secondary dropdown-toggle shadow-xs px-4 py-2 rounded-pill d-flex align-items-center gap-2 fs-6" type="button" (click)="toggleStatusDropdown($event)" [disabled]="isActionLoading">
+            <i class="bi bi-sliders text-primary"></i> Đổi trạng thái
+          </button>
 
-          <div *ngIf="originalFilesList && originalFilesList.length > 0" class="mt-4 pt-3 border-top">
-            <h6 class="fw-bold text-secondary mb-2 fs-7 text-uppercase">
-              <i class="bi bi-paperclip me-1"></i>Tệp đính kèm yêu cầu ban đầu
-            </h6>
-            <div class="d-flex flex-wrap gap-2">
-              <a *ngFor="let file of originalFilesList" 
-                 [href]="getFileUrl(file)" 
-                 target="_blank" 
-                 [title]="getFileName(file)"
-                 class="btn btn-sm btn-light border rounded-pill d-inline-flex align-items-center gap-2 text-decoration-none text-dark px-3 py-2 overflow-hidden"
-                 style="max-width: 100%;">
-                <i [class]="'bi flex-shrink-0 ' + getFileIcon(file)"></i>
-                <span class="text-truncate" style="max-width: 280px;">{{ getFileName(file) }}</span>
-                <i class="bi bi-download ms-1 text-muted flex-shrink-0"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TABS -->
-      <div class="card shadow-sm border-0 rounded-3">
-        <div class="card-header bg-white border-bottom-0 pt-3 px-4">
-          <ul class="nav nav-tabs card-header-tabs">
-            <li class="nav-item">
-              <button class="nav-link fw-semibold" [class.active]="activeTab === 'comments'" (click)="activeTab = 'comments'">
-                Bình luận ({{ comments.length }})
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-2 mt-2 fs-6" [class.show]="isStatusDropdownOpen" style="right: 0; left: auto; z-index: 1050; min-width: 200px;">
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.New)">
+                <i class="bi bi-circle-fill text-secondary"></i> Mới
               </button>
             </li>
-            <li class="nav-item">
-              <button class="nav-link fw-semibold" [class.active]="activeTab === 'subtask'" (click)="activeTab = 'subtask'">
-                Công việc con ({{ taskDetail.subTasks?.length || 0 }})
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.InProgress)">
+                <i class="bi bi-play-circle-fill text-primary"></i> Đang làm
               </button>
             </li>
-            <li class="nav-item">
-              <button class="nav-link fw-semibold" [class.active]="activeTab === 'checklist'" (click)="activeTab = 'checklist'">
-                Checklist ({{ taskDetail.checklistItems?.length || 0 }})
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.InReview)">
+                <i class="bi bi-clock-history text-warning"></i> Chờ duyệt
               </button>
             </li>
-            <li class="nav-item">
-              <button class="nav-link fw-semibold" [class.active]="activeTab === 'timeline'" (click)="activeTab = 'timeline'">
-                Lịch sử
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.Completed)">
+                <i class="bi bi-check-circle-fill text-success"></i> Hoàn thành
+              </button>
+            </li>
+            <li><hr class="dropdown-divider my-1"></li>
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2 text-danger" type="button" (click)="changeStatus(TaskStatus.Cancelled)">
+                <i class="bi bi-x-circle-fill"></i> Đã hủy
               </button>
             </li>
           </ul>
         </div>
 
-        <div class="card-body p-4">
-          <!-- TAB: COMMENTS -->
-          <div *ngIf="activeTab === 'comments'">
-            <div class="mb-4">
-              <textarea class="form-control mb-2" rows="3" placeholder="Nhập bình luận của bạn..." [(ngModel)]="newCommentText"></textarea>
-
-              <div *ngIf="selectedFiles.length > 0" class="d-flex flex-wrap gap-2 mb-2">
-                <span *ngFor="let f of selectedFiles; let i = index" class="badge bg-light text-dark border p-2 d-flex align-items-center gap-1 overflow-hidden" style="max-width: 100%;">
-                  <i [class]="'bi flex-shrink-0 ' + getFileIcon(f.fileName)"></i>
-                  <span class="text-truncate" style="max-width: 200px;">{{ getFileName(f.fileName) }}</span>
-                  <i class="bi bi-x-lg cursor-pointer text-danger ms-1 flex-shrink-0" style="font-size: 0.8rem;" (click)="removeSelectedFile(i)"></i>
-                </span>
-              </div>
-
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <input type="file" #fileInput multiple (change)="onFilesSelected($event)" class="d-none">
-                  <button class="btn btn-outline-secondary btn-sm rounded-pill" (click)="fileInput.click()">
-                    <i class="bi bi-paperclip me-1"></i> Đính kèm tệp
-                  </button>
-                </div>
-                <button class="btn btn-primary px-4 rounded-pill" [disabled]="isUploading || (!newCommentText.trim() && selectedFiles.length === 0)" (click)="addComment()">
-                  {{ isUploading ? 'Đang gửi...' : 'Gửi bình luận' }}
-                </button>
-              </div>
-            </div>
-
-            <div class="d-flex flex-column gap-3">
-              <div *ngFor="let c of comments" class="p-3 rounded bg-light border position-relative">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <strong class="text-primary">
-                    {{ c.creatorName || c.userName || c.creatorUserName || c.author || 'Người dùng' }}
-                  </strong>
-                  <div class="d-flex align-items-center gap-2">
-                    <small class="text-muted">{{ c.creationTime | date:'dd/MM/yyyy HH:mm' }}</small>
-                    <button class="btn btn-link text-secondary p-0 ms-2" title="Sửa" (click)="startEditComment(c)">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-link text-danger p-0 ms-1" title="Xóa" (click)="deleteComment(c.id)">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <div *ngIf="editingCommentId !== c.id">
-                  <p class="mb-2" style="white-space: pre-line;">{{ c.text }}</p>
-
-                  <div *ngIf="(c.attachments && c.attachments.length > 0) || c.fileUrl" class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
-                    <ng-container *ngIf="c.attachments && c.attachments.length > 0; else singleFile">
-                      <a *ngFor="let att of c.attachments" 
-                         [href]="getFileUrl(att.fileUrl || att.url || att)" 
-                         target="_blank" 
-                         class="btn btn-sm btn-light border d-inline-flex align-items-center gap-2 text-decoration-none text-dark overflow-hidden" 
-                         style="max-width: 100%;"
-                         [title]="getFileName(att.fileName)">
-                        <i [class]="'bi flex-shrink-0 ' + getFileIcon(att.fileName)"></i>
-                        <span class="text-truncate" style="max-width: 200px;">{{ getFileName(att.fileName) }}</span>
-                      </a>
-                    </ng-container>
-
-                    <ng-template #singleFile>
-                      <a *ngIf="c.fileUrl" 
-                         [href]="getFileUrl(c.fileUrl)" 
-                         target="_blank" 
-                         class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2 text-decoration-none overflow-hidden" 
-                         style="max-width: 100%;"
-                         [title]="getFileName(c.fileName || '')">
-                        <i [class]="'bi flex-shrink-0 ' + getFileIcon(c.fileName || '')"></i>
-                        <span class="text-truncate" style="max-width: 200px;">{{ getFileName(c.fileName || '') || 'Tải file đính kèm' }}</span>
-                      </a>
-                    </ng-template>
-                  </div>
-                </div>
-
-                <div *ngIf="editingCommentId === c.id" class="mt-2">
-                  <textarea class="form-control mb-2" rows="2" [(ngModel)]="editingCommentText"></textarea>
-                  <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-sm btn-secondary" (click)="cancelEditComment()">Hủy</button>
-                    <button class="btn btn-sm btn-success" (click)="saveComment(c)">Lưu</button>
-                  </div>
-                </div>
-              </div>
-
-              <p *ngIf="!comments || comments.length === 0" class="text-muted text-center my-3">Chưa có bình luận nào.</p>
-            </div>
-          </div>
-
-          <!-- TAB: SUBTASKS -->
-          <div *ngIf="activeTab === 'subtask'">
-            <div class="input-group mb-3">
-              <input type="text" class="form-control" placeholder="Thêm công việc con mới..." [(ngModel)]="newSubTaskTitle" (keyup.enter)="addSubTask()">
-              <button class="btn btn-primary" (click)="addSubTask()">Thêm</button>
-            </div>
-
-            <ul class="list-group list-group-flush">
-              <li *ngFor="let st of taskDetail.subTasks" class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
-                <div class="d-flex align-items-center flex-grow-1 me-3">
-                  <input type="checkbox" class="form-check-input me-2 mt-0" [checked]="st.isCompleted" (change)="toggleSubTask(st)">
-                  <span *ngIf="editingSubTaskId !== st.id" [class.text-decoration-line-through]="st.isCompleted" [class.text-muted]="st.isCompleted">
-                    {{ st.title }}
-                  </span>
-                  <input *ngIf="editingSubTaskId === st.id" type="text" class="form-control form-control-sm me-2" [(ngModel)]="editingSubTaskTitle" (keyup.enter)="saveSubTask(st)">
-                </div>
-
-                <div class="d-flex gap-2">
-                  <ng-container *ngIf="editingSubTaskId === st.id">
-                    <button class="btn btn-sm btn-success" (click)="saveSubTask(st)"><i class="bi bi-check"></i></button>
-                    <button class="btn btn-sm btn-secondary" (click)="cancelEditSubTask()"><i class="bi bi-x"></i></button>
-                  </ng-container>
-                  <ng-container *ngIf="editingSubTaskId !== st.id">
-                    <button class="btn btn-sm btn-light border" (click)="startEditSubTask(st)"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-light border text-danger" (click)="deleteSubTask(st.id)"><i class="bi bi-trash"></i></button>
-                  </ng-container>
-                </div>
-              </li>
-            </ul>
-            <p *ngIf="!taskDetail.subTasks?.length" class="text-muted text-center my-3">Chưa có công việc con nào.</p>
-          </div>
-
-          <!-- TAB: CHECKLIST -->
-          <div *ngIf="activeTab === 'checklist'">
-            <div class="mb-3">
-              <div class="d-flex justify-content-between small text-muted mb-1">
-                <span>Tiến độ Checklist</span>
-                <span>{{ getChecklistProgress() }}%</span>
-              </div>
-              <div class="progress" style="height: 8px;">
-                <div class="progress-bar bg-success" role="progressbar" [style.width.%]="getChecklistProgress()"></div>
-              </div>
-            </div>
-
-            <div class="input-group mb-3">
-              <input type="text" class="form-control" placeholder="Thêm mục kiểm tra..." [(ngModel)]="newChecklistTitle" (keyup.enter)="addChecklistItem()">
-              <button class="btn btn-primary" (click)="addChecklistItem()">Thêm</button>
-            </div>
-
-            <ul class="list-group list-group-flush">
-              <li *ngFor="let item of taskDetail.checklistItems" class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
-                <div class="d-flex align-items-center flex-grow-1 me-3">
-                  <input type="checkbox" class="form-check-input me-2 mt-0" [checked]="item.isDone" (change)="toggleChecklistItem(item)">
-                  <span *ngIf="editingChecklistItemId !== item.id" [class.text-decoration-line-through]="item.isDone" [class.text-muted]="item.isDone">
-                    {{ item.title }}
-                  </span>
-                  <input *ngIf="editingChecklistItemId === item.id" type="text" class="form-control form-control-sm me-2" [(ngModel)]="editingChecklistTitle" (keyup.enter)="saveChecklist(item)">
-                </div>
-
-                <div class="d-flex gap-2">
-                  <ng-container *ngIf="editingChecklistItemId === item.id">
-                    <button class="btn btn-sm btn-success" (click)="saveChecklist(item)"><i class="bi bi-check"></i></button>
-                    <button class="btn btn-sm btn-secondary" (click)="cancelEditChecklist()"><i class="bi bi-x"></i></button>
-                  </ng-container>
-                  <ng-container *ngIf="editingChecklistItemId !== item.id">
-                    <button class="btn btn-sm btn-light border" (click)="startEditChecklist(item)"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-light border text-danger" (click)="deleteChecklistItem(item.id)"><i class="bi bi-trash"></i></button>
-                  </ng-container>
-                </div>
-              </li>
-            </ul>
-            <p *ngIf="!taskDetail.checklistItems?.length" class="text-muted text-center my-3">Chưa có hạng mục kiểm tra nào.</p>
-          </div>
-
-          <!-- TAB: TIMELINE -->
-          <div *ngIf="activeTab === 'timeline'">
-            <div class="timeline ps-2">
-              <div *ngFor="let log of activityLogsList" class="mb-3 border-start border-2 ps-3 position-relative">
-                <div class="fw-semibold">{{ log.action || log.description || log.message }}</div>
-                <div class="small text-muted">Bởi {{ log.userName || log.creatorName || 'Hệ thống' }} - {{ (log.creationTime || log.createdDate) | date:'dd/MM/yyyy HH:mm' }}</div>
-              </div>
-              <p *ngIf="!activityLogsList?.length" class="text-muted text-center my-3">Chưa có lịch sử hoạt động.</p>
-            </div>
-          </div>
-
-        </div>
+        <!-- NÚT XÓA CÔNG VIỆC (Dành cho Quản lý) -->
+        <button class="btn btn-outline-danger d-flex align-items-center gap-1 shadow-xs px-3 py-2 rounded-pill fs-6" (click)="onDeleteTask()" [disabled]="isActionLoading" title="Xóa công việc" *ngIf="isCreatorOrManager">
+          <i class="bi bi-trash-fill fs-5"></i>
+        </button>
       </div>
 
     </div>
+  </div>
 
-    <!-- CỘT PHẢI -->
-    <div class="col-lg-4">
-      <div class="card border-0 shadow-sm rounded-3 p-4">
-        <h6 class="fw-bold mb-3 text-uppercase text-primary fs-7">THÔNG TIN CHUNG</h6>
+  <!-- LOADING SPINNER -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+  </div>
+
+  <!-- NỘI DUNG CHÍNH -->
+  <div *ngIf="!isLoading">
+    
+    <!-- KHU VỰC THÔNG TIN CHI TIẾT -->
+    <div class="card shadow-sm border-0 rounded-4 bg-white overflow-hidden mb-4">
+      <div class="card-header bg-white border-bottom px-4 py-3">
+        <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2 fs-5">
+          <i class="bi bi-info-circle text-primary"></i> Thông tin chi tiết
+        </h5>
+      </div>
+      <div class="card-body p-4 fs-5">
+        <div class="row g-4">
+          <div class="col-md-4 d-flex justify-content-between align-items-center border-end-md">
+            <div>
+              <span class="text-muted d-block fs-6 mb-1">Người thực hiện</span>
+              <span class="fw-semibold text-dark">{{ taskDetail?.assigneeName || taskDetail?.assignedToUser || 'Chưa phân công' }}</span>
+            </div>
+          </div>
+          <div class="col-md-4 d-flex justify-content-between align-items-center border-end-md">
+            <div>
+              <span class="text-muted d-block fs-6 mb-1">Hạn chót</span>
+              <span class="fw-semibold text-danger">{{ taskDetail?.dueDate ? (taskDetail?.dueDate | date:'dd/MM/yyyy HH:mm') : 'Không có' }}</span>
+            </div>
+          </div>
+          <div class="col-md-4 d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block fs-6 mb-1">Độ ưu tiên</span>
+              <span class="badge bg-info-subtle text-info border px-3.5 py-1.5 rounded-pill fs-6">{{ taskDetail?.priority || 'Bình thường' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-12">
         
-        <div class="mb-3">
-          <label class="text-muted small d-block">Người thực hiện</label>
-          <span class="fw-bold text-dark">{{ assigneeDisplayName }}</span>
+        <!-- MÔ TẢ CÔNG VIỆC -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white">
+          <div class="card-body p-4">
+            <h5 class="fw-bold text-uppercase text-secondary mb-3 tracking-wider fs-6">
+              <i class="bi bi-text-paragraph text-primary me-2"></i>Mô tả công việc
+            </h5>
+            <p class="card-text text-dark fs-5 mb-0 lh-base" style="white-space: pre-line;">
+              {{ taskDetail?.description || 'Không có mô tả cho công việc này.' }}
+            </p>
+          </div>
         </div>
 
-        <div class="mb-3">
-          <label class="text-muted small d-block mb-1">Mức độ ưu tiên</label>
-          <span [class]="'badge rounded-pill ' + getPriorityBadgeClass(taskDetail.priority)">
-            {{ getPriorityText(taskDetail.priority) }}
-          </span>
+        <!-- KHU VỰC BÁO CÁO / SẢN PHẨM -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white overflow-hidden">
+          <div class="card-header bg-white border-bottom px-4 py-3.5 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2 fs-5">
+              <i class="bi bi-file-earmark-check text-success"></i> Kết quả nộp báo cáo / Sản phẩm
+            </h5>
+            <div class="d-flex gap-2" *ngIf="isAssignee">
+              <!-- Hiển thị nút Cập nhật và Xóa khi đã có ghi chú HOẶC có file đính kèm -->
+              <ng-container *ngIf="taskDetail?.submissionNote || taskDetail?.note || (taskDetail?.submissionFiles && taskDetail?.submissionFiles?.length > 0)">
+                <button class="btn btn-sm btn-light text-primary border rounded-pill px-3.5 py-1.5 shadow-xs d-flex align-items-center gap-1.5 fs-6 fw-medium" (click)="openSubmitModal(true)">
+                  <i class="bi bi-pencil"></i> Cập nhật
+                </button>
+                <button class="btn btn-sm btn-light text-danger border rounded-pill px-3.5 py-1.5 shadow-xs d-flex align-items-center gap-1.5 fs-6 fw-medium" (click)="deleteSubmission()">
+                  <i class="bi bi-trash"></i> Xóa bài nộp
+                </button>
+              </ng-container>
+
+              <!-- Chỉ hiển thị nút Nộp bài mới khi hoàn toàn trống -->
+              <button class="btn btn-sm btn-primary rounded-pill px-4 py-1.5 shadow-xs d-flex align-items-center gap-1.5 fs-6 fw-medium" (click)="openSubmitModal(false)" *ngIf="!taskDetail?.submissionNote && !taskDetail?.note && (!taskDetail?.submissionFiles || taskDetail?.submissionFiles?.length === 0)">
+                <i class="bi bi-upload"></i> Nộp bài mới
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-4">
+            <div *ngIf="!taskDetail?.submissionNote && !taskDetail?.note && (!taskDetail?.submissionFiles || taskDetail?.submissionFiles?.length === 0)" class="text-center py-4 text-muted fs-5">
+              <i class="bi bi-inbox fs-1 text-muted opacity-50 d-block mb-2"></i>
+              <span>Chưa có kết quả báo cáo nào được nộp.</span>
+            </div>
+
+            <!-- Ghi chú nộp bài -->
+            <div *ngIf="taskDetail?.submissionNote || taskDetail?.note" class="mb-4">
+              <span class="fw-bold d-block mb-2 text-secondary fs-6">Ghi chú nộp bài:</span>
+              <div class="p-3.5 rounded-3 border bg-light-subtle text-dark lh-base fs-5">
+                {{ taskDetail?.submissionNote || taskDetail?.note }}
+              </div>
+            </div>
+
+            <!-- Tệp đính kèm -->
+            <div *ngIf="taskDetail?.submissionFiles && taskDetail?.submissionFiles?.length">
+              <span class="fw-bold d-block mb-2 text-secondary fs-6">Tệp đính kèm:</span>
+              <div class="d-flex flex-wrap gap-2">
+                <div *ngFor="let file of taskDetail?.submissionFiles" (click)="downloadFile(file)" class="badge bg-white text-dark border px-3 py-2.5 d-flex align-items-center gap-2 shadow-xs rounded-pill fs-6 fw-normal cursor-pointer" [title]="file.fileName || file.name" style="cursor: pointer;">
+                  <i class="bi bi-file-earmark-text text-primary fs-5 flex-shrink-0"></i>
+                  <span class="text-truncate" style="max-width: 250px; display: inline-block; vertical-align: middle;">{{ file.fileName || file.name }}</span>
+                  <i class="bi bi-download text-muted ms-1 flex-shrink-0"></i>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="mb-0">
-          <label class="text-muted small d-block">Hạn hoàn thành</label>
-          <span class="fw-bold text-danger">
-            <ng-container *ngIf="dueDateDisplay; else noDueDate">
-              {{ dueDateDisplay | date:'dd/MM/yyyy HH:mm' }}
-            </ng-container>
-            <ng-template #noDueDate>Chưa thiết lập</ng-template>
-          </span>
+        <!-- TABS SECTION -->
+        <div class="card shadow-sm border-0 rounded-4 bg-white overflow-hidden">
+          <div class="card-header bg-white border-bottom px-4 py-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              
+              <!-- Tab Bình luận -->
+              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'comments' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('comments')">
+                <i class="bi bi-chat-square-text"></i>
+                <span>Bình luận</span>
+                <span class="badge rounded-pill" [ngClass]="activeTab === 'comments' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="comments?.length">{{ comments.length }}</span>
+              </button>
+
+              <!-- Tab Công việc phụ -->
+              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'subtask' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('subtask')">
+                <i class="bi bi-list-task"></i>
+                <span>Công việc phụ</span>
+                <span class="badge rounded-pill" [ngClass]="activeTab === 'subtask' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="subTaskList?.length">{{ subTaskList.length }}</span>
+              </button>
+
+              <!-- Tab Checklist -->
+              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'checklist' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('checklist')">
+                <i class="bi bi-check2-square"></i>
+                <span>Checklist</span>
+                <span class="badge rounded-pill" [ngClass]="activeTab === 'checklist' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="checklistItems?.length">{{ checklistItems.length }}</span>
+              </button>
+
+              <!-- Tab Timeline -->
+              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'timeline' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('timeline')">
+                <i class="bi bi-clock-history"></i>
+                <span>Timeline</span>
+                <span class="badge rounded-pill" [ngClass]="activeTab === 'timeline' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="timelineLogs?.length">{{ timelineLogs.length }}</span>
+              </button>
+
+            </div>
+          </div>
+
+          <div class="card-body p-4">
+            
+            <!-- TAB BÌNH LUẬN -->
+            <div *ngIf="activeTab === 'comments'">
+              <div class="card border shadow-none bg-light rounded-4 p-3.5 mb-4">
+                <textarea class="form-control border-0 bg-white shadow-xs mb-3 p-3.5 rounded-3 fs-5" rows="3" [(ngModel)]="newCommentText" placeholder="Nhập bình luận của bạn..."></textarea>
+                
+                <div *ngIf="commentSelectedFiles?.length > 0" class="d-flex flex-wrap gap-2 mb-3">
+                  <div *ngFor="let f of commentSelectedFiles; let i = index" class="badge bg-white text-dark border px-3 py-2 d-flex align-items-center gap-2 shadow-xs rounded-pill fs-6 fw-normal" [title]="f.name">
+                    <i class="bi bi-paperclip text-primary"></i>
+                    <span class="text-truncate" style="max-width: 200px;">{{ f.name }}</span>
+                    <i class="bi bi-x-circle-fill cursor-pointer text-muted ms-1" (click)="removeCommentFile(i)"></i>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <input type="file" #commentFileInput (change)="onCommentFilesSelected($event)" style="display: none;" multiple />
+                    <button type="button" class="btn btn-white bg-white border text-secondary btn-sm d-flex align-items-center gap-2 shadow-xs px-3.5 py-2 rounded-pill fs-6" (click)="commentFileInput.click()">
+                      <i class="bi bi-paperclip text-primary fs-5"></i> Đính kèm file
+                    </button>
+                  </div>
+
+                  <button class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-sm d-flex align-items-center gap-2 fs-6" [disabled]="(!newCommentText.trim() && commentSelectedFiles?.length === 0) || isSubmittingComment" (click)="sendComment()">
+                    <span *ngIf="isSubmittingComment" class="spinner-border spinner-border-sm me-1"></span>
+                    <i class="bi bi-send-fill"></i> Gửi bình luận
+                  </button>
+                </div>
+              </div>
+
+              <div class="comment-list">
+                <p *ngIf="!comments || comments.length === 0" class="text-muted text-center py-4 mb-0 fs-5">Chưa có bình luận nào.</p>
+                
+                <div *ngFor="let c of comments" class="p-3.5 mb-3 border-0 rounded-4 bg-light shadow-xs">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-xs flex-shrink-0" style="width: 42px; height: 42px; font-size: 1rem;">
+                        {{ (c.creatorName || 'U').charAt(0).toUpperCase() }}
+                      </div>
+                      <div>
+                        <h5 class="mb-0 fw-bold text-dark fs-5">{{ c.creatorName || 'Người dùng' }}</h5>
+                        <small class="text-muted fs-6">{{ c.creationTime | date:'dd/MM/yyyy HH:mm' }}</small>
+                      </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center gap-1" *ngIf="currentUserId && c.creatorId === currentUserId">
+                      <button class="btn btn-light btn-sm text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" type="button" (click)="startEditComment(c)" title="Sửa bình luận" style="width: 36px; height: 36px;">
+                        <i class="bi bi-pencil-square fs-5"></i>
+                      </button>
+                      <button class="btn btn-light btn-sm text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" type="button" (click)="deleteComment(c.id)" title="Xóa bình luận" style="width: 36px; height: 36px;">
+                        <i class="bi bi-trash fs-5"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <ng-container *ngIf="editingCommentId !== c.id; else editCommentTemplate">
+                    <p class="mb-2 text-secondary ps-5 ms-3 fs-5 lh-base" style="white-space: pre-line;">{{ c.text }}</p>
+                  </ng-container>
+
+                  <ng-template #editCommentTemplate>
+                    <div class="my-2 ps-5 ms-3">
+                      <textarea class="form-control mb-2 rounded-3 bg-white fs-5 p-3" rows="2" [(ngModel)]="editingCommentText"></textarea>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-xs fs-6" (click)="saveEditComment(c.id)">Lưu</button>
+                        <button class="btn btn-light btn-sm px-4 py-2 rounded-pill fs-6" (click)="cancelEditComment()">Hủy</button>
+                      </div>
+                    </div>
+                  </ng-template>
+
+                  <div *ngIf="c.attachments && c.attachments.length > 0" class="d-flex flex-wrap gap-2 mt-2 ps-5 ms-3">
+                    <div *ngFor="let att of c.attachments" (click)="downloadFile(att)" class="badge bg-white text-dark border px-3 py-2 d-flex align-items-center gap-2 rounded-pill shadow-xs fs-6 fw-normal cursor-pointer" [title]="att.fileName || att.name" style="cursor: pointer;">
+                      <i class="bi bi-file-earmark-text text-primary fs-5 flex-shrink-0"></i>
+                      <span class="text-truncate" style="max-width: 220px; display: inline-block; vertical-align: middle;">{{ att.fileName || att.name }}</span>
+                      <i class="bi bi-download text-muted ms-1 flex-shrink-0"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB CÔNG VIỆC PHỤ -->
+            <div *ngIf="activeTab === 'subtask'">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="fw-bold mb-0 text-secondary fs-5">Danh sách công việc con</h5>
+                <button class="btn btn-sm btn-primary d-flex align-items-center gap-1 shadow-xs rounded-pill px-4 py-2 fs-6" (click)="openAddSubTaskModal()">
+                  <i class="bi bi-plus-lg fs-5"></i> Thêm công việc phụ
+                </button>
+              </div>
+
+              <div *ngIf="isAddSubTaskOpen" class="card card-body bg-light border-0 mb-3 shadow-xs rounded-3 p-3.5">
+                <div class="input-group">
+                  <input type="text" class="form-control rounded-start-pill ps-3.5 fs-5 py-2.5" [(ngModel)]="newSubTaskTitle" placeholder="Nhập tên công việc phụ mới..." (keyup.enter)="saveNewSubTask()" />
+                  <button class="btn btn-primary px-4 fs-6" type="button" (click)="saveNewSubTask()">Lưu</button>
+                  <button class="btn btn-outline-secondary rounded-end-pill px-4 fs-6" type="button" (click)="isAddSubTaskOpen = false">Hủy</button>
+                </div>
+              </div>
+
+              <div class="list-group border-0 gap-2">
+                <div class="list-group-item border rounded-3 d-flex align-items-center justify-content-between py-3.5 px-4 shadow-xs bg-white flex-wrap gap-2" *ngFor="let sub of subTaskList; let i = index">
+                  <div class="d-flex align-items-center gap-3 flex-grow-1">
+                    <input class="form-check-input m-0 cursor-pointer flex-shrink-0" type="checkbox" [(ngModel)]="sub.completed" style="width: 1.35em; height: 1.35em;" />
+                    <span class="fw-medium fs-5" [class.text-decoration-line-through]="sub.completed" [class.text-muted]="sub.completed">{{ sub.title }}</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-3">
+                    <span class="badge rounded-pill px-3.5 py-1.5 fs-6 fw-medium" [ngClass]="sub.completed ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle'">
+                      {{ sub.completed ? 'Hoàn thành' : 'Đang làm' }}
+                    </span>
+                    <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteSubTask(i)" title="Xóa" style="width: 36px; height: 36px;"><i class="bi bi-trash fs-5"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB CHECKLIST -->
+            <div *ngIf="activeTab === 'checklist'">
+              <div class="input-group mb-3 shadow-xs rounded-pill overflow-hidden border">
+                <input type="text" class="form-control border-0 px-4 py-3 fs-5" placeholder="Thêm mục kiểm tra mới..." [(ngModel)]="newChecklistTitle" (keyup.enter)="addChecklistItem()" />
+                <button class="btn btn-primary px-4 border-0 fs-6 fw-semibold" type="button" (click)="addChecklistItem()">Thêm</button>
+              </div>
+
+              <div *ngIf="!checklistItems || checklistItems.length === 0" class="text-center text-muted py-4 fs-5">
+                <i class="bi bi-check2-all fs-1 text-muted opacity-50 d-block mb-2"></i>
+                <small>Chưa có mục checklist nào.</small>
+              </div>
+
+              <div class="vstack gap-2">
+                <div *ngFor="let item of checklistItems; let i = index" class="p-3.5 border rounded-3 bg-white d-flex align-items-center justify-content-between shadow-xs flex-wrap gap-2">
+                  <div class="form-check mb-0 d-flex align-items-center gap-3 flex-grow-1">
+                    <input class="form-check-input m-0 cursor-pointer flex-shrink-0" type="checkbox" [checked]="item.completed" (change)="toggleChecklistItem(item)" style="width: 1.35em; height: 1.35em;" />
+                    <label class="form-check-label mb-0 cursor-pointer fw-medium fs-5" [class.text-decoration-line-through]="item.completed" [class.text-muted]="item.completed" (click)="toggleChecklistItem(item)">
+                      {{ item.title }}
+                    </label>
+                  </div>
+                  <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteChecklistItem(i)" title="Xóa mục" style="width: 36px; height: 36px;">
+                    <i class="bi bi-trash fs-5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB TIMELINE -->
+            <div *ngIf="activeTab === 'timeline'">
+              <div class="timeline ps-3 border-start ms-2 py-3 fs-5">
+                
+                <div *ngIf="!timelineLogs || timelineLogs.length === 0" class="text-muted text-center py-4 fs-5">
+                  <i class="bi bi-clock-history fs-1 text-muted opacity-50 d-block mb-2"></i>
+                  <span>Chưa có lịch sử hoạt động nào.</span>
+                </div>
+
+                <div *ngFor="let log of timelineLogs" class="mb-4 position-relative ps-3">
+                  <span class="position-absolute translate-middle-y rounded-circle border border-3 border-white shadow-xs" 
+                        [ngClass]="log.colorClass || log.badgeColor || 'bg-primary'" 
+                        style="width: 16px; height: 16px; left: -27px; top: 4px;"></span>
+                  
+                  <small class="text-muted d-block mb-1 fs-6">
+                    {{ (log.time || log.creationTime || log.date) | date:'dd/MM/yyyy HH:mm' }}
+                  </small>
+                  
+                  <p class="mb-0 text-dark lh-base" 
+                     [innerHTML]="log.content || log.action || log.text || log.description || 'Không có mô tả'">
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- MODAL NỘP BÁO CÁO -->
-<div class="modal fade" [class.show]="isSubmitModalOpen" [style.display]="isSubmitModalOpen ? 'block' : 'none'">
+<!-- MODAL GỬI / CẬP NHẬT BÁO CÁO -->
+<div class="modal fade" [class.show]="isSubmitModalOpen" [style.display]="isSubmitModalOpen ? 'block' : 'none'" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">Nộp báo cáo kết quả</h5>
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden fs-5">
+      <div class="modal-header border-bottom px-4 py-3">
+        <h4 class="modal-title fw-bold text-dark d-flex align-items-center gap-2 fs-4">
+          <i class="bi bi-upload text-primary"></i> {{ isEditSubmissionMode ? 'Cập nhật báo cáo công việc' : 'Nộp báo cáo công việc' }}
+        </h4>
         <button type="button" class="btn-close" (click)="closeSubmitModal()"></button>
       </div>
-      <div class="modal-body py-3">
+      <div class="modal-body p-4">
         <div class="mb-3">
-          <label class="form-label fw-medium">Ghi chú báo cáo</label>
-          <textarea [(ngModel)]="submissionNote" class="form-control" rows="4" placeholder="Nhập nội dung báo cáo kết quả..."></textarea>
+          <label class="form-label fw-semibold fs-6 text-secondary">Ghi chú / Nội dung báo cáo</label>
+          <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="submissionNote" placeholder="Mô tả kết quả công việc đã hoàn thành..."></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-medium">Tệp báo cáo đính kèm</label>
-          <input #submitFileInput type="file" class="form-control" multiple (change)="onSubmissionFilesSelected($event)" />
+          <label class="form-label fw-semibold fs-6 text-secondary">Tệp đính kèm (Hình ảnh, tài liệu)</label>
+          <input type="file" #submitFileInput class="form-control rounded-3 p-2.5 fs-6" multiple (change)="onSubmissionFilesSelected($event)"/>
         </div>
-
-        <div *ngIf="submissionFiles.length > 0" class="d-flex flex-column gap-1 mt-2">
-          <div *ngFor="let file of submissionFiles; let i = index" class="d-flex align-items-center justify-content-between bg-light p-2 rounded">
-            <span class="small text-truncate" style="max-width: 80%;">{{ file.name }}</span>
-            <button type="button" class="btn btn-link text-danger p-0 border-0" (click)="removeSubmissionFile(i)">
-              <i class="bi bi-x-circle"></i>
-            </button>
+        <div *ngIf="selectedSubmitFiles.length > 0" class="mb-3">
+          <small class="text-muted d-block mb-2 fs-6">Các file đã chọn:</small>
+          <div class="d-flex flex-wrap gap-2">
+            <span *ngFor="let f of selectedSubmitFiles" class="badge bg-light text-dark border p-2 rounded-pill shadow-xs fs-6 fw-normal" [title]="f.fileName">
+              <span class="text-truncate" style="max-width: 200px; display: inline-block; vertical-align: middle;">{{ f.fileName }}</span>
+            </span>
           </div>
         </div>
       </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-light rounded-pill px-4" (click)="closeSubmitModal()">Hủy</button>
-        <button type="button" class="btn btn-primary rounded-pill px-4" [disabled]="isActionLoading" (click)="confirmSubmitForReview()">
-          <span *ngIf="isActionLoading" class="spinner-border spinner-border-sm me-1"></span>
-          Gửi báo cáo
+      <div class="modal-footer border-top px-4 py-3 bg-light">
+        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeSubmitModal()">Hủy</button>
+        <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="isActionLoading" (click)="confirmSubmitForReview()">
+          <span *ngIf="isActionLoading" class="spinner-border spinner-border-sm me-1"></span> 
+          {{ isEditSubmissionMode ? 'Lưu thay đổi' : 'Gửi duyệt' }}
         </button>
       </div>
     </div>
@@ -392,26 +445,25 @@
 </div>
 <div *ngIf="isSubmitModalOpen" class="modal-backdrop fade show"></div>
 
-<!-- MODAL TỪ CHỐI -->
-<div class="modal fade" [class.show]="isRejectModalOpen" [style.display]="isRejectModalOpen ? 'block' : 'none'">
+<!-- MODAL TỪ CHỐI DUYỆT -->
+<div class="modal fade" [class.show]="isRejectModalOpen" [style.display]="isRejectModalOpen ? 'block' : 'none'" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold text-danger">Từ chối kết quả</h5>
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden fs-5">
+      <div class="modal-header border-bottom px-4 py-3">
+        <h4 class="modal-title fw-bold text-danger d-flex align-items-center gap-2 fs-4">
+          <i class="bi bi-exclamation-triangle-fill"></i> Từ chối duyệt công việc
+        </h4>
         <button type="button" class="btn-close" (click)="closeRejectModal()"></button>
       </div>
-      <div class="modal-body py-3">
+      <div class="modal-body p-4">
         <div class="mb-3">
-          <label class="form-label fw-medium">Lý do từ chối <span class="text-danger">*</span></label>
-          <textarea [(ngModel)]="rejectReason" class="form-control" rows="3" placeholder="Nhập lý do cần chỉnh sửa lại..."></textarea>
+          <label class="form-label fw-semibold fs-6 text-secondary">Lý do từ chối / Yêu cầu sửa đổi <span class="text-danger">*</span></label>
+          <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="rejectReason" placeholder="Nhập lý do chưa đạt yêu cầu..."></textarea>
         </div>
       </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-light rounded-pill px-4" (click)="closeRejectModal()">Hủy</button>
-        <button type="button" class="btn btn-danger rounded-pill px-4" [disabled]="!rejectReason.trim() || isActionLoading" (click)="confirmRejectTask()">
-          <span *ngIf="isActionLoading" class="spinner-border spinner-border-sm me-1"></span>
-          Từ chối
-        </button>
+      <div class="modal-footer border-top px-4 py-3 bg-light">
+        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeRejectModal()">Hủy</button>
+        <button class="btn btn-danger rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="!rejectReason?.trim() || isActionLoading" (click)="confirmRejectTask()">Xác nhận từ chối</button>
       </div>
     </div>
   </div>

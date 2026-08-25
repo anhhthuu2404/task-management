@@ -186,7 +186,7 @@ public partial class TaskManagementDepartmentToCreateUpdateDepartmentDtoMapper :
 }
 #endregion
 
-#region Tasks
+#region Tasks & Task Comments
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementTaskItemToTaskDtoMapper : MapperBase<TaskItem, TaskDto>
 {
@@ -262,6 +262,71 @@ public partial class TaskManagementTaskCommentToTaskCommentDtoMapper : MapperBas
 
     [MapperIgnoreTarget(nameof(TaskCommentDto.CreatorName))]
     public override partial void Map(TaskComment source, TaskCommentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementCommentAttachmentToCommentAttachmentDtoMapper : MapperBase<CommentAttachment, CommentAttachmentDto>
+{
+    public override partial CommentAttachmentDto Map(CommentAttachment source);
+    public override partial void Map(CommentAttachment source, CommentAttachmentDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementCommentAttachmentDtoToCommentAttachmentMapper : MapperBase<CommentAttachmentDto, CommentAttachment>
+{
+    [MapProperty(nameof(CommentAttachmentDto.FileUrl), nameof(CommentAttachment.FileUrl), Use = nameof(MapNullStringToEmpty))]
+    public override partial CommentAttachment Map(CommentAttachmentDto source);
+
+    [MapProperty(nameof(CommentAttachmentDto.FileUrl), nameof(CommentAttachment.FileUrl), Use = nameof(MapNullStringToEmpty))]
+    public override partial void Map(CommentAttachmentDto source, CommentAttachment destination);
+
+    private static string MapNullStringToEmpty(string? value) => value ?? string.Empty;
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementCreateTaskCommentDtoToTaskCommentMapper : MapperBase<CreateTaskCommentDto, TaskComment>
+{
+    [MapperIgnoreTarget(nameof(TaskComment.Id))]
+    [MapperIgnoreTarget(nameof(TaskComment.TaskId))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreatorId))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreationTime))]
+    [MapperIgnoreTarget("ExtraProperties")]
+    [MapperIgnoreTarget("ConcurrencyStamp")]
+    [MapperIgnoreSource(nameof(CreateTaskCommentDto.FileContent))]
+    public override partial TaskComment Map(CreateTaskCommentDto source);
+
+    [MapperIgnoreTarget(nameof(TaskComment.Id))]
+    [MapperIgnoreTarget(nameof(TaskComment.TaskId))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreatorId))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreationTime))]
+    [MapperIgnoreTarget("ExtraProperties")]
+    [MapperIgnoreTarget("ConcurrencyStamp")]
+    [MapperIgnoreSource(nameof(CreateTaskCommentDto.FileContent))]
+    public override partial void Map(CreateTaskCommentDto source, TaskComment destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementUpdateTaskCommentDtoToTaskCommentMapper : MapperBase<UpdateTaskCommentDto, TaskComment>
+{
+    [MapperIgnoreTarget(nameof(TaskComment.Id))]
+    [MapperIgnoreTarget(nameof(TaskComment.TaskId))]
+    [MapperIgnoreTarget(nameof(TaskComment.FileName))]
+    [MapperIgnoreTarget(nameof(TaskComment.FileUrl))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreatorId))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreationTime))]
+    [MapperIgnoreTarget("ExtraProperties")]
+    [MapperIgnoreTarget("ConcurrencyStamp")]
+    public override partial TaskComment Map(UpdateTaskCommentDto source);
+
+    [MapperIgnoreTarget(nameof(TaskComment.Id))]
+    [MapperIgnoreTarget(nameof(TaskComment.TaskId))]
+    [MapperIgnoreTarget(nameof(TaskComment.FileName))]
+    [MapperIgnoreTarget(nameof(TaskComment.FileUrl))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreatorId))]
+    [MapperIgnoreTarget(nameof(TaskComment.CreationTime))]
+    [MapperIgnoreTarget("ExtraProperties")]
+    [MapperIgnoreTarget("ConcurrencyStamp")]
+    public override partial void Map(UpdateTaskCommentDto source, TaskComment destination);
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]

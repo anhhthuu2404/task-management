@@ -32,6 +32,7 @@ public interface ITaskAppService : ICrudAppService<
     Task<ChecklistItemDto> UpdateChecklistItemAsync(Guid itemId, CreateUpdateChecklistItemDto input);
     Task ToggleChecklistItemStatusAsync(Guid itemId);
     Task DeleteChecklistItemAsync(Guid itemId);
+    Task<List<TaskActivityLogDto>> GetTaskTimelineAsync(Guid taskId);
 
     // Comments
     Task<List<TaskCommentDto>> GetCommentsAsync(Guid taskId);
