@@ -18,6 +18,9 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
     public string? FileName { get; set; }
     public string? FileUrl { get; set; }
     public int ProgressPercent { get; set; }
+    public int Position { get; set; } = 0;          
+    public DateTime? StartDate { get; set; }      
+
 
     public virtual ICollection<TaskAttachment> Attachments { get; set; } = [];
 

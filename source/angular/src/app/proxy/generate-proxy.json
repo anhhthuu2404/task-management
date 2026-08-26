@@ -3913,6 +3913,23 @@
                   }
                 },
                 {
+                  "name": "GetTaskTimelineAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "taskId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskActivityLogDto>",
+                    "typeSimple": "[TaskManagement.Tasks.TaskActivityLogDto]"
+                  }
+                },
+                {
                   "name": "GetCommentsAsync",
                   "parametersOnMethod": [
                     {
@@ -4126,6 +4143,43 @@
               "returnValue": {
                 "type": "TaskManagement.Tasks.TaskDetailDto",
                 "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "GetTaskTimelineAsyncByTaskId": {
+              "uniqueName": "GetTaskTimelineAsyncByTaskId",
+              "name": "GetTaskTimelineAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/{taskId}/timeline",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "taskId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "taskId",
+                  "name": "taskId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskActivityLogDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskActivityLogDto]"
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
@@ -4394,6 +4448,100 @@
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "UpdateSubmissionAsyncByIdAndInput": {
+              "uniqueName": "UpdateSubmissionAsyncByIdAndInput",
+              "name": "UpdateSubmissionAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/{id}/submission",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.SubmitReviewInputDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "typeSimple": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "typeSimple": "TaskManagement.Tasks.SubmitReviewInputDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDetailDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+            },
+            "DeleteSubmissionAsyncById": {
+              "uniqueName": "DeleteSubmissionAsyncById",
+              "name": "DeleteSubmissionAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/task/{id}/submission",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDetailDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDetailDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
             },
             "ApproveAsyncById": {
               "uniqueName": "ApproveAsyncById",

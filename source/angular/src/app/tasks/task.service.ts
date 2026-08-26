@@ -207,6 +207,15 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
+  // --- BỔ SUNG: CẬP NHẬT LỊCH TRÌNH (CHO CALENDAR VIEW) ---
+  updateSchedule(id: string, dueDate: string | null): Observable<void> {
+    return this.restService.request<{ dueDate: string | null }, void>({
+      method: 'PUT',
+      url: `/api/app/task/${id}/schedule`,
+      body: { dueDate }
+    }, { apiName: this.apiName });
+  }
+
   // --- COMMENTS API ---
   createComment(taskId: string, input: CreateTaskCommentDto): Observable<TaskCommentDto> {
     return this.restService.request<CreateTaskCommentDto, TaskCommentDto>({
@@ -278,11 +287,11 @@ export class TaskService {
       url: `/api/app/task/checklist-item/${itemId}`
     }, { apiName: this.apiName });
   }
+
   getTaskTimeline(taskId: string): Observable<any[]> {
-  return this.restService.request<any, any[]>({
-    method: 'GET',
-    url: `/api/app/task/${taskId}/timeline`
-  },
-  { apiName: this.apiName });
-   }
+    return this.restService.request<any, any[]>({
+      method: 'GET',
+      url: `/api/app/task/${taskId}/timeline`
+    }, { apiName: this.apiName });
+  }
 }

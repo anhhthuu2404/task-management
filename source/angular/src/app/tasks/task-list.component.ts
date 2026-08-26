@@ -1,9 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { RestService, PermissionService } from '@abp/ng.core';
 import { NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
+import { DragDropModule, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
 
 export interface TaskDto {
   id: string;
@@ -28,19 +29,43 @@ export interface TaskDto {
     FormsModule,
     RouterModule,
     NgbPaginationModule,
-    NgbDropdownModule
+    NgbDropdownModule,
+    DragDropModule
   ],
   templateUrl: './task-list.component.html'
 })
 export class TaskListComponent implements OnInit {
   private readonly rest = inject(RestService);
   private readonly permission = inject(PermissionService);
+  private readonly router = inject(Router);
 
   readonly backendUrl = 'https://localhost:44399';
 
   taskList: TaskDto[] = [];
   totalCount = 0;
   isLoading = false;
+
+  // --- QUẢN LÝ VIEW ---
+  currentView: 'list' | 'kanban' | 'calendar' = 'list';
+
+  readonly kanbanColumns = [
+    { status: 0, title: 'Mới', headerClass: 'border-secondary text-secondary' },
+    { status: 1, title: 'Đang làm', headerClass: 'border-primary text-primary' },
+    { status: 2, title: 'Hoàn thành', headerClass: 'border-success text-success' },
+    { status: 3, title: 'Đã hủy', headerClass: 'border-danger text-danger' }
+  ];
+
+  // --- MẢNG RIÊNG CHO KANBAN CƯ TRÚ ---
+  kanbanNewTasks: TaskDto[] = [];
+  kanbanInProgressTasks: TaskDto[] = [];
+  kanbanCompletedTasks: TaskDto[] = [];
+  kanbanCancelledTasks: TaskDto[] = [];
+
+  // --- BIẾN CHO CALENDAR VIEW ---
+  calendarDate: Date = new Date();
+  calendarWeeks: any[][] = [];
+  currentCalendarMonthName: string = '';
+  currentCalendarYear: number = 0;
 
   filters = {
     filter: '', 
@@ -81,12 +106,25 @@ export class TaskListComponent implements OnInit {
         this.taskList = res.items || [];
         this.totalCount = res.totalCount || 0;
         this.isLoading = false;
+
+        this.updateKanbanColumns();
+
+        if (this.currentView === 'calendar') {
+          this.generateCalendar();
+        }
       },
       error: (err) => {
         console.error('Lỗi khi tải danh sách công việc:', err);
         this.isLoading = false;
       }
     });
+  }
+
+  updateKanbanColumns(): void {
+    this.kanbanNewTasks = this.taskList.filter(t => t.status === 0);
+    this.kanbanInProgressTasks = this.taskList.filter(t => t.status === 1);
+    this.kanbanCompletedTasks = this.taskList.filter(t => t.status === 2);
+    this.kanbanCancelledTasks = this.taskList.filter(t => t.status === 3);
   }
 
   onSearch(): void {
@@ -113,17 +151,159 @@ export class TaskListComponent implements OnInit {
       task.progressPercent = 100;
     }
 
+    this.updateKanbanColumns();
+
     this.rest.request<any, TaskDto>({
-      method: 'POST',
+      method: 'PUT',
       url: `/api/app/task/${task.id}/status`,
       params: { status: newStatus }
     }).subscribe({
+      next: () => {
+        if (this.currentView === 'calendar') {
+          this.generateCalendar();
+        }
+      },
       error: (err) => {
         task.status = oldStatus;
         task.progressPercent = oldProgress;
+        this.updateKanbanColumns();
         console.error('Lỗi đổi trạng thái:', err);
       }
     });
+  }
+
+  // --- KANBAN VIEW & DRAG AND DROP ---
+  getTasksByStatus(status: number): TaskDto[] {
+    switch (status) {
+      case 0: return this.kanbanNewTasks;
+      case 1: return this.kanbanInProgressTasks;
+      case 2: return this.kanbanCompletedTasks;
+      case 3: return this.kanbanCancelledTasks;
+      default: return [];
+    }
+  }
+
+  onKanbanStatusChange(task: TaskDto, newStatus: number): void {
+    this.updateTaskStatus(task, newStatus);
+  }
+
+  onTaskDrop(event: CdkDragDrop<TaskDto[]>, targetStatus: number): void {
+    if (event.previousContainer === event.container) {
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    } else {
+      const task: TaskDto = event.previousContainer.data[event.previousIndex];
+      transferArrayItem(
+        event.previousContainer.data,
+        event.container.data,
+        event.previousIndex,
+        event.currentIndex
+      );
+      this.updateTaskStatus(task, targetStatus);
+    }
+  }
+
+  // --- CALENDAR VIEW ---
+  generateCalendar(): void {
+    const year = this.calendarDate.getFullYear();
+    const month = this.calendarDate.getMonth();
+    
+    this.currentCalendarYear = year;
+    const monthNames = [
+      'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 
+      'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 
+      'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+    ];
+    this.currentCalendarMonthName = monthNames[month];
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    let startingDayOfWeek = firstDayOfMonth.getDay();
+    startingDayOfWeek = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+
+    let currentWeek: any[] = [];
+    this.calendarWeeks = [];
+
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, prevMonthLastDay - i);
+      currentWeek.push({
+        date: d,
+        isCurrentMonth: false,
+        isToday: this.isToday(d),
+        tasks: this.getTasksForDate(d)
+      });
+    }
+
+    for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+      const d = new Date(year, month, day);
+      currentWeek.push({
+        date: d,
+        isCurrentMonth: true,
+        isToday: this.isToday(d),
+        tasks: this.getTasksForDate(d)
+      });
+
+      if (currentWeek.length === 7) {
+        this.calendarWeeks.push(currentWeek);
+        currentWeek = [];
+      }
+    }
+
+    let nextMonthDay = 1;
+    while (currentWeek.length > 0 && currentWeek.length < 7) {
+      const d = new Date(year, month + 1, nextMonthDay++);
+      currentWeek.push({
+        date: d,
+        isCurrentMonth: false,
+        isToday: this.isToday(d),
+        tasks: this.getTasksForDate(d)
+      });
+    }
+    if (currentWeek.length > 0) {
+      this.calendarWeeks.push(currentWeek);
+    }
+  }
+
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+  }
+
+  getTasksForDate(date: Date): TaskDto[] {
+    return this.taskList.filter(task => {
+      if (!task.dueDate) return false;
+      const taskDate = new Date(task.dueDate);
+      return taskDate.getDate() === date.getDate() &&
+             taskDate.getMonth() === date.getMonth() &&
+             taskDate.getFullYear() === date.getFullYear();
+    });
+  }
+
+  prevMonth(): void {
+    this.calendarDate.setMonth(this.calendarDate.getMonth() - 1);
+    this.generateCalendar();
+  }
+
+  nextMonth(): void {
+    this.calendarDate.setMonth(this.calendarDate.getMonth() + 1);
+    this.generateCalendar();
+  }
+
+  goToCurrentMonth(): void {
+    this.calendarDate = new Date();
+    this.generateCalendar();
+  }
+
+  createTaskOnDate(date: Date): void {
+    if (!this.canCreate) return;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    this.router.navigate(['/tasks/create'], { queryParams: { dueDate: formattedDate } });
   }
 
   updateTaskAssignee(task: TaskDto, assigneeId: string | null): void {
@@ -147,6 +327,9 @@ export class TaskListComponent implements OnInit {
       next: (updatedTask) => {
         if (updatedTask && updatedTask.assigneeName) {
           task.assigneeName = updatedTask.assigneeName;
+        }
+        if (this.currentView === 'calendar') {
+          this.generateCalendar();
         }
       },
       error: (err) => {

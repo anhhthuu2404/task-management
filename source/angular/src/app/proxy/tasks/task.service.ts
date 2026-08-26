@@ -1,4 +1,4 @@
-import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
+import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskActivityLogDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
 import type { TaskItemStatus } from './task-item-status.enum';
 import { RestService, Rest } from '@abp/ng.core';
 import type { PagedResultDto } from '@abp/ng.core';
@@ -88,6 +88,14 @@ export class TaskService {
     { apiName: this.apiName,...config });
   
 
+  deleteSubmission = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDetailDto>({
+      method: 'DELETE',
+      url: `/api/app/task/${id}/submission`,
+    },
+    { apiName: this.apiName,...config });
+  
+
   get = (id: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, TaskDto>({
       method: 'GET',
@@ -117,6 +125,14 @@ export class TaskService {
     this.restService.request<any, TaskDetailDto>({
       method: 'GET',
       url: `/api/app/task/${id}/detail`,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getTaskTimeline = (taskId: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskActivityLogDto[]>({
+      method: 'GET',
+      url: `/api/app/task/${taskId}/timeline`,
     },
     { apiName: this.apiName,...config });
   
@@ -204,6 +220,15 @@ export class TaskService {
     this.restService.request<any, SubTaskDto>({
       method: 'PUT',
       url: `/api/app/task/sub-task/${subTaskId}`,
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  updateSubmission = (id: string, input: SubmitReviewInputDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDetailDto>({
+      method: 'PUT',
+      url: `/api/app/task/${id}/submission`,
       body: input,
     },
     { apiName: this.apiName,...config });

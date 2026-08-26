@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TaskManagement.Permissions;
+using TaskManagement.Tasks.Dtos;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -102,11 +104,18 @@ public class TaskAppService(
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
         {
-            var user = await userRepository.FindAsync(entity.AssigneeId.Value);
-            if (user != null)
+            try
             {
-                dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
-                dto.AssigneeUserName = user.UserName;
+                var user = await userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
+                if (user != null)
+                {
+                    dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
+                    dto.AssigneeUserName = user.UserName;
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ TaskCanceledException do client hủy request để tránh lỗi unhandled
             }
         }
 
@@ -121,16 +130,23 @@ public class TaskAppService(
 
         if (subTaskAssigneeIds.Count > 0)
         {
-            var userQuery = await userRepository.GetQueryableAsync();
-            var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => subTaskAssigneeIds.Contains(x.Id)));
-            var userDict = users.ToDictionary(u => u.Id);
-
-            foreach (var subDto in subTaskDtos)
+            try
             {
-                if (subDto.AssigneeId.HasValue && userDict.TryGetValue(subDto.AssigneeId.Value, out var u))
+                var userQuery = await userRepository.GetQueryableAsync();
+                var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => subTaskAssigneeIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
+                var userDict = users.ToDictionary(u => u.Id);
+
+                foreach (var subDto in subTaskDtos)
                 {
-                    subDto.AssigneeName = !string.IsNullOrWhiteSpace(u.Name) ? u.Name : (u.UserName ?? string.Empty);
+                    if (subDto.AssigneeId.HasValue && userDict.TryGetValue(subDto.AssigneeId.Value, out var u))
+                    {
+                        subDto.AssigneeName = !string.IsNullOrWhiteSpace(u.Name) ? u.Name : (u.UserName ?? string.Empty);
+                    }
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ tránh crash
             }
         }
         dto.SubTasks = subTaskDtos;
@@ -154,9 +170,16 @@ public class TaskAppService(
         var commentUserDict = new Dictionary<Guid, IdentityUser>();
         if (creatorIds.Count > 0)
         {
-            var userQuery = await userRepository.GetQueryableAsync();
-            var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)));
-            commentUserDict = users.ToDictionary(u => u.Id);
+            try
+            {
+                var userQuery = await userRepository.GetQueryableAsync();
+                var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
+                commentUserDict = users.ToDictionary(u => u.Id);
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ tránh crash
+            }
         }
 
         var commentDtos = new List<TaskCommentDto>();
@@ -232,7 +255,39 @@ public class TaskAppService(
         var logs = await activityLogRepository.GetListAsync(x => x.TaskId == taskId);
         var sortedLogs = logs.OrderByDescending(x => x.CreationTime).ToList();
 
-        return ObjectMapper.Map<List<TaskActivityLog>, List<TaskActivityLogDto>>(sortedLogs);
+        var creatorIds = sortedLogs
+            .Where(x => x.CreatorId.HasValue)
+            .Select(x => x.CreatorId!.Value)
+            .Distinct()
+            .ToList();
+
+        var userDict = new Dictionary<Guid, IdentityUser>();
+        if (creatorIds.Count > 0)
+        {
+            try
+            {
+                var userQuery = await userRepository.GetQueryableAsync();
+                var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
+                userDict = users.ToDictionary(u => u.Id);
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ tránh crash
+            }
+        }
+
+        var dtos = new List<TaskActivityLogDto>();
+        foreach (var log in sortedLogs)
+        {
+            var dto = ObjectMapper.Map<TaskActivityLog, TaskActivityLogDto>(log);
+            dto.CreatorName = (log.CreatorId.HasValue && userDict.TryGetValue(log.CreatorId.Value, out var user))
+                ? (!string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty))
+                : "Hệ thống";
+
+            dtos.Add(dto);
+        }
+
+        return dtos;
     }
 
     [UnitOfWork]
@@ -283,6 +338,22 @@ public class TaskAppService(
         return await MapToGetOutputDtoAsync(entity);
     }
 
+    [HttpPut("/api/app/task/{id}/schedule")]
+    [HttpPost("/api/app/task/{id}/schedule")]
+    [Authorize(TaskManagementPermissions.Tasks.Edit)]
+    [UnitOfWork]
+    public async Task<TaskDto> UpdateScheduleAsync(Guid id, [FromBody] UpdateTaskScheduleDto input)
+    {
+        var entity = await GetEntityByIdAsync(id);
+
+        entity.DueDate = input.DueDate;
+
+        await Repository.UpdateAsync(entity, autoSave: true);
+        await LogActivityAsync(id, $"Đã cập nhật lại hạn chót công việc qua lịch");
+
+        return await MapToGetOutputDtoAsync(entity);
+    }
+
     [HttpPost("/api/app/task/{id}/assignee")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
@@ -296,8 +367,15 @@ public class TaskAppService(
         string assigneeName = "Chưa giao";
         if (entity.AssigneeId.HasValue)
         {
-            var user = await userRepository.FindAsync(entity.AssigneeId.Value);
-            assigneeName = user?.Name ?? user?.UserName ?? entity.AssigneeId.Value.ToString();
+            try
+            {
+                var user = await userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
+                assigneeName = user?.Name ?? user?.UserName ?? entity.AssigneeId.Value.ToString();
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ để tránh crash tiến trình
+            }
         }
         await LogActivityAsync(id, $"Giao công việc cho: {assigneeName}");
 
@@ -645,9 +723,16 @@ public class TaskAppService(
         var userDict = new Dictionary<Guid, IdentityUser>();
         if (creatorIds.Count > 0)
         {
-            var userQuery = await userRepository.GetQueryableAsync();
-            var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)));
-            userDict = users.ToDictionary(u => u.Id);
+            try
+            {
+                var userQuery = await userRepository.GetQueryableAsync();
+                var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
+                userDict = users.ToDictionary(u => u.Id);
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ tránh crash
+            }
         }
 
         var dtos = new List<TaskCommentDto>();
@@ -786,11 +871,18 @@ public class TaskAppService(
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
         {
-            var user = await userRepository.FindAsync(entity.AssigneeId.Value);
-            if (user != null)
+            try
             {
-                dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
-                dto.AssigneeUserName = user.UserName;
+                var user = await userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
+                if (user != null)
+                {
+                    dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
+                    dto.AssigneeUserName = user.UserName;
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ để tránh crash khi request bị hủy giữa chừng
             }
         }
 
@@ -855,17 +947,24 @@ public class TaskAppService(
 
         if (assigneeIds.Count > 0)
         {
-            var queryable = await userRepository.GetQueryableAsync();
-            var users = await AsyncExecuter.ToListAsync(queryable.Where(x => assigneeIds.Contains(x.Id)));
-            var userDict = users.ToDictionary(u => u.Id);
-
-            foreach (var dto in dtos)
+            try
             {
-                if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out var user))
+                var queryable = await userRepository.GetQueryableAsync();
+                var users = await AsyncExecuter.ToListAsync(queryable.Where(x => assigneeIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
+                var userDict = users.ToDictionary(u => u.Id);
+
+                foreach (var dto in dtos)
                 {
-                    dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
-                    dto.AssigneeUserName = user.UserName;
+                    if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out var user))
+                    {
+                        dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
+                        dto.AssigneeUserName = user.UserName;
+                    }
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                // Bắt ngoại lệ tránh crash khi query danh sách user bị hủy đột ngột
             }
         }
 

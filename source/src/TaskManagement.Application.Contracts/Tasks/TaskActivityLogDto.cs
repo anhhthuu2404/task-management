@@ -9,5 +9,6 @@ public class TaskActivityLogDto : EntityDto<Guid>
     public string Action { get; set; } = string.Empty;
     public string? UserName { get; set; } 
     public string? Details { get; set; }
+    public string? CreatorName { get; set; }
     public DateTime CreationTime { get; set; }
 }
