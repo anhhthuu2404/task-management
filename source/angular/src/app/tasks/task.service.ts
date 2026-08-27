@@ -38,6 +38,7 @@ export interface CommentAttachmentDto {
 export interface TaskDto {
   id: string;
   title: string;
+  assigneeId?: string; // Bổ sung an toàn để quản lý ID người thực hiện
   assigneeName?: string;
   priority: TaskPriority;
   status: TaskStatus;
@@ -55,6 +56,23 @@ export interface ChecklistItemDto {
   id: string;
   title: string;
   isDone: boolean;
+}
+
+// === BỔNG SUNG: TASK HISTORY DTO (Lịch sử thay đổi gán người thực hiện) ===
+export interface TaskHistoryDto {
+  id?: string;
+  taskId?: string;
+  action?: string;
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+  oldAssigneeId?: string;
+  oldAssigneeName?: string;
+  newAssigneeId?: string;
+  newAssigneeName?: string;
+  creatorId?: string;
+  creatorName?: string;
+  creationTime?: string;
 }
 
 // --- COMMENT DTOS ---
@@ -107,6 +125,7 @@ export interface TaskDetailDto extends TaskDto {
   checklistItems?: ChecklistItemDto[];
   comments?: TaskCommentDto[];
   activityLogs?: ActivityLogDto[];
+  histories?: TaskHistoryDto[]; // <-- Tích hợp danh sách lịch sử an toàn tuyệt đối
 }
 
 // --- INPUT DTOS ---
@@ -207,12 +226,21 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- BỔ SUNG: CẬP NHẬT LỊCH TRÌNH (CHO CALENDAR VIEW) ---
+  // --- CẬP NHẬT LỊCH TRÌNH (CHO CALENDAR VIEW) ---
   updateSchedule(id: string, dueDate: string | null): Observable<void> {
     return this.restService.request<{ dueDate: string | null }, void>({
       method: 'PUT',
       url: `/api/app/task/${id}/schedule`,
       body: { dueDate }
+    }, { apiName: this.apiName });
+  }
+
+  // --- BỔ SUNG: API GÁN/ĐỔI NGƯỜI THỰC HIỆN (ASSIGN/RE-ASSIGN) ---
+  updateAssignee(id: string, assigneeId: string | null): Observable<TaskDto> {
+    return this.restService.request<{ assigneeId: string | null }, TaskDto>({
+      method: 'POST', // Hoặc PUT tùy thuộc vào route API Backend của bạn
+      url: `/api/app/task/${id}/assignee`,
+      body: { assigneeId }
     }, { apiName: this.apiName });
   }
 

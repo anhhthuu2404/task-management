@@ -16,10 +16,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks; // Đã bổ sung thư viện cho Task
 using TaskManagement.EntityFrameworkCore;
 using TaskManagement.HealthChecks;
 using TaskManagement.Localization;
 using TaskManagement.MultiTenancy;
+using TaskManagement.Tasks; // Namespace chứa TaskOverdueBackgroundWorker của bạn
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
@@ -32,6 +34,7 @@ using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
+using Volo.Abp.BackgroundWorkers; // Thư viện bắt buộc cho Background Worker
 using Volo.Abp.Identity;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
@@ -55,7 +58,8 @@ namespace TaskManagement;
     typeof(TaskManagementEntityFrameworkCoreModule),
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpSwashbuckleModule),
-    typeof(AbpAspNetCoreSerilogModule)
+    typeof(AbpAspNetCoreSerilogModule),
+    typeof(AbpBackgroundWorkersModule) // <-- Bổ sung module Background Workers tại đây
 )]
 public class TaskManagementHttpApiHostModule : AbpModule
 {
@@ -261,7 +265,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
         context.Services.AddTaskManagementHealthChecks();
     }
 
-    public override void OnApplicationInitialization(ApplicationInitializationContext context)
+    public override async Task OnApplicationInitializationAsync(ApplicationInitializationContext context)
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
@@ -282,7 +286,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
 
         app.UseStaticFiles();
 
-     
         app.UseSwagger();
         app.UseAbpSwaggerUI(options =>
         {
@@ -323,5 +326,8 @@ public class TaskManagementHttpApiHostModule : AbpModule
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();
+
+        // <-- KÍCH HOẠT WORKER CHẠY NGẨM TỰ ĐỘNG KHI HOST KHỞI ĐỘNG -->
+        await context.AddBackgroundWorkerAsync<TaskOverdueBackgroundWorker>();
     }
 }

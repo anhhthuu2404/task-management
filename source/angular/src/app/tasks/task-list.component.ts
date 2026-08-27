@@ -16,6 +16,8 @@ export interface TaskDto {
   status: number;
   progressPercent: number;
   dueDate: string;
+  isRecurring?: boolean;
+  frequency?: number;
   fileUrl?: string;
   fileName?: string;
   attachments?: any[];
@@ -52,7 +54,8 @@ export class TaskListComponent implements OnInit {
     { status: 0, title: 'Mới', headerClass: 'border-secondary text-secondary' },
     { status: 1, title: 'Đang làm', headerClass: 'border-primary text-primary' },
     { status: 2, title: 'Hoàn thành', headerClass: 'border-success text-success' },
-    { status: 3, title: 'Đã hủy', headerClass: 'border-danger text-danger' }
+    { status: 3, title: 'Đã hủy', headerClass: 'border-danger text-danger' },
+    { status: 5, title: 'Quá hạn', headerClass: 'border-danger text-danger' }
   ];
 
   // --- MẢNG RIÊNG CHO KANBAN CƯ TRÚ ---
@@ -60,6 +63,7 @@ export class TaskListComponent implements OnInit {
   kanbanInProgressTasks: TaskDto[] = [];
   kanbanCompletedTasks: TaskDto[] = [];
   kanbanCancelledTasks: TaskDto[] = [];
+  kanbanOverdueTasks: TaskDto[] = [];
 
   // --- BIẾN CHO CALENDAR VIEW ---
   calendarDate: Date = new Date();
@@ -93,6 +97,26 @@ export class TaskListComponent implements OnInit {
     this.fetchTasks();
   }
 
+  loadCategories(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/task/category-lookup'
+    }).subscribe({
+      next: (res) => { this.categories = res.items || res || []; },
+      error: () => {}
+    });
+  }
+
+  loadUsers(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/identity/users'
+    }).subscribe({
+      next: (res) => { this.users = res.items || res || []; },
+      error: () => {}
+    });
+  }
+
   fetchTasks(): void {
     this.isLoading = true;
     this.filters.skipCount = (this.page - 1) * this.filters.maxResultCount;
@@ -120,11 +144,22 @@ export class TaskListComponent implements OnInit {
     });
   }
 
+  cleanParams(obj: any): any {
+    const params: any = {};
+    Object.keys(obj).forEach(key => {
+      if (obj[key] !== null && obj[key] !== undefined && obj[key] !== '') {
+        params[key] = obj[key];
+      }
+    });
+    return params;
+  }
+
   updateKanbanColumns(): void {
     this.kanbanNewTasks = this.taskList.filter(t => t.status === 0);
     this.kanbanInProgressTasks = this.taskList.filter(t => t.status === 1);
     this.kanbanCompletedTasks = this.taskList.filter(t => t.status === 2);
     this.kanbanCancelledTasks = this.taskList.filter(t => t.status === 3);
+    this.kanbanOverdueTasks = this.taskList.filter(t => t.status === 5);
   }
 
   onSearch(): void {
@@ -172,6 +207,21 @@ export class TaskListComponent implements OnInit {
     });
   }
 
+  // --- XỬ LÝ HOÀN THÀNH CÔNG VIỆC NHANH ---
+  markAsCompleted(task: TaskDto): void {
+    this.updateTaskStatus(task, 2);
+    
+    // Tự động làm mới danh sách sau 0.5s để cập nhật task lặp mới từ backend nếu có
+    setTimeout(() => {
+      this.fetchTasks();
+    }, 500);
+  }
+
+  // --- XỬ LÝ SỰ KIỆN KHI CLICK VÀO NÚT LẶP LẠI (RECURRING) ---
+  onLoadRecurringTask(task: TaskDto): void {
+    console.log('Đã bấm vào công việc lặp lại:', task);
+  }
+
   // --- KANBAN VIEW & DRAG AND DROP ---
   getTasksByStatus(status: number): TaskDto[] {
     switch (status) {
@@ -179,6 +229,7 @@ export class TaskListComponent implements OnInit {
       case 1: return this.kanbanInProgressTasks;
       case 2: return this.kanbanCompletedTasks;
       case 3: return this.kanbanCancelledTasks;
+      case 5: return this.kanbanOverdueTasks;
       default: return [];
     }
   }
@@ -372,6 +423,15 @@ export class TaskListComponent implements OnInit {
     }));
   }
 
+  getFrequencyText(frequency?: number): string {
+    switch (frequency) {
+      case 1: return 'Lặp lại: Hàng ngày';
+      case 2: return 'Lặp lại: Hàng tuần';
+      case 3: return 'Lặp lại: Hàng tháng';
+      default: return 'Công việc định kỳ';
+    }
+  }
+
   getPriorityBadge(priority: number): { text: string; cssClass: string } {
     const maps: Record<number, { text: string; cssClass: string }> = {
       0: { text: 'Thấp', cssClass: 'bg-secondary-subtle text-secondary border' },
@@ -387,28 +447,9 @@ export class TaskListComponent implements OnInit {
       0: { text: 'Mới', cssClass: 'bg-secondary-subtle text-secondary border' },
       1: { text: 'Đang làm', cssClass: 'bg-primary-subtle text-primary border' },
       2: { text: 'Hoàn thành', cssClass: 'bg-success-subtle text-success border' },
-      3: { text: 'Đã hủy', cssClass: 'bg-danger-subtle text-danger border' }
+      3: { text: 'Đã hủy', cssClass: 'bg-danger-subtle text-danger border' },
+      5: { text: 'Quá hạn', cssClass: 'bg-danger text-white border' }
     };
-    return maps[status] || { text: 'N/A', cssClass: 'bg-light text-dark' };
-  }
-
-  private loadCategories(): void {
-    this.rest.request<any, any>({ method: 'GET', url: '/api/app/category' })
-      .subscribe(res => this.categories = res.items || res || []);
-  }
-
-  private loadUsers(): void {
-    this.rest.request<any, any>({ method: 'GET', url: '/api/identity/users' })
-      .subscribe(res => this.users = res.items || res || []);
-  }
-
-  private cleanParams(params: any): any {
-    const cleaned = { ...params };
-    Object.keys(cleaned).forEach(key => {
-      if (cleaned[key] === '' || cleaned[key] === null || cleaned[key] === undefined) {
-        delete cleaned[key];
-      }
-    });
-    return cleaned;
+    return maps[status] || { text: 'Không xác định', cssClass: 'bg-light text-dark' };
   }
 }

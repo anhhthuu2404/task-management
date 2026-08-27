@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TaskManagement.Permissions;
 using TaskManagement.Tasks.Dtos;
+using TaskManagement.TaskHistories;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -34,7 +35,7 @@ public class TaskAppService(
         CreateTaskInputDto,
         UpdateTaskInputDto>(repository), ITaskAppService
 {
-    private readonly string[] _allowedExtensions = [".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx"];
+    private readonly string[] _allowedExtensions = new[] { ".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx" };
     private const int MaxFileSizeInBytes = 10 * 1024 * 1024; // 10MB
 
     protected override string? GetPolicyName { get; set; } = TaskManagementPermissions.Tasks.Default;
@@ -69,10 +70,6 @@ public class TaskAppService(
 
         try
         {
-            return base.ApplySorting(query, input);
-        }
-        catch
-        {
             var sorting = input.Sorting.Trim();
             var isDescending = sorting.EndsWith("DESC", StringComparison.OrdinalIgnoreCase);
             var sortField = sorting.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant() ?? "";
@@ -84,8 +81,12 @@ public class TaskAppService(
                 "status" => isDescending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
                 "duedate" => isDescending ? query.OrderByDescending(x => x.DueDate) : query.OrderBy(x => x.DueDate),
                 "creationtime" => isDescending ? query.OrderByDescending(x => x.CreationTime) : query.OrderBy(x => x.CreationTime),
-                _ => query.OrderByDescending(x => x.CreationTime)
+                _ => base.ApplySorting(query, input)
             };
+        }
+        catch
+        {
+            return query.OrderByDescending(x => x.CreationTime);
         }
     }
     #endregion
@@ -95,12 +96,22 @@ public class TaskAppService(
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<TaskDetailDto> GetTaskDetailAsync(Guid id)
     {
-        var entity = await Repository.FindAsync(id)
+        var taskQuery = await Repository.WithDetailsAsync(x => x.Histories);
+        var entity = await AsyncExecuter.FirstOrDefaultAsync(taskQuery.Where(x => x.Id == id))
+            ?? await Repository.FindAsync(id)
             ?? throw new UserFriendlyException($"Không tìm thấy công việc có ID: {id}");
 
         var dto = ObjectMapper.Map<TaskItem, TaskDetailDto>(entity);
         dto.FileName = entity.FileName;
         dto.FileUrl = entity.FileUrl;
+
+        if (entity.Histories != null && entity.Histories.Count > 0)
+        {
+            dto.Histories = entity.Histories
+                .OrderByDescending(x => x.CreationTime)
+                .Select(x => ObjectMapper.Map<TaskHistory, TaskHistoryDto>(x))
+                .ToList();
+        }
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
         {
@@ -113,10 +124,7 @@ public class TaskAppService(
                     dto.AssigneeUserName = user.UserName;
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ TaskCanceledException do client hủy request để tránh lỗi unhandled
-            }
+            catch (TaskCanceledException) { }
         }
 
         var subTasks = await subTaskRepository.GetListAsync(x => x.TaskId == id);
@@ -144,10 +152,7 @@ public class TaskAppService(
                     }
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ tránh crash
-            }
+            catch (TaskCanceledException) { }
         }
         dto.SubTasks = subTaskDtos;
 
@@ -167,7 +172,7 @@ public class TaskAppService(
             .Distinct()
             .ToList();
 
-        var commentUserDict = new Dictionary<Guid, IdentityUser>();
+        Dictionary<Guid, IdentityUser> commentUserDict = new Dictionary<Guid, IdentityUser>();
         if (creatorIds.Count > 0)
         {
             try
@@ -176,21 +181,19 @@ public class TaskAppService(
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 commentUserDict = users.ToDictionary(u => u.Id);
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ tránh crash
-            }
+            catch (TaskCanceledException) { }
         }
 
         var commentDtos = new List<TaskCommentDto>();
         foreach (var c in sortedComments)
         {
             var cDto = ObjectMapper.Map<TaskComment, TaskCommentDto>(c);
-            cDto.CreatorName = (c.CreatorId.HasValue && commentUserDict.TryGetValue(c.CreatorId.Value, out var user))
-                ? (!string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty))
+            IdentityUser? commentUser = null;
+            cDto.CreatorName = (c.CreatorId.HasValue && commentUserDict.TryGetValue(c.CreatorId.Value, out commentUser) && commentUser != null)
+                ? (!string.IsNullOrWhiteSpace(commentUser.Name) ? commentUser.Name : (commentUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
-            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? []);
+            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? new List<CommentAttachment>());
             if (attachments.Count == 0)
             {
                 attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
@@ -225,19 +228,17 @@ public class TaskAppService(
 
             dto.SubmittedAt = lastSubmissionComment.CreationTime;
 
-            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
+            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? new List<CommentAttachment>());
             if (submissionAttachments.Count == 0)
             {
                 submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
             }
 
-            dto.SubmissionFiles = submissionAttachments
-                .Select(a => new TaskFileDto
-                {
-                    FileName = a.FileName,
-                    FileUrl = a.FileUrl
-                })
-                .ToList();
+            dto.SubmissionFiles = submissionAttachments.Select(a => new TaskFileDto
+            {
+                FileName = a.FileName,
+                FileUrl = a.FileUrl
+            }).ToList();
         }
 
         return dto;
@@ -261,7 +262,7 @@ public class TaskAppService(
             .Distinct()
             .ToList();
 
-        var userDict = new Dictionary<Guid, IdentityUser>();
+        Dictionary<Guid, IdentityUser> userDict = new Dictionary<Guid, IdentityUser>();
         if (creatorIds.Count > 0)
         {
             try
@@ -270,18 +271,16 @@ public class TaskAppService(
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 userDict = users.ToDictionary(u => u.Id);
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ tránh crash
-            }
+            catch (TaskCanceledException) { }
         }
 
         var dtos = new List<TaskActivityLogDto>();
         foreach (var log in sortedLogs)
         {
             var dto = ObjectMapper.Map<TaskActivityLog, TaskActivityLogDto>(log);
-            dto.CreatorName = (log.CreatorId.HasValue && userDict.TryGetValue(log.CreatorId.Value, out var user))
-                ? (!string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty))
+            IdentityUser? timelineUser = null;
+            dto.CreatorName = (log.CreatorId.HasValue && userDict.TryGetValue(log.CreatorId.Value, out timelineUser) && timelineUser != null)
+                ? (!string.IsNullOrWhiteSpace(timelineUser.Name) ? timelineUser.Name : (timelineUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
             dtos.Add(dto);
@@ -308,6 +307,8 @@ public class TaskAppService(
     public override async Task<TaskDto> UpdateAsync(Guid id, UpdateTaskInputDto input)
     {
         var entity = await GetEntityByIdAsync(id);
+        var oldStatus = entity.Status;
+
         await MapToEntityAsync(input, entity);
 
         entity.ProgressPercent = CalculateProgressByStatus(entity.Status, entity.ProgressPercent);
@@ -315,6 +316,12 @@ public class TaskAppService(
         await ProcessTaskAttachmentsAsync(input.Attachments, entity);
 
         await Repository.UpdateAsync(entity, autoSave: true);
+
+        if (entity.Status == TaskItemStatus.Completed && oldStatus != TaskItemStatus.Completed)
+        {
+            await GenerateNextRecurringTaskIfNeededAsync(entity);
+        }
+
         await LogActivityAsync(entity.Id, $"Đã cập nhật thông tin công việc (Tiến độ: {entity.ProgressPercent}%)");
 
         return await MapToGetOutputDtoAsync(entity);
@@ -333,6 +340,12 @@ public class TaskAppService(
         entity.ProgressPercent = CalculateProgressByStatus(status, entity.ProgressPercent);
 
         await Repository.UpdateAsync(entity, autoSave: true);
+
+        if (status == TaskItemStatus.Completed && oldStatus != TaskItemStatus.Completed)
+        {
+            await GenerateNextRecurringTaskIfNeededAsync(entity);
+        }
+
         await LogActivityAsync(id, $"Thay đổi trạng thái từ '{oldStatus}' sang '{status}' (Tiến độ: {entity.ProgressPercent}%)");
 
         return await MapToGetOutputDtoAsync(entity);
@@ -345,11 +358,10 @@ public class TaskAppService(
     public async Task<TaskDto> UpdateScheduleAsync(Guid id, [FromBody] UpdateTaskScheduleDto input)
     {
         var entity = await GetEntityByIdAsync(id);
-
         entity.DueDate = input.DueDate;
 
         await Repository.UpdateAsync(entity, autoSave: true);
-        await LogActivityAsync(id, $"Đã cập nhật lại hạn chót công việc qua lịch");
+        await LogActivityAsync(id, "Đã cập nhật lại hạn chót công việc qua lịch");
 
         return await MapToGetOutputDtoAsync(entity);
     }
@@ -360,23 +372,23 @@ public class TaskAppService(
     public async Task<TaskDto> UpdateAssigneeAsync(Guid id, [FromQuery] Guid? assigneeId)
     {
         var entity = await GetEntityByIdAsync(id);
-        entity.AssigneeId = assigneeId.HasValue && assigneeId.Value != Guid.Empty ? assigneeId : null;
 
-        await Repository.UpdateAsync(entity, autoSave: true);
+        string assigneeName = "Chưa phân công";
+        Guid? newAssigneeId = assigneeId.HasValue && assigneeId.Value != Guid.Empty ? assigneeId : null;
 
-        string assigneeName = "Chưa giao";
-        if (entity.AssigneeId.HasValue)
+        if (newAssigneeId.HasValue)
         {
             try
             {
-                var user = await userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
-                assigneeName = user?.Name ?? user?.UserName ?? entity.AssigneeId.Value.ToString();
+                var user = await userRepository.FindAsync(newAssigneeId.Value, cancellationToken: CancellationToken.None);
+                assigneeName = !string.IsNullOrWhiteSpace(user?.Name) ? user.Name : (user?.UserName ?? newAssigneeId.Value.ToString());
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ để tránh crash tiến trình
-            }
+            catch (TaskCanceledException) { }
         }
+
+        entity.UpdateAssignee(newAssigneeId, assigneeName);
+
+        await Repository.UpdateAsync(entity, autoSave: true);
         await LogActivityAsync(id, $"Giao công việc cho: {assigneeName}");
 
         return await MapToGetOutputDtoAsync(entity);
@@ -539,6 +551,8 @@ public class TaskAppService(
         task.Status = TaskItemStatus.Completed;
         task.ProgressPercent = 100;
         await Repository.UpdateAsync(task, autoSave: true);
+
+        await GenerateNextRecurringTaskIfNeededAsync(task);
 
         await LogActivityAsync(id, "Đã phê duyệt công việc (Đã hoàn thành)");
 
@@ -720,7 +734,7 @@ public class TaskAppService(
             .Distinct()
             .ToList();
 
-        var userDict = new Dictionary<Guid, IdentityUser>();
+        Dictionary<Guid, IdentityUser> userDict = new Dictionary<Guid, IdentityUser>();
         if (creatorIds.Count > 0)
         {
             try
@@ -729,21 +743,19 @@ public class TaskAppService(
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 userDict = users.ToDictionary(u => u.Id);
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ tránh crash
-            }
+            catch (TaskCanceledException) { }
         }
 
         var dtos = new List<TaskCommentDto>();
         foreach (var c in sortedComments)
         {
             var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(c);
-            dto.CreatorName = (c.CreatorId.HasValue && userDict.TryGetValue(c.CreatorId.Value, out var user))
-                ? (!string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty))
+            IdentityUser? commentUser = null;
+            dto.CreatorName = (c.CreatorId.HasValue && userDict.TryGetValue(c.CreatorId.Value, out commentUser) && commentUser != null)
+                ? (!string.IsNullOrWhiteSpace(commentUser.Name) ? commentUser.Name : (commentUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
-            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? []);
+            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? new List<CommentAttachment>());
             if (attachments.Count == 0)
             {
                 attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
@@ -833,7 +845,7 @@ public class TaskAppService(
         var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(comment);
         dto.CreatorName = !string.IsNullOrWhiteSpace(CurrentUser.Name) ? CurrentUser.Name : (CurrentUser.UserName ?? "Hệ thống");
 
-        var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(comment.Attachments?.ToList() ?? []);
+        var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(comment.Attachments?.ToList() ?? new List<CommentAttachment>());
         if (attachments.Count == 0)
         {
             attachments = ParseCommentAttachments(comment.FileUrl, comment.FileName);
@@ -862,7 +874,70 @@ public class TaskAppService(
     }
     #endregion
 
+    #region Category Lookup Fix
+    [HttpGet("/api/app/task/category-lookup")]
+    [Authorize(TaskManagementPermissions.Tasks.Default)]
+    public async Task<List<TaskLookupDto>> GetCategoryLookupAsync()
+    {
+        var list = new List<TaskLookupDto>
+        {
+            new TaskLookupDto
+            {
+                Id = Guid.Empty,
+                DisplayName = "Tất cả danh mục"
+            }
+        };
+
+        return await Task.FromResult(list);
+    }
+
+    public class TaskLookupDto
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+    }
+    #endregion
+
     #region Helper Methods
+    private async Task GenerateNextRecurringTaskIfNeededAsync(TaskItem currentTask)
+    {
+        if (!currentTask.IsRecurring || !currentTask.DueDate.HasValue) return;
+
+        DateTime dueDateVal = currentTask.DueDate.Value;
+        DateTime nextDueDate = currentTask.Frequency switch
+        {
+            RecurrenceFrequency.Daily => dueDateVal.AddDays(1),
+            RecurrenceFrequency.Weekly => dueDateVal.AddDays(7),
+            RecurrenceFrequency.Monthly => dueDateVal.AddMonths(1),
+            _ => dueDateVal.AddDays(1)
+        };
+
+        var existingNextTask = await Repository.FirstOrDefaultAsync(t =>
+            t.Title == currentTask.Title && t.DueDate.HasValue && t.DueDate.Value.Date == nextDueDate.Date);
+
+        if (existingNextTask == null)
+        {
+            var nextTask = new TaskItem
+            {
+                Title = currentTask.Title,
+                Description = currentTask.Description,
+                CategoryId = currentTask.CategoryId,
+                AssigneeId = currentTask.AssigneeId,
+                Priority = currentTask.Priority,
+                Status = TaskItemStatus.New,
+                ProgressPercent = 0,
+                DueDate = nextDueDate,
+                IsRecurring = true,
+                Frequency = currentTask.Frequency,
+                FileName = currentTask.FileName,
+                FileUrl = currentTask.FileUrl
+            };
+
+            await Repository.InsertAsync(nextTask, autoSave: true);
+            await LogActivityAsync(nextTask.Id, $"Được tự động sinh ra từ công việc lặp lại: '{currentTask.Title}'");
+        }
+    }
+
     protected override async Task<TaskDto> MapToGetOutputDtoAsync(TaskItem entity)
     {
         var dto = await base.MapToGetOutputDtoAsync(entity);
@@ -880,10 +955,7 @@ public class TaskAppService(
                     dto.AssigneeUserName = user.UserName;
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ để tránh crash khi request bị hủy giữa chừng
-            }
+            catch (TaskCanceledException) { }
         }
 
         var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
@@ -910,19 +982,17 @@ public class TaskAppService(
                 dto.SubmissionNote = rawText;
             }
 
-            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
+            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? new List<CommentAttachment>());
             if (submissionAttachments.Count == 0)
             {
                 submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
             }
 
-            dto.SubmissionFiles = submissionAttachments
-                .Select(a => new TaskFileDto
-                {
-                    FileName = a.FileName,
-                    FileUrl = a.FileUrl
-                })
-                .ToList();
+            dto.SubmissionFiles = submissionAttachments.Select(a => new TaskFileDto
+            {
+                FileName = a.FileName,
+                FileUrl = a.FileUrl
+            }).ToList();
         }
 
         return dto;
@@ -931,7 +1001,7 @@ public class TaskAppService(
     protected override async Task<List<TaskDto>> MapToGetListOutputDtosAsync(List<TaskItem> entities)
     {
         var dtos = await base.MapToGetListOutputDtosAsync(entities);
-        if (dtos.Count == 0) return [];
+        if (dtos.Count == 0) return new List<TaskDto>();
 
         for (int i = 0; i < entities.Count; i++)
         {
@@ -955,17 +1025,15 @@ public class TaskAppService(
 
                 foreach (var dto in dtos)
                 {
-                    if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out var user))
+                    IdentityUser? dictUser = null;
+                    if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out dictUser) && dictUser != null)
                     {
-                        dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
-                        dto.AssigneeUserName = user.UserName;
+                        dto.AssigneeName = !string.IsNullOrWhiteSpace(dictUser.Name) ? dictUser.Name : (dictUser.UserName ?? string.Empty);
+                        dto.AssigneeUserName = dictUser.UserName;
                     }
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // Bắt ngoại lệ tránh crash khi query danh sách user bị hủy đột ngột
-            }
+            catch (TaskCanceledException) { }
         }
 
         return dtos;
@@ -986,8 +1054,8 @@ public class TaskAppService(
     {
         if (attachments == null || attachments.Count == 0) return;
 
-        var fileUrls = new List<string>();
-        var fileNames = new List<string>();
+        List<string> fileUrls = new List<string>();
+        List<string> fileNames = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(entity.FileUrl))
             fileUrls.AddRange(entity.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries));
@@ -1030,7 +1098,7 @@ public class TaskAppService(
 
     private static List<CommentAttachmentDto> ParseCommentAttachments(string? fileUrl, string? fileName)
     {
-        if (string.IsNullOrEmpty(fileUrl) || string.IsNullOrEmpty(fileName)) return [];
+        if (string.IsNullOrEmpty(fileUrl) || string.IsNullOrEmpty(fileName)) return new List<CommentAttachmentDto>();
 
         var urls = fileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries);
         var names = fileName.Split(';', StringSplitOptions.RemoveEmptyEntries);

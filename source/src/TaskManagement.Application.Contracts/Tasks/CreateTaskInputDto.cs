@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using TaskManagement.Tasks;
 
 namespace TaskManagement.Tasks;
 
@@ -32,5 +33,9 @@ public class CreateTaskInputDto
     public DateTime? DueDate { get; set; }
 
     public List<TaskAttachmentDto>? Attachments { get; set; }
-    
+
+    // === BỔ SUNG CÁC TRƯỜNG LẶP LẠI ĐỂ HỨNG DỮ LIỆU TỪ FRONTEND ===
+    public bool IsRecurring { get; set; } = false;
+    public RecurrenceFrequency? Frequency { get; set; }
+    public DateTime? LastGeneratedDate { get; set; }
 }

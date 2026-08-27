@@ -1,28 +1,38 @@
-<div class="card">
-  <div class="card-header">
-    <h3 class="card-title">Tạo mới công việc</h3>
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3">
+    <h3 class="card-title fw-bold text-dark mb-0">Tạo mới công việc</h3>
   </div>
   <div class="card-body">
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      
       <!-- Tiêu đề -->
       <div class="mb-3">
-        <label class="form-label required">Tiêu đề</label>
-        <input type="text" class="form-control" formControlName="title" [class.is-invalid]="form.get('title')?.touched && form.get('title')?.invalid" />
+        <label class="form-label required fw-semibold">Tiêu đề</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          formControlName="title" 
+          [class.is-invalid]="form.get('title')?.touched && form.get('title')?.invalid" 
+        />
         <div class="invalid-feedback" *ngIf="form.get('title')?.hasError('required')">Tiêu đề không được để trống.</div>
         <div class="invalid-feedback" *ngIf="form.get('title')?.hasError('maxlength')">Tiêu đề tối đa 128 ký tự.</div>
       </div>
 
       <!-- Mô tả -->
       <div class="mb-3">
-        <label class="form-label">Mô tả</label>
-        <textarea class="form-control" rows="3" formControlName="description"></textarea>
+        <label class="form-label fw-semibold">Mô tả</label>
+        <textarea class="form-control" rows="3" formControlName="description" placeholder="Nhập mô tả chi tiết..."></textarea>
       </div>
 
       <div class="row">
         <!-- Danh mục -->
         <div class="col-md-6 mb-3">
-          <label class="form-label required">Danh mục</label>
-          <select class="form-select" formControlName="categoryId" [class.is-invalid]="form.get('categoryId')?.touched && form.get('categoryId')?.invalid">
+          <label class="form-label required fw-semibold">Danh mục</label>
+          <select 
+            class="form-select" 
+            formControlName="categoryId" 
+            [class.is-invalid]="form.get('categoryId')?.touched && form.get('categoryId')?.invalid"
+          >
             <option value="">-- Chọn danh mục --</option>
             <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
           </select>
@@ -31,7 +41,7 @@
 
         <!-- Người thực hiện -->
         <div class="col-md-6 mb-3">
-          <label class="form-label">Người thực hiện</label>
+          <label class="form-label fw-semibold">Người thực hiện</label>
           <select class="form-select" formControlName="assigneeId">
             <option [ngValue]="null">-- Chọn người thực hiện --</option>
             <option *ngFor="let user of users" [value]="user.id">{{ user.name || user.userName }}</option>
@@ -42,7 +52,7 @@
       <div class="row">
         <!-- Mức độ ưu tiên -->
         <div class="col-md-4 mb-3">
-          <label class="form-label required">Độ ưu tiên</label>
+          <label class="form-label required fw-semibold">Độ ưu tiên</label>
           <select class="form-select" formControlName="priority">
             <option [value]="0">Thấp</option>
             <option [value]="1">Trung bình</option>
@@ -53,7 +63,7 @@
 
         <!-- Trạng thái -->
         <div class="col-md-4 mb-3">
-          <label class="form-label required">Trạng thái</label>
+          <label class="form-label required fw-semibold">Trạng thái</label>
           <select class="form-select" formControlName="status">
             <option [value]="0">Mới</option>
             <option [value]="1">Đang làm</option>
@@ -64,41 +74,70 @@
 
         <!-- Hạn hoàn thành -->
         <div class="col-md-4 mb-3">
-          <label class="form-label">Hạn hoàn thành</label>
+          <label class="form-label fw-semibold">Hạn hoàn thành</label>
           <input type="date" class="form-control" formControlName="dueDate" [min]="minDate" />
+        </div>
+      </div>
+
+      <!-- Cấu hình lặp lại công việc (Mới thêm) -->
+      <div class="p-3 mb-3 bg-light rounded border">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" id="isRecurring" formControlName="isRecurring">
+          <label class="form-check-label fw-semibold" for="isRecurring">Tự động lặp lại công việc định kỳ</label>
+        </div>
+
+        <!-- Dropdown chọn tần suất (Chỉ hiển thị khi check chọn lặp lại) -->
+        <div class="mt-2" *ngIf="form.get('isRecurring')?.value">
+          <label class="form-label fw-semibold small">Tần suất lặp lại</label>
+          <select class="form-select form-select-sm" formControlName="frequency">
+            <option [value]="0">Hàng ngày (Daily)</option>
+            <option [value]="1">Hàng tuần (Weekly)</option>
+            <option [value]="2">Hàng tháng (Monthly)</option>
+          </select>
         </div>
       </div>
 
       <!-- Tệp đính kèm Multi-Upload -->
       <div class="mb-3">
-        <label class="form-label">Tệp đính kèm</label>
-        <input type="file" multiple class="form-control" (change)="onFileSelect($event)" [disabled]="isSubmitting" />
+        <label class="form-label fw-semibold">Tệp đính kèm</label>
+        <input 
+          type="file" 
+          multiple 
+          class="form-control" 
+          (change)="onFileSelect($event)" 
+          [disabled]="isSubmitting"
+          accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.xlsx" 
+        />
         <small class="form-text text-muted">Hỗ trợ: PDF, DOCX, PNG, JPG, XLSX (Tối đa 10MB/file).</small>
 
         <!-- Progress Bar -->
-        <div class="progress mt-2" *ngIf="uploadProgress > 0 && uploadProgress < 100">
-          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" [style.width.%]="uploadProgress">
-            {{ uploadProgress }}%
-          </div>
+        <div class="progress mt-2" *ngIf="uploadProgress > 0 && uploadProgress < 100" style="height: 6px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" [style.width.%]="uploadProgress"></div>
         </div>
 
         <!-- Danh sách file đã chọn -->
         <ul class="list-group mt-2" *ngIf="selectedFiles.length > 0">
-          <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let file of selectedFiles; let i = index">
-            <span>📄 {{ file.name }} <small class="text-muted">({{ (file.size / 1024 / 1024).toFixed(2) }} MB)</small></span>
-            <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeFile(i)" [disabled]="isSubmitting">Xóa</button>
+          <li class="list-group-item d-flex justify-content-between align-items-center py-2" *ngFor="let file of selectedFiles; let i = index">
+            <span class="text-truncate me-2">
+              <i class="fa fa-paperclip text-secondary me-1"></i> {{ file.name }} 
+              <small class="text-muted">({{ (file.size / 1024 / 1024).toFixed(2) }} MB)</small>
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-danger border-0" (click)="removeFile(i)" [disabled]="isSubmitting" title="Xóa file">
+              <i class="fa fa-times"></i> Xóa
+            </button>
           </li>
         </ul>
       </div>
 
       <!-- Action Buttons -->
-      <div class="d-flex justify-content-end gap-2 mt-4">
-        <button type="button" class="btn btn-secondary me-2" (click)="onCancel()" [disabled]="isSubmitting">Hủy</button>
-        <button type="submit" class="btn btn-primary" [disabled]="isSubmitting || form.invalid">
-          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+      <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+        <button type="button" class="btn btn-outline-secondary px-4" (click)="onCancel()" [disabled]="isSubmitting">Hủy</button>
+        <button type="submit" class="btn btn-primary px-4" [disabled]="isSubmitting">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status"></span>
           Lưu công việc
         </button>
       </div>
+
     </form>
   </div>
 </div>

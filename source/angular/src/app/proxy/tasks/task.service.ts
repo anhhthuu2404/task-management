@@ -1,4 +1,5 @@
-import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskActivityLogDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
+import type { UpdateTaskScheduleDto } from './dtos/models';
+import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskActivityLogDto, TaskAppService_TaskLookupDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
 import type { TaskItemStatus } from './task-item-status.enum';
 import { RestService, Rest } from '@abp/ng.core';
 import type { PagedResultDto } from '@abp/ng.core';
@@ -104,6 +105,14 @@ export class TaskService {
     { apiName: this.apiName,...config });
   
 
+  getCategoryLookup = (config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskAppService_TaskLookupDto[]>({
+      method: 'GET',
+      url: '/api/app/task/category-lookup',
+    },
+    { apiName: this.apiName,...config });
+  
+
   getComments = (taskId: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, TaskCommentDto[]>({
       method: 'GET',
@@ -202,6 +211,15 @@ export class TaskService {
     this.restService.request<any, TaskCommentDto>({
       method: 'PUT',
       url: `/api/app/task/comment/${commentId}`,
+      body: input,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  updateSchedule = (id: string, input: UpdateTaskScheduleDto, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDto>({
+      method: 'PUT',
+      url: `/api/app/task/${id}/schedule`,
       body: input,
     },
     { apiName: this.apiName,...config });

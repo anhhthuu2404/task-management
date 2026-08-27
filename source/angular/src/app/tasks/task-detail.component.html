@@ -436,7 +436,7 @@
           <label class="form-label fw-semibold fs-6 text-secondary">Tệp đính kèm (Hình ảnh, tài liệu)</label>
           <input type="file" #submitFileInput class="form-control rounded-3 p-2.5 fs-6" multiple (change)="onSubmissionFilesSelected($event)"/>
         </div>
-        <div *ngIf="selectedSubmitFiles.length > 0" class="mb-3">
+        <div *ngIf="selectedSubmitFiles && selectedSubmitFiles.length > 0" class="mb-3">
           <small class="text-muted d-block mb-2 fs-6">Các file đã chọn:</small>
           <div class="d-flex flex-wrap gap-2">
             <span *ngFor="let f of selectedSubmitFiles" class="badge bg-light text-dark border p-2 rounded-pill shadow-xs fs-6 fw-normal" [title]="f.fileName">

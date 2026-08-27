@@ -26,11 +26,14 @@ export interface LocalTaskDetailDto extends TaskDetailDto {
   note?: string;
   submissionFiles?: { fileName?: string; name?: string; fileUrl?: string; url?: string }[];
   
-  // Bổ sung các trường ID phục vụ phân quyền (nếu backend trả về)
+  // Phân quyền
   assigneeId?: string;
   assignedToUserId?: string;
   creatorId?: string;
   managerId?: string;
+  
+  // Bổ sung thuộc tính lịch sử thay đổi an toàn
+  histories?: any[];
 }
 
 @Component({
@@ -58,7 +61,10 @@ export class TaskDetailComponent implements OnInit {
   isActionLoading: boolean = false;
   currentUserId: string | null = null;
 
-  // --- PHÂN QUYỀN VAI TRÒ (BỔ SUNG) ---
+  // --- MỞ RỘNG: DANH SÁCH USER PHỤC VỤ ĐỔI NGƯỜI LỰC HIỆN (GÁN NHANH) ---
+  usersList: { id: string; name?: string; userName?: string }[] = [];
+
+  // --- PHÂN QUYỀN VAI TRÒ ---
   get isAssignee(): boolean {
     if (!this.currentUserId || !this.taskDetail) return false;
     return this.taskDetail.assigneeId === this.currentUserId || 
@@ -157,10 +163,18 @@ export class TaskDetailComponent implements OnInit {
     }
   }
 
-  // --- TẢI LỊCH SỬ HOẠT ĐỘNG (TIMELINE) ---
+  // --- TẢI LỊCH SỬ HOẠT ĐỘNG (TIMELINE / TASK HISTORY) ---
   loadTimelineLogs(): void {
     if (!this.taskId) return;
     this.isLoadingTimeline = true;
+
+    // Ưu tiên lấy từ mảng histories đã đổ sẵn trong taskDetail, nếu không có gọi API riêng
+    if (this.taskDetail?.histories && this.taskDetail.histories.length > 0) {
+      this.timelineLogs = this.taskDetail.histories;
+      this.isLoadingTimeline = false;
+      this.cdr.detectChanges();
+      return;
+    }
 
     if (typeof (this.taskService as any).getTaskTimeline === 'function') {
       (this.taskService as any).getTaskTimeline(this.taskId).subscribe({
@@ -180,6 +194,29 @@ export class TaskDetailComponent implements OnInit {
       this.timelineLogs = [];
       this.cdr.detectChanges();
     }
+  }
+
+  // --- MỚI: HÀM GÁN/ĐỔI NGƯỜI THỰC HIỆN NÂNG CAO (ASSIGN / RE-ASSIGN) ---
+  updateTaskAssignee(assigneeId: string | null): void {
+    if (!this.taskId) return;
+
+    this.isActionLoading = true;
+    this.taskService.updateAssignee(this.taskId, assigneeId).subscribe({
+      next: (updatedTask: any) => {
+        this.isActionLoading = false;
+        if (this.taskDetail && updatedTask) {
+          this.taskDetail.assigneeId = updatedTask.assigneeId;
+          this.taskDetail.assigneeName = updatedTask.assigneeName;
+        }
+        this.toaster.success('Đã cập nhật người thực hiện thành công.', 'Thông báo');
+        this.loadTaskDetail(true); // Tải lại ngầm để cập nhật thông tin và lịch sử mới nhất
+      },
+      error: (err: { error?: { error?: { message?: string } } }) => {
+        this.isActionLoading = false;
+        this.toaster.error(err.error?.error?.message || 'Lỗi khi đổi người thực hiện.', 'Lỗi');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   toggleStatusDropdown(event: Event): void {
@@ -580,7 +617,7 @@ export class TaskDetailComponent implements OnInit {
   loadTaskDetail(isSilent: boolean = false): void {
     if (!isSilent) this.isLoading = true;
     this.taskService.getTaskDetail(this.taskId).subscribe({
-      next: (data: TaskDetailDto & { comments?: TaskCommentDto[]; taskComments?: TaskCommentDto[] }) => {
+      next: (data: TaskDetailDto & { comments?: TaskCommentDto[]; taskComments?: TaskCommentDto[]; histories?: any[] }) => {
         this.taskDetail = data as LocalTaskDetailDto;
         
         const loadedComments = data.comments || data.taskComments || [];
@@ -588,6 +625,7 @@ export class TaskDetailComponent implements OnInit {
         
         if (this.taskDetail) {
           this.taskDetail.comments = [...this.comments];
+          this.taskDetail.histories = data.histories || [];
         }
 
         this.isLoading = false;

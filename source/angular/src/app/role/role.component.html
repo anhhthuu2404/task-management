@@ -1,3 +1,13 @@
+<style>
+  /* Ép hiển thị dropdown không bị khuất */
+  .card {
+    overflow: visible !important;
+  }
+  .form-select {
+    z-index: 1060;
+  }
+</style>
+
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <!-- Header -->
@@ -38,7 +48,7 @@
         </div>
       </div>
 
-      <!-- Cột phải: Phân quyền -->
+      <!-- Cột phải: Phân quyền & Quản lý Thành viên -->
       <div class="col-md-8">
         <div *ngIf="selectedRole">
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -50,7 +60,8 @@
             </button>
           </div>
 
-          <div class="card bg-light border-0 p-3" style="max-height: 600px; overflow-y: auto;">
+          <!-- Bảng Phân quyền -->
+          <div class="card bg-light border-0 p-3 mb-4" style="max-height: 380px; overflow-y: auto;">
             <div class="table-responsive">
               <table class="table table-hover align-middle bg-white rounded shadow-sm">
                 <thead class="table-light">
@@ -83,6 +94,49 @@
               </table>
             </div>
           </div>
+
+          <!-- Quản lý thành viên thuộc vai trò -->
+          <div class="card bg-light border-0 p-3">
+            <h5 class="fw-bold text-dark mb-3">
+              <i class="fa fa-users text-primary me-2"></i>Thành viên thuộc vai trò này
+            </h5>
+
+            <!-- Form thêm user vào vai trò -->
+            <div class="input-group mb-3">
+              <select class="form-select" [(ngModel)]="selectedUserIdToAdd">
+                <option value="" disabled selected>-- Chọn người dùng hệ thống để thêm vào vai trò --</option>
+                <option *ngFor="let u of allUsers" [value]="u.id">
+                  {{ u.userName }} <span *ngIf="u.email">({{ u.email }})</span>
+                </option>
+              </select>
+              <button class="btn btn-outline-primary px-4" type="button" (click)="addUserToRole()">
+                <i class="fa fa-user-plus me-1"></i> Thêm vào vai trò
+              </button>
+            </div>
+
+            <!-- Danh sách hiển thị người dùng thuộc vai trò -->
+            <div class="table-responsive bg-white rounded shadow-sm" style="max-height: 200px; overflow-y: auto;">
+              <table class="table table-hover align-middle mb-0">
+                <tbody>
+                  <tr *ngFor="let user of roleUsers">
+                    <td class="ps-3">
+                      <span class="fw-semibold">{{ user.userName }}</span>
+                      <span class="text-muted small ms-2" *ngIf="user.email">({{ user.email }})</span>
+                    </td>
+                    <td class="text-end pe-3">
+                      <button class="btn btn-sm btn-outline-danger border-0" (click)="removeUserFromRole(user.id)" title="Gỡ khỏi vai trò">
+                        <i class="fa fa-user-times me-1"></i> Gỡ
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="roleUsers.length === 0">
+                    <td colspan="2" class="text-center text-muted py-3">Chưa có người dùng nào thuộc vai trò này.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
         <div *ngIf="!selectedRole" class="text-center text-muted py-5">

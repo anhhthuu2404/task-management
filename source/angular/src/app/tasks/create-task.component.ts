@@ -50,6 +50,8 @@ export class CreateTaskComponent implements OnInit {
       priority: [1, [Validators.required]],
       status: [0, [Validators.required]],
       dueDate: [null],
+      isRecurring: [false], // Thêm trường lặp lại
+      frequency: [0],       // Thêm trường tần suất (0: Daily, 1: Weekly, 2: Monthly)
     });
   }
 
@@ -150,6 +152,7 @@ export class CreateTaskComponent implements OnInit {
       ...this.form.value,
       priority: Number(this.form.value.priority),
       status: Number(this.form.value.status),
+      frequency: Number(this.form.value.frequency), // Đảm bảo frequency là kiểu số
       attachments: this.attachments
     };
 

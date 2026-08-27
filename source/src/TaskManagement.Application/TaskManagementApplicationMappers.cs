@@ -7,6 +7,7 @@ using TaskManagement.LocalizationManagement.LanguageTexts;
 using TaskManagement.Provider;
 using TaskManagement.SysMasterLists;
 using TaskManagement.Tags;
+using TaskManagement.TaskHistories;
 using TaskManagement.Tasks;
 using Volo.Abp.Mapperly;
 
@@ -188,6 +189,13 @@ public partial class TaskManagementDepartmentToCreateUpdateDepartmentDtoMapper :
 
 #region Tasks & Task Comments
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementTaskHistoryToTaskHistoryDtoMapper : MapperBase<TaskHistory, TaskHistoryDto>
+{
+    public override partial TaskHistoryDto Map(TaskHistory source);
+    public override partial void Map(TaskHistory source, TaskHistoryDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementTaskItemToTaskDtoMapper : MapperBase<TaskItem, TaskDto>
 {
     [MapperIgnoreTarget(nameof(TaskDto.AssigneeName))]
@@ -204,10 +212,12 @@ public partial class TaskManagementCreateTaskInputDtoToTaskItemMapper : MapperBa
 {
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
     [MapperIgnoreSource(nameof(CreateTaskInputDto.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))] 
     public override partial TaskItem Map(CreateTaskInputDto source);
 
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
     [MapperIgnoreSource(nameof(CreateTaskInputDto.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))]
     public override partial void Map(CreateTaskInputDto source, TaskItem destination);
 }
 
@@ -216,10 +226,12 @@ public partial class TaskManagementUpdateTaskInputDtoToTaskItemMapper : MapperBa
 {
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
     [MapperIgnoreSource(nameof(UpdateTaskInputDto.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))] // Trường này do Backend tự quản lý
     public override partial TaskItem Map(UpdateTaskInputDto source);
 
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
     [MapperIgnoreSource(nameof(UpdateTaskInputDto.Attachments))]
+    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))]
     public override partial void Map(UpdateTaskInputDto source, TaskItem destination);
 }
 

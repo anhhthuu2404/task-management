@@ -4335,6 +4335,63 @@
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
             },
+            "UpdateScheduleAsyncByIdAndInput": {
+              "uniqueName": "UpdateScheduleAsyncByIdAndInput",
+              "name": "UpdateScheduleAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/task/{id}/schedule",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Tasks.Dtos.UpdateTaskScheduleDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Tasks.Dtos.UpdateTaskScheduleDto",
+                  "typeSimple": "TaskManagement.Tasks.Dtos.UpdateTaskScheduleDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Tasks.Dtos.UpdateTaskScheduleDto",
+                  "typeSimple": "TaskManagement.Tasks.Dtos.UpdateTaskScheduleDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Tasks.TaskDto",
+                "typeSimple": "TaskManagement.Tasks.TaskDto"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+            },
             "UpdateAssigneeAsyncByIdAndAssigneeId": {
               "uniqueName": "UpdateAssigneeAsyncByIdAndAssigneeId",
               "name": "UpdateAssigneeAsync",
@@ -5200,6 +5257,21 @@
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
+            },
+            "GetCategoryLookupAsync": {
+              "uniqueName": "GetCategoryLookupAsync",
+              "name": "GetCategoryLookupAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/category-lookup",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskAppService_TaskLookupDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskAppService_TaskLookupDto]"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
             },
             "DeleteAsyncById": {
               "uniqueName": "DeleteAsyncById",
@@ -10979,6 +11051,123 @@
         }
       ]
     },
+    "TaskManagement.TaskHistories.TaskHistoryDto": {
+      "baseType": "Volo.Abp.Application.Dtos.CreationAuditedEntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "TaskId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Action",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "FieldName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "OldValue",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "NewValue",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "OldAssigneeId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "OldAssigneeName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "NewAssigneeId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "NewAssigneeName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
     "TaskManagement.Tasks.ChecklistItemDto": {
       "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
       "isEnum": false,
@@ -11228,6 +11417,42 @@
           "minimum": null,
           "maximum": null,
           "regex": null
+        },
+        {
+          "name": "IsRecurring",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Frequency",
+          "jsonName": null,
+          "type": "TaskManagement.Tasks.RecurrenceFrequency?",
+          "typeSimple": "enum?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "LastGeneratedDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
         }
       ]
     },
@@ -11275,6 +11500,39 @@
           "name": "AssigneeId",
           "jsonName": null,
           "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.Dtos.UpdateTaskScheduleDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "StartDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DueDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
           "typeSimple": "string?",
           "isRequired": false,
           "minLength": null,
@@ -11377,6 +11635,22 @@
           "regex": null
         }
       ]
+    },
+    "TaskManagement.Tasks.RecurrenceFrequency": {
+      "baseType": "System.Enum",
+      "isEnum": true,
+      "enumNames": [
+        "Daily",
+        "Weekly",
+        "Monthly"
+      ],
+      "enumValues": [
+        1,
+        2,
+        3
+      ],
+      "genericArguments": null,
+      "properties": null
     },
     "TaskManagement.Tasks.RejectTaskInputDto": {
       "baseType": null,
@@ -11557,9 +11831,54 @@
           "regex": null
         },
         {
+          "name": "CreatorName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "CreationTime",
           "jsonName": null,
           "type": "System.DateTime",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Tasks.TaskAppService_TaskLookupDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Id",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": null,
+          "type": "System.String",
           "typeSimple": "string",
           "isRequired": false,
           "minLength": null,
@@ -11788,6 +12107,18 @@
           "regex": null
         },
         {
+          "name": "Histories",
+          "jsonName": null,
+          "type": "[TaskManagement.TaskHistories.TaskHistoryDto]",
+          "typeSimple": "[TaskManagement.TaskHistories.TaskHistoryDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "Comments",
           "jsonName": null,
           "type": "[TaskManagement.Tasks.TaskCommentDto]",
@@ -11953,6 +12284,42 @@
           "regex": null
         },
         {
+          "name": "IsRecurring",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Frequency",
+          "jsonName": null,
+          "type": "TaskManagement.Tasks.RecurrenceFrequency?",
+          "typeSimple": "enum?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "LastGeneratedDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "SubmissionNote",
           "jsonName": null,
           "type": "System.String",
@@ -12031,14 +12398,16 @@
         "InProgress",
         "InReview",
         "Completed",
-        "Canceled"
+        "Canceled",
+        "Overdue"
       ],
       "enumValues": [
         0,
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
       "genericArguments": null,
       "properties": null
@@ -12190,6 +12559,42 @@
           "jsonName": null,
           "type": "[TaskManagement.Tasks.TaskAttachmentDto]",
           "typeSimple": "[TaskManagement.Tasks.TaskAttachmentDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "IsRecurring",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Frequency",
+          "jsonName": null,
+          "type": "TaskManagement.Tasks.RecurrenceFrequency?",
+          "typeSimple": "enum?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "LastGeneratedDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,

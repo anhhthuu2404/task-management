@@ -1,6 +1,8 @@
 import type { AuditedEntityDto, EntityDto, PagedAndSortedResultRequestDto } from '@abp/ng.core';
+import type { RecurrenceFrequency } from './recurrence-frequency.enum';
 import type { TaskPriority } from './task-priority.enum';
 import type { TaskItemStatus } from './task-item-status.enum';
+import type { TaskHistoryDto } from '../task-histories/models';
 
 export interface ChecklistItemDto extends EntityDto<string> {
   taskId?: string;
@@ -30,6 +32,9 @@ export interface CreateTaskInputDto {
   status: number;
   dueDate?: string;
   attachments?: TaskAttachmentDto[];
+  isRecurring?: boolean;
+  frequency?: RecurrenceFrequency;
+  lastGeneratedDate?: string;
 }
 
 export interface CreateUpdateChecklistItemDto {
@@ -73,7 +78,13 @@ export interface TaskActivityLogDto extends EntityDto<string> {
   action?: string;
   userName?: string;
   details?: string;
+  creatorName?: string;
   creationTime?: string;
+}
+
+export interface TaskAppService_TaskLookupDto {
+  id?: string;
+  displayName?: string;
 }
 
 export interface TaskAttachmentDto {
@@ -99,6 +110,7 @@ export interface TaskDetailDto extends TaskDto {
   checklistItems?: ChecklistItemDto[];
   activityLogs?: TaskActivityLogDto[];
   submittedAt?: string;
+  histories?: TaskHistoryDto[];
   comments?: TaskCommentDto[];
 }
 
@@ -115,6 +127,9 @@ export interface TaskDto extends AuditedEntityDto<string> {
   fileName?: string;
   fileUrl?: string;
   progressPercent?: number;
+  isRecurring?: boolean;
+  frequency?: RecurrenceFrequency;
+  lastGeneratedDate?: string;
   submissionNote?: string;
   submissionFiles?: TaskFileDto[];
 }
@@ -139,4 +154,7 @@ export interface UpdateTaskInputDto {
   status: number;
   dueDate?: string;
   attachments?: TaskAttachmentDto[];
+  isRecurring?: boolean;
+  frequency?: RecurrenceFrequency;
+  lastGeneratedDate?: string;
 }

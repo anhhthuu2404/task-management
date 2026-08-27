@@ -1,7 +1,8 @@
 <abp-page title="Quản lý Danh mục">
   <abp-page-toolbar-container class="col">
     <div class="text-lg-end pt-2 pt-lg-0">
-      <button class="btn btn-primary" type="button" (click)="createCategory()">
+      <!-- Chỉ hiển thị nút Thêm mới nếu user có quyền create -->
+      <button class="btn btn-primary" type="button" (click)="createCategory()" *ngIf="canCreate">
         <i class="fa fa-plus me-1"></i> Thêm danh mục
       </button>
     </div>
@@ -54,12 +55,13 @@
           </ng-template>
         </ngx-datatable-column>
 
-        <ngx-datatable-column name="Thao tác" [sortable]="false">
+        <!-- Cột Thao tác chỉ hiển thị nếu user có ít nhất quyền Sửa hoặc Xóa -->
+        <ngx-datatable-column name="Thao tác" [sortable]="false" *ngIf="canEdit || canDelete">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="editCategory(row.id)">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="editCategory(row.id)" *ngIf="canEdit">
               <i class="fa fa-edit"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="deleteCategory(row.id)">
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteCategory(row.id)" *ngIf="canDelete">
               <i class="fa fa-trash"></i>
             </button>
           </ng-template>
@@ -68,8 +70,8 @@
     </div>
   </div>
 
-  <!-- Create/Edit Modal -->
-  <abp-modal [(visible)]="isModalOpen">
+  <!-- Create/Edit Modal (Chỉ cho phép mở khi có quyền) -->
+  <abp-modal [(visible)]="isModalOpen" *ngIf="canCreate || canEdit">
     <ng-template #abpHeader>
       <h3>{{ selectedCategory?.id ? 'Cập nhật danh mục' : 'Thêm mới danh mục' }}</h3>
     </ng-template>

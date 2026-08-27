@@ -12,4 +12,5 @@ public class GetTaskListInputDto : PagedAndSortedResultRequestDto
     public TaskPriority? Priority { get; set; }
     public TaskItemStatus? Status { get; set; }
     public bool OnlyMyTasks { get; set; } = false;
+
 }

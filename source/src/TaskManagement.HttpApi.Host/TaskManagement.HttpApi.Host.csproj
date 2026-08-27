@@ -28,6 +28,9 @@
 		<PackageReference Include="Volo.Abp.AspNetCore.Serilog" Version="10.0.0" />
 		<PackageReference Include="Volo.Abp.Swashbuckle" Version="10.0.0" />
 
+		<!-- Bổ sung gói Background Workers cho dự án Host -->
+		<PackageReference Include="Volo.Abp.BackgroundWorkers" Version="10.0.0" />
+
 		<!-- Bổ sung các package Identity và Permission Management cho Backend -->
 		<PackageReference Include="Volo.Abp.Identity.HttpApi" Version="10.0.0" />
 		<PackageReference Include="Volo.Abp.Identity.Application" Version="10.0.0" />

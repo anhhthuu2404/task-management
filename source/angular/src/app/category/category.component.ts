@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { ListService, PagedResultDto } from '@abp/ng.core';
+import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core'; // <-- Thêm PermissionService
 import {
   NgxDatatableListDirective,
   ModalComponent,
@@ -45,6 +45,7 @@ export class CategoryComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly noti = inject(ToasterService);
+  private readonly permissionService = inject(PermissionService); // <-- Khởi tạo PermissionService
   public readonly list = inject(ListService);
 
   category: PagedResultDto<CategoryDto> = { items: [], totalCount: 0 };
@@ -57,6 +58,20 @@ export class CategoryComponent implements OnInit {
   isSaving = false;
 
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
+
+  // Khai báo các quyền hạn dựa theo policy thường thấy trong ABP (Ví dụ: MyProject.Category)
+  // Bạn hãy thay thế 'MyProject.Category' bằng tên Policy thực tế trên Backend của bạn
+  get canCreate(): boolean {
+    return this.permissionService.getGrantedPolicy('MyProject.Category.Create');
+  }
+
+  get canEdit(): boolean {
+    return this.permissionService.getGrantedPolicy('MyProject.Category.Update');
+  }
+
+  get canDelete(): boolean {
+    return this.permissionService.getGrantedPolicy('MyProject.Category.Delete');
+  }
 
   ngOnInit() {
     this.buildSearchForm();
@@ -99,12 +114,14 @@ export class CategoryComponent implements OnInit {
   }
 
   createCategory() {
+    if (!this.canCreate) return; // Chặn bảo mật thêm ở code
     this.selectedCategory = {} as CategoryDto;
     this.buildForm();
     this.isModalOpen = true;
   }
 
   editCategory(id: string) {
+    if (!this.canEdit) return; // Chặn bảo mật thêm ở code
     this.service.get(id).subscribe(item => {
       this.selectedCategory = item;
       this.buildForm();
@@ -154,6 +171,7 @@ export class CategoryComponent implements OnInit {
   }
 
   deleteCategory(id: string) {
+    if (!this.canDelete) return;
     this.confirmation
       .warn('Bạn có chắc chắn muốn xóa danh mục này?', 'Xác nhận xóa')
       .subscribe(status => {

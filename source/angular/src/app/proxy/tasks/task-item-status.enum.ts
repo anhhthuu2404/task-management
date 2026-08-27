@@ -6,6 +6,7 @@ export enum TaskItemStatus {
   InReview = 2,
   Completed = 3,
   Canceled = 4,
+  Overdue = 5,
 }
 
 export const taskItemStatusOptions = mapEnumToOptions(TaskItemStatus);

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
-
+using TaskManagement.Tasks;
 namespace TaskManagement.Tasks;
 
 public class TaskDto : AuditedEntityDto<Guid>
@@ -18,6 +18,9 @@ public class TaskDto : AuditedEntityDto<Guid>
     public string? FileName { get; set; }
     public string? FileUrl { get; set; }
     public int ProgressPercent { get; set; }
+    public bool IsRecurring { get; set; } = false;
+    public RecurrenceFrequency? Frequency { get; set; }
+    public DateTime? LastGeneratedDate { get; set; }
 
     public string? SubmissionNote { get; set; }
     public List<TaskFileDto> SubmissionFiles { get; set; } = new();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using TaskManagement.TaskHistories;
 using System.ComponentModel.DataAnnotations;
 
 namespace TaskManagement.Tasks;
@@ -10,6 +11,7 @@ public class TaskDetailDto : TaskDto
     public List<ChecklistItemDto> ChecklistItems { get; set; } = [];
     public List<TaskActivityLogDto> ActivityLogs { get; set; } = [];
     public DateTime? SubmittedAt { get; set; }
+    public List<TaskManagement.TaskHistories.TaskHistoryDto> Histories { get; set; } = new();
 
     public List<TaskCommentDto> Comments { get; set; } = new List<TaskCommentDto>();
 }

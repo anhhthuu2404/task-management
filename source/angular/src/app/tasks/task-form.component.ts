@@ -54,6 +54,8 @@ export class TaskFormComponent implements OnInit {
       priority: [1, [Validators.required]],
       status: [0, [Validators.required]],
       dueDate: [null],
+      isRecurring: [false],
+      frequency: [0],
     });
   }
 
@@ -92,6 +94,8 @@ export class TaskFormComponent implements OnInit {
           priority: res.priority ?? 1,
           status: res.status ?? 0,
           dueDate: res.dueDate ? res.dueDate.split('T')[0] : null,
+          isRecurring: res.isRecurring ?? false,
+          frequency: res.frequency ?? 0,
         });
       },
       error: (err: any) => {
@@ -110,7 +114,6 @@ export class TaskFormComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       
-      // Kiểm tra dung lượng tối đa 10MB
       if (file.size > 10 * 1024 * 1024) {
         this.toaster.error('Dung lượng tệp đính kèm không được vượt quá 10MB.');
         input.value = '';
@@ -121,7 +124,6 @@ export class TaskFormComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // Giữ nguyên chuỗi Base64 (hoặc bỏ tiền tố data URI)
         this.fileBase64 = result;
       };
       reader.readAsDataURL(this.selectedFile);
@@ -137,7 +139,6 @@ export class TaskFormComponent implements OnInit {
     this.isSubmitting = true;
     const formVal = this.form.value;
 
-    // Chuẩn bị mảng attachments theo đúng CreateTaskInputDto / UpdateTaskInputDto ở Backend
     const attachments: any[] = [];
     if (this.selectedFile && this.fileBase64) {
       attachments.push({
@@ -154,7 +155,9 @@ export class TaskFormComponent implements OnInit {
       priority: Number(formVal.priority),
       status: Number(formVal.status),
       dueDate: formVal.dueDate ? new Date(formVal.dueDate).toISOString() : null,
-      attachments: attachments // Đã chuyển sang mảng attachments đúng định dạng
+      isRecurring: Boolean(formVal.isRecurring),
+      frequency: Number(formVal.frequency),
+      attachments: attachments
     };
 
     const request$ = this.isEditMode

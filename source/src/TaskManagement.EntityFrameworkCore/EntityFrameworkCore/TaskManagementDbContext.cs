@@ -53,6 +53,7 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
     public DbSet<TaskChecklistItem> TaskChecklistItems { get; set; }
     public DbSet<TaskActivityLog> TaskActivityLogs { get; set; }
     public DbSet<TaskComment> TaskComments { get; set; }
+    public DbSet<TaskHistory> TaskHistories { get; set; } // Đã bổ sung DbSet cho TaskHistory ở đây
 
     #region Entities from ABP Modules
 
@@ -196,7 +197,21 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
                 a.Property(x => x.FileName).IsRequired().HasMaxLength(256);
                 a.Property(x => x.FileUrl).HasMaxLength(512);
             });
- 
-    });
+        });
+
+        // Bổ sung cấu hình cho TaskHistory
+        builder.Entity<TaskHistory>(b =>
+        {
+            b.ToTable("TaskHistories");
+            b.ConfigureByConvention();
+            b.Property(x => x.Action).IsRequired().HasMaxLength(1000);
+            b.Property(x => x.FieldName).HasMaxLength(128);
+
+            b.HasOne<TaskItem>()
+             .WithMany(x => x.Histories)
+             .HasForeignKey(x => x.TaskId)
+             .IsRequired()
+             .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

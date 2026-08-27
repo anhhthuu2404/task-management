@@ -85,6 +85,24 @@
         </div>
       </div>
 
+      <!-- Cấu hình lặp lại công việc (Đã tích hợp) -->
+      <div class="p-3 mb-3 bg-light rounded border">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" id="isRecurring" formControlName="isRecurring">
+          <label class="form-check-label fw-bold" for="isRecurring">Lặp lại công việc định kỳ</label>
+        </div>
+
+        <!-- Dropdown tần suất hiển thị khi check chọn lặp lại -->
+        <div class="mt-2" *ngIf="form.get('isRecurring')?.value">
+          <label class="form-label fw-bold small">Tần suất lặp lại</label>
+          <select class="form-select form-select-sm" formControlName="frequency">
+            <option [ngValue]="0">Hàng ngày (Daily)</option>
+            <option [ngValue]="1">Hàng tuần (Weekly)</option>
+            <option [ngValue]="2">Hàng tháng (Monthly)</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Mô tả -->
       <div class="mb-3">
         <label class="form-label fw-bold">Mô tả công việc</label>
