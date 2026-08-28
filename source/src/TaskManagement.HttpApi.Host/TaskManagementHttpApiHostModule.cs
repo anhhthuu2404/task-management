@@ -1,4 +1,9 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -12,16 +17,12 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks; // Đã bổ sung thư viện cho Task
 using TaskManagement.EntityFrameworkCore;
 using TaskManagement.HealthChecks;
+using TaskManagement.Hubs;
 using TaskManagement.Localization;
 using TaskManagement.MultiTenancy;
-using TaskManagement.Tasks; // Namespace chứa TaskOverdueBackgroundWorker của bạn
+using TaskManagement.Tasks;
 using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
@@ -34,7 +35,7 @@ using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
-using Volo.Abp.BackgroundWorkers; // Thư viện bắt buộc cho Background Worker
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.Identity;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
@@ -59,7 +60,7 @@ namespace TaskManagement;
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpSwashbuckleModule),
     typeof(AbpAspNetCoreSerilogModule),
-    typeof(AbpBackgroundWorkersModule) // <-- Bổ sung module Background Workers tại đây
+    typeof(AbpBackgroundWorkersModule)
 )]
 public class TaskManagementHttpApiHostModule : AbpModule
 {
@@ -147,6 +148,8 @@ public class TaskManagementHttpApiHostModule : AbpModule
         {
             options.SendExceptionsDetailsToClients = true;
         });
+
+        context.Services.AddSignalR();
     }
 
     private static void ConfigureAuthentication(ServiceConfigurationContext context)
@@ -299,8 +302,9 @@ public class TaskManagementHttpApiHostModule : AbpModule
             }
         });
 
-        app.UseRouting();
         app.UseCors();
+        app.UseRouting();
+
         app.UseAbpRequestLocalization();
 
         if (!env.IsDevelopment())
@@ -325,9 +329,13 @@ public class TaskManagementHttpApiHostModule : AbpModule
 
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
-        app.UseConfiguredEndpoints();
 
-        // <-- KÍCH HOẠT WORKER CHẠY NGẨM TỰ ĐỘNG KHI HOST KHỞI ĐỘNG -->
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
+        });
+
         await context.AddBackgroundWorkerAsync<TaskOverdueBackgroundWorker>();
     }
 }

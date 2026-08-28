@@ -1,10 +1,13 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { RestService, PermissionService } from '@abp/ng.core';
+import { ToasterService } from '@abp/ng.theme.shared';
 import { NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { DragDropModule, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
+import { NotificationService } from '../shared/services/notification.service';
+import { Subscription } from 'rxjs';
 
 export interface TaskDto {
   id: string;
@@ -36,10 +39,15 @@ export interface TaskDto {
   ],
   templateUrl: './task-list.component.html'
 })
-export class TaskListComponent implements OnInit {
+export class TaskListComponent implements OnInit, OnDestroy {
   private readonly rest = inject(RestService);
   private readonly permission = inject(PermissionService);
   private readonly router = inject(Router);
+  private readonly notificationService = inject(NotificationService);
+  private readonly toaster = inject(ToasterService);
+  private readonly zone = inject(NgZone);
+
+  private notificationSub?: Subscription;
 
   readonly backendUrl = 'https://localhost:44399';
 
@@ -47,7 +55,6 @@ export class TaskListComponent implements OnInit {
   totalCount = 0;
   isLoading = false;
 
-  // --- QUẢN LÝ VIEW ---
   currentView: 'list' | 'kanban' | 'calendar' = 'list';
 
   readonly kanbanColumns = [
@@ -58,18 +65,18 @@ export class TaskListComponent implements OnInit {
     { status: 5, title: 'Quá hạn', headerClass: 'border-danger text-danger' }
   ];
 
-  // --- MẢNG RIÊNG CHO KANBAN CƯ TRÚ ---
   kanbanNewTasks: TaskDto[] = [];
   kanbanInProgressTasks: TaskDto[] = [];
   kanbanCompletedTasks: TaskDto[] = [];
   kanbanCancelledTasks: TaskDto[] = [];
   kanbanOverdueTasks: TaskDto[] = [];
 
-  // --- BIẾN CHO CALENDAR VIEW ---
   calendarDate: Date = new Date();
   calendarWeeks: any[][] = [];
   currentCalendarMonthName: string = '';
   currentCalendarYear: number = 0;
+
+  notifications: { message: string; time: Date }[] = [];
 
   filters = {
     filter: '', 
@@ -95,15 +102,45 @@ export class TaskListComponent implements OnInit {
     this.loadCategories();
     this.loadUsers();
     this.fetchTasks();
+
+    this.notificationSub = this.notificationService.notifications$.subscribe(incomingNotifications => {
+      this.zone.run(() => {
+        const newItems = incomingNotifications || [];
+        if (newItems.length > this.notifications.length && newItems.length > 0) {
+          const latest = newItems[0];
+          if (latest && latest.message) {
+            this.toaster.info(latest.message, 'Thông báo hệ thống mới');
+            this.fetchTasks();
+          }
+        }
+        this.notifications = newItems;
+      });
+    });
   }
 
+  ngOnDestroy(): void {
+    if (this.notificationSub) {
+      this.notificationSub.unsubscribe();
+    }
+  }
+
+  clearNotifications(): void {
+    this.notifications = [];
+  }
+
+  // Đã bổ sung hàm lấy danh mục từ API
   loadCategories(): void {
     this.rest.request<any, any>({
       method: 'GET',
       url: '/api/app/task/category-lookup'
     }).subscribe({
-      next: (res) => { this.categories = res.items || res || []; },
-      error: () => {}
+      next: (res: any) => { 
+        this.categories = res?.items || res || []; 
+      },
+      error: (err) => {
+        console.error('Lỗi khi tải danh mục:', err);
+        this.categories = [];
+      }
     });
   }
 
@@ -112,7 +149,9 @@ export class TaskListComponent implements OnInit {
       method: 'GET',
       url: '/api/identity/users'
     }).subscribe({
-      next: (res) => { this.users = res.items || res || []; },
+      next: (res: any) => { 
+        this.users = res?.items || res || []; 
+      },
       error: () => {}
     });
   }
@@ -126,9 +165,10 @@ export class TaskListComponent implements OnInit {
       url: '/api/app/task',
       params: this.cleanParams(this.filters)
     }).subscribe({
-      next: (res) => {
-        this.taskList = res.items || [];
-        this.totalCount = res.totalCount || 0;
+      next: (res: any) => {
+        const data = res as { items?: TaskDto[]; totalCount?: number };
+        this.taskList = data?.items || [];
+        this.totalCount = data?.totalCount || 0;
         this.isLoading = false;
 
         this.updateKanbanColumns();
@@ -207,22 +247,13 @@ export class TaskListComponent implements OnInit {
     });
   }
 
-  // --- XỬ LÝ HOÀN THÀNH CÔNG VIỆC NHANH ---
   markAsCompleted(task: TaskDto): void {
     this.updateTaskStatus(task, 2);
-    
-    // Tự động làm mới danh sách sau 0.5s để cập nhật task lặp mới từ backend nếu có
     setTimeout(() => {
       this.fetchTasks();
     }, 500);
   }
 
-  // --- XỬ LÝ SỰ KIỆN KHI CLICK VÀO NÚT LẶP LẠI (RECURRING) ---
-  onLoadRecurringTask(task: TaskDto): void {
-    console.log('Đã bấm vào công việc lặp lại:', task);
-  }
-
-  // --- KANBAN VIEW & DRAG AND DROP ---
   getTasksByStatus(status: number): TaskDto[] {
     switch (status) {
       case 0: return this.kanbanNewTasks;
@@ -232,10 +263,6 @@ export class TaskListComponent implements OnInit {
       case 5: return this.kanbanOverdueTasks;
       default: return [];
     }
-  }
-
-  onKanbanStatusChange(task: TaskDto, newStatus: number): void {
-    this.updateTaskStatus(task, newStatus);
   }
 
   onTaskDrop(event: CdkDragDrop<TaskDto[]>, targetStatus: number): void {
@@ -253,7 +280,6 @@ export class TaskListComponent implements OnInit {
     }
   }
 
-  // --- CALENDAR VIEW ---
   generateCalendar(): void {
     const year = this.calendarDate.getFullYear();
     const month = this.calendarDate.getMonth();
@@ -375,7 +401,7 @@ export class TaskListComponent implements OnInit {
       url: `/api/app/task/${task.id}/assignee`,
       params: params
     }).subscribe({
-      next: (updatedTask) => {
+      next: (updatedTask: any) => {
         if (updatedTask && updatedTask.assigneeName) {
           task.assigneeName = updatedTask.assigneeName;
         }
@@ -414,22 +440,13 @@ export class TaskListComponent implements OnInit {
 
     if (!task.fileUrl) return [];
 
-    const urls = task.fileUrl.split(';').filter(u => !!u);
+    const urls = (task.fileUrl || '').split(';').filter(u => !!u);
     const names = task.fileName ? task.fileName.split(';') : [];
 
     return urls.map((url, i) => ({
       name: names[i] || `File ${i + 1}`,
       url: url.startsWith('http') ? url : `${this.backendUrl}${url}`
     }));
-  }
-
-  getFrequencyText(frequency?: number): string {
-    switch (frequency) {
-      case 1: return 'Lặp lại: Hàng ngày';
-      case 2: return 'Lặp lại: Hàng tuần';
-      case 3: return 'Lặp lại: Hàng tháng';
-      default: return 'Công việc định kỳ';
-    }
   }
 
   getPriorityBadge(priority: number): { text: string; cssClass: string } {

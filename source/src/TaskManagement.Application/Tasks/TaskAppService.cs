@@ -13,36 +13,74 @@ using TaskManagement.TaskHistories;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Identity;
 using Volo.Abp.Uow;
 
 namespace TaskManagement.Tasks;
 
 [Authorize(TaskManagementPermissions.Tasks.Default)]
-public class TaskAppService(
-    IRepository<TaskItem, Guid> repository,
-    IRepository<IdentityUser, Guid> userRepository,
-    IWebHostEnvironment environment,
-    IRepository<SubTask, Guid> subTaskRepository,
-    IRepository<TaskChecklistItem, Guid> checklistItemRepository,
-    IRepository<TaskActivityLog, Guid> activityLogRepository,
-    IRepository<TaskComment, Guid> commentRepository)
-    : CrudAppService<
-        TaskItem,
-        TaskDto,
-        Guid,
-        GetTaskListInputDto,
-        CreateTaskInputDto,
-        UpdateTaskInputDto>(repository), ITaskAppService
+public class TaskAppService : CrudAppService<
+    TaskItem,
+    TaskDto,
+    Guid,
+    GetTaskListInputDto,
+    CreateTaskInputDto,
+    UpdateTaskInputDto>, ITaskAppService
 {
-    private readonly string[] _allowedExtensions = new[] { ".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx" };
+    private readonly string[] _allowedExtensions = [".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx"];
     private const int MaxFileSizeInBytes = 10 * 1024 * 1024; // 10MB
+
+    private readonly IDistributedEventBus _distributedEventBus;
+    private readonly IRepository<IdentityUser, Guid> _userRepository;
+    private readonly IWebHostEnvironment _environment;
+    private readonly IRepository<SubTask, Guid> _subTaskRepository;
+    private readonly IRepository<TaskChecklistItem, Guid> _checklistItemRepository;
+    private readonly IRepository<TaskActivityLog, Guid> _activityLogRepository;
+    private readonly IRepository<TaskComment, Guid> _commentRepository;
+
+    public TaskAppService(
+        IRepository<TaskItem, Guid> repository,
+        IRepository<IdentityUser, Guid> userRepository,
+        IWebHostEnvironment environment,
+        IRepository<SubTask, Guid> subTaskRepository,
+        IRepository<TaskChecklistItem, Guid> checklistItemRepository,
+        IRepository<TaskActivityLog, Guid> activityLogRepository,
+        IRepository<TaskComment, Guid> commentRepository,
+        IDistributedEventBus distributedEventBus)
+        : base(repository)
+    {
+        _userRepository = userRepository;
+        _environment = environment;
+        _subTaskRepository = subTaskRepository;
+        _checklistItemRepository = checklistItemRepository;
+        _activityLogRepository = activityLogRepository;
+        _commentRepository = commentRepository;
+        _distributedEventBus = distributedEventBus;
+    }
 
     protected override string? GetPolicyName { get; set; } = TaskManagementPermissions.Tasks.Default;
     protected override string? GetListPolicyName { get; set; } = TaskManagementPermissions.Tasks.Default;
     protected override string? CreatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Create;
     protected override string? UpdatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Edit;
     protected override string? DeletePolicyName { get; set; } = TaskManagementPermissions.Tasks.Delete;
+
+    #region Category Lookup Fix
+    [HttpGet("/api/app/task/category-lookup")]
+    [Authorize(TaskManagementPermissions.Tasks.Default)]
+    public async Task<List<TaskLookupDto>> GetCategoryLookupAsync()
+    {
+        var list = new List<TaskLookupDto>
+        {
+            new() {
+                Id = Guid.Empty,
+                DisplayName = "Tất cả danh mục"
+            }
+        };
+
+        return await Task.FromResult(list);
+    }
+    #endregion
 
     #region Query & Sorting Filter
     protected override async Task<IQueryable<TaskItem>> CreateFilteredQueryAsync(GetTaskListInputDto input)
@@ -107,17 +145,16 @@ public class TaskAppService(
 
         if (entity.Histories != null && entity.Histories.Count > 0)
         {
-            dto.Histories = entity.Histories
+            dto.Histories = [.. entity.Histories
                 .OrderByDescending(x => x.CreationTime)
-                .Select(x => ObjectMapper.Map<TaskHistory, TaskHistoryDto>(x))
-                .ToList();
+                .Select(x => ObjectMapper.Map<TaskHistory, TaskHistoryDto>(x))];
         }
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
         {
             try
             {
-                var user = await userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
+                var user = await _userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
                 if (user != null)
                 {
                     dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
@@ -127,7 +164,7 @@ public class TaskAppService(
             catch (TaskCanceledException) { }
         }
 
-        var subTasks = await subTaskRepository.GetListAsync(x => x.TaskId == id);
+        var subTasks = await _subTaskRepository.GetListAsync(x => x.TaskId == id);
         var subTaskDtos = ObjectMapper.Map<List<SubTask>, List<SubTaskDto>>(subTasks);
 
         var subTaskAssigneeIds = subTasks
@@ -140,7 +177,7 @@ public class TaskAppService(
         {
             try
             {
-                var userQuery = await userRepository.GetQueryableAsync();
+                var userQuery = await _userRepository.GetQueryableAsync();
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => subTaskAssigneeIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 var userDict = users.ToDictionary(u => u.Id);
 
@@ -156,13 +193,13 @@ public class TaskAppService(
         }
         dto.SubTasks = subTaskDtos;
 
-        var checklists = await checklistItemRepository.GetListAsync(x => x.TaskId == id);
+        var checklists = await _checklistItemRepository.GetListAsync(x => x.TaskId == id);
         dto.ChecklistItems = ObjectMapper.Map<List<TaskChecklistItem>, List<ChecklistItemDto>>(checklists);
 
-        var logs = await activityLogRepository.GetListAsync(x => x.TaskId == id);
-        dto.ActivityLogs = ObjectMapper.Map<List<TaskActivityLog>, List<TaskActivityLogDto>>(logs.OrderByDescending(x => x.CreationTime).ToList());
+        var logs = await _activityLogRepository.GetListAsync(x => x.TaskId == id);
+        dto.ActivityLogs = ObjectMapper.Map<List<TaskActivityLog>, List<TaskActivityLogDto>>([.. logs.OrderByDescending(x => x.CreationTime)]);
 
-        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
         var sortedComments = comments.OrderByDescending(x => x.CreationTime).ToList();
 
@@ -172,12 +209,12 @@ public class TaskAppService(
             .Distinct()
             .ToList();
 
-        Dictionary<Guid, IdentityUser> commentUserDict = new Dictionary<Guid, IdentityUser>();
+        Dictionary<Guid, IdentityUser> commentUserDict = [];
         if (creatorIds.Count > 0)
         {
             try
             {
-                var userQuery = await userRepository.GetQueryableAsync();
+                var userQuery = await _userRepository.GetQueryableAsync();
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 commentUserDict = users.ToDictionary(u => u.Id);
             }
@@ -188,12 +225,11 @@ public class TaskAppService(
         foreach (var c in sortedComments)
         {
             var cDto = ObjectMapper.Map<TaskComment, TaskCommentDto>(c);
-            IdentityUser? commentUser = null;
-            cDto.CreatorName = (c.CreatorId.HasValue && commentUserDict.TryGetValue(c.CreatorId.Value, out commentUser) && commentUser != null)
+            cDto.CreatorName = (c.CreatorId.HasValue && commentUserDict.TryGetValue(c.CreatorId.Value, out var commentUser) && commentUser != null)
                 ? (!string.IsNullOrWhiteSpace(commentUser.Name) ? commentUser.Name : (commentUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
-            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? new List<CommentAttachment>());
+            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? []);
             if (attachments.Count == 0)
             {
                 attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
@@ -215,11 +251,11 @@ public class TaskAppService(
 
             if (rawText.Contains("[NỘP TRÌNH DUYỆT]:"))
             {
-                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length).Trim();
+                dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length)..].Trim();
             }
             else if (rawText.Contains("[NỘP TRÌNH DUYỆT]"))
             {
-                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length).Trim();
+                dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length)..].Trim();
             }
             else
             {
@@ -228,17 +264,17 @@ public class TaskAppService(
 
             dto.SubmittedAt = lastSubmissionComment.CreationTime;
 
-            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? new List<CommentAttachment>());
+            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
             if (submissionAttachments.Count == 0)
             {
                 submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
             }
 
-            dto.SubmissionFiles = submissionAttachments.Select(a => new TaskFileDto
+            dto.SubmissionFiles = [.. submissionAttachments.Select(a => new TaskFileDto
             {
                 FileName = a.FileName,
                 FileUrl = a.FileUrl
-            }).ToList();
+            })];
         }
 
         return dto;
@@ -253,7 +289,7 @@ public class TaskAppService(
             throw new UserFriendlyException("Không tìm thấy công việc.");
         }
 
-        var logs = await activityLogRepository.GetListAsync(x => x.TaskId == taskId);
+        var logs = await _activityLogRepository.GetListAsync(x => x.TaskId == taskId);
         var sortedLogs = logs.OrderByDescending(x => x.CreationTime).ToList();
 
         var creatorIds = sortedLogs
@@ -262,12 +298,12 @@ public class TaskAppService(
             .Distinct()
             .ToList();
 
-        Dictionary<Guid, IdentityUser> userDict = new Dictionary<Guid, IdentityUser>();
+        Dictionary<Guid, IdentityUser> userDict = [];
         if (creatorIds.Count > 0)
         {
             try
             {
-                var userQuery = await userRepository.GetQueryableAsync();
+                var userQuery = await _userRepository.GetQueryableAsync();
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 userDict = users.ToDictionary(u => u.Id);
             }
@@ -278,8 +314,7 @@ public class TaskAppService(
         foreach (var log in sortedLogs)
         {
             var dto = ObjectMapper.Map<TaskActivityLog, TaskActivityLogDto>(log);
-            IdentityUser? timelineUser = null;
-            dto.CreatorName = (log.CreatorId.HasValue && userDict.TryGetValue(log.CreatorId.Value, out timelineUser) && timelineUser != null)
+            dto.CreatorName = (log.CreatorId.HasValue && userDict.TryGetValue(log.CreatorId.Value, out var timelineUser) && timelineUser != null)
                 ? (!string.IsNullOrWhiteSpace(timelineUser.Name) ? timelineUser.Name : (timelineUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
@@ -299,6 +334,8 @@ public class TaskAppService(
 
         await Repository.InsertAsync(entity, autoSave: true);
         await LogActivityAsync(entity.Id, $"Đã tạo công việc: '{entity.Title}' (Tiến độ: {entity.ProgressPercent}%)");
+
+        await SendNotificationToUserAsync(entity.AssigneeId, $"Bạn được giao công việc mới: '{entity.Title}'");
 
         return await MapToGetOutputDtoAsync(entity);
     }
@@ -380,7 +417,7 @@ public class TaskAppService(
         {
             try
             {
-                var user = await userRepository.FindAsync(newAssigneeId.Value, cancellationToken: CancellationToken.None);
+                var user = await _userRepository.FindAsync(newAssigneeId.Value, cancellationToken: CancellationToken.None);
                 assigneeName = !string.IsNullOrWhiteSpace(user?.Name) ? user.Name : (user?.UserName ?? newAssigneeId.Value.ToString());
             }
             catch (TaskCanceledException) { }
@@ -390,6 +427,8 @@ public class TaskAppService(
 
         await Repository.UpdateAsync(entity, autoSave: true);
         await LogActivityAsync(id, $"Giao công việc cho: {assigneeName}");
+
+        await SendNotificationToUserAsync(newAssigneeId, $"Bạn đã được phân công vào công việc: '{entity.Title}'");
 
         return await MapToGetOutputDtoAsync(entity);
     }
@@ -448,6 +487,8 @@ public class TaskAppService(
         var logDetail = hasAttachments ? " (kèm tệp báo cáo kết quả)" : "";
         await LogActivityAsync(id, $"Đã gửi yêu cầu phê duyệt công việc{logDetail}");
 
+        await SendNotificationToUserAsync(task.CreatorId, $"Công việc '{task.Title}' đã được nộp để chờ phê duyệt.");
+
         return await GetTaskDetailAsync(id);
     }
 
@@ -456,7 +497,7 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task<TaskDetailDto> UpdateSubmissionAsync(Guid id, [FromBody] SubmitReviewInputDto input)
     {
-        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
 
         var lastSubmissionComment = comments
@@ -477,11 +518,11 @@ public class TaskAppService(
         if (input?.Attachments != null && input.Attachments.Count > 0)
         {
             lastSubmissionComment.Attachments.Clear();
-            await ProcessCommentAttachmentsAsync(input.Attachments.Select(a => new CommentAttachmentDto
+            await ProcessCommentAttachmentsAsync([.. input.Attachments.Select(a => new CommentAttachmentDto
             {
                 FileName = a.FileName,
                 FileContent = a.FileContent
-            }).ToList(), lastSubmissionComment);
+            })], lastSubmissionComment);
 
             if (lastSubmissionComment.Attachments != null && lastSubmissionComment.Attachments.Count > 0)
             {
@@ -490,7 +531,7 @@ public class TaskAppService(
             }
         }
 
-        await commentRepository.UpdateAsync(lastSubmissionComment, autoSave: true);
+        await _commentRepository.UpdateAsync(lastSubmissionComment, autoSave: true);
         await LogActivityAsync(id, "Đã cập nhật lại nội dung nộp bài duyệt");
 
         return await GetTaskDetailAsync(id);
@@ -501,7 +542,7 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task<TaskDetailDto> DeleteSubmissionAsync(Guid id)
     {
-        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
 
         var lastSubmissionComment = comments
@@ -514,7 +555,7 @@ public class TaskAppService(
             throw new UserFriendlyException("Bạn không có quyền xóa mục nộp bài này!");
         }
 
-        await commentRepository.DeleteAsync(lastSubmissionComment.Id, autoSave: true);
+        await _commentRepository.DeleteAsync(lastSubmissionComment.Id, autoSave: true);
 
         var task = await Repository.GetAsync(id);
         if (task.Status == TaskItemStatus.InReview)
@@ -556,6 +597,8 @@ public class TaskAppService(
 
         await LogActivityAsync(id, "Đã phê duyệt công việc (Đã hoàn thành)");
 
+        await SendNotificationToUserAsync(task.AssigneeId, $"Công việc '{task.Title}' của bạn đã được phê duyệt thành công.");
+
         return await GetTaskDetailAsync(id);
     }
 
@@ -589,6 +632,8 @@ public class TaskAppService(
 
         await LogActivityAsync(id, $"Đã từ chối duyệt. Lý do: {input.Reason}");
 
+        await SendNotificationToUserAsync(task.AssigneeId, $"Công việc '{task.Title}' bị từ chối duyệt. Lý do: {input.Reason}");
+
         return await GetTaskDetailAsync(id);
     }
     #endregion
@@ -610,7 +655,7 @@ public class TaskAppService(
             IsCompleted = false
         };
 
-        await subTaskRepository.InsertAsync(subTask, autoSave: true);
+        await _subTaskRepository.InsertAsync(subTask, autoSave: true);
         await LogActivityAsync(taskId, $"Đã thêm công việc con: '{input.Title}'");
 
         return ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
@@ -621,11 +666,11 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task<SubTaskDto> UpdateSubTaskAsync(Guid subTaskId, [FromBody] CreateUpdateSubTaskDto input)
     {
-        var subTask = await subTaskRepository.GetAsync(subTaskId);
+        var subTask = await _subTaskRepository.GetAsync(subTaskId);
         subTask.Title = input.Title;
         subTask.AssigneeId = input.AssigneeId.HasValue && input.AssigneeId.Value != Guid.Empty ? input.AssigneeId : null;
 
-        await subTaskRepository.UpdateAsync(subTask, autoSave: true);
+        await _subTaskRepository.UpdateAsync(subTask, autoSave: true);
         await LogActivityAsync(subTask.TaskId, $"Đã cập nhật công việc con: '{input.Title}'");
 
         return ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
@@ -636,10 +681,10 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task ToggleSubTaskStatusAsync(Guid subTaskId)
     {
-        var subTask = await subTaskRepository.GetAsync(subTaskId);
+        var subTask = await _subTaskRepository.GetAsync(subTaskId);
         subTask.IsCompleted = !subTask.IsCompleted;
 
-        await subTaskRepository.UpdateAsync(subTask, autoSave: true);
+        await _subTaskRepository.UpdateAsync(subTask, autoSave: true);
         await LogActivityAsync(subTask.TaskId, $"Đã cập nhật công việc con '{subTask.Title}' sang {(subTask.IsCompleted ? "Hoàn thành" : "Đang làm")}");
     }
 
@@ -648,10 +693,10 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task DeleteSubTaskAsync(Guid subTaskId)
     {
-        var subTask = await subTaskRepository.FindAsync(subTaskId);
+        var subTask = await _subTaskRepository.FindAsync(subTaskId);
         if (subTask != null)
         {
-            await subTaskRepository.DeleteAsync(subTaskId);
+            await _subTaskRepository.DeleteAsync(subTaskId);
             await LogActivityAsync(subTask.TaskId, $"Đã xóa công việc phụ: '{subTask.Title}'");
         }
     }
@@ -673,7 +718,7 @@ public class TaskAppService(
             IsDone = false
         };
 
-        await checklistItemRepository.InsertAsync(item, autoSave: true);
+        await _checklistItemRepository.InsertAsync(item, autoSave: true);
         await LogActivityAsync(taskId, $"Đã thêm hạng mục kiểm tra: '{input.Title}'");
 
         return ObjectMapper.Map<TaskChecklistItem, ChecklistItemDto>(item);
@@ -684,10 +729,10 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task<ChecklistItemDto> UpdateChecklistItemAsync(Guid itemId, [FromBody] CreateUpdateChecklistItemDto input)
     {
-        var item = await checklistItemRepository.GetAsync(itemId);
+        var item = await _checklistItemRepository.GetAsync(itemId);
         item.Title = input.Title;
 
-        await checklistItemRepository.UpdateAsync(item, autoSave: true);
+        await _checklistItemRepository.UpdateAsync(item, autoSave: true);
         await LogActivityAsync(item.TaskId, $"Đã cập nhật mục kiểm tra: '{input.Title}'");
 
         return ObjectMapper.Map<TaskChecklistItem, ChecklistItemDto>(item);
@@ -698,10 +743,10 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task ToggleChecklistItemStatusAsync(Guid itemId)
     {
-        var item = await checklistItemRepository.GetAsync(itemId);
+        var item = await _checklistItemRepository.GetAsync(itemId);
         item.IsDone = !item.IsDone;
 
-        await checklistItemRepository.UpdateAsync(item, autoSave: true);
+        await _checklistItemRepository.UpdateAsync(item, autoSave: true);
         await LogActivityAsync(item.TaskId, $"Đã cập nhật trạng thái mục kiểm tra '{item.Title}' sang {(item.IsDone ? "Hoàn thành" : "Chưa hoàn thành")}");
     }
 
@@ -710,10 +755,10 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task DeleteChecklistItemAsync(Guid itemId)
     {
-        var item = await checklistItemRepository.FindAsync(itemId);
+        var item = await _checklistItemRepository.FindAsync(itemId);
         if (item != null)
         {
-            await checklistItemRepository.DeleteAsync(itemId);
+            await _checklistItemRepository.DeleteAsync(itemId);
             await LogActivityAsync(item.TaskId, $"Đã xóa mục kiểm tra: '{item.Title}'");
         }
     }
@@ -724,7 +769,7 @@ public class TaskAppService(
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskCommentDto>> GetCommentsAsync(Guid taskId)
     {
-        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == taskId));
         var sortedComments = comments.OrderByDescending(x => x.CreationTime).ToList();
 
@@ -734,12 +779,12 @@ public class TaskAppService(
             .Distinct()
             .ToList();
 
-        Dictionary<Guid, IdentityUser> userDict = new Dictionary<Guid, IdentityUser>();
+        Dictionary<Guid, IdentityUser> userDict = [];
         if (creatorIds.Count > 0)
         {
             try
             {
-                var userQuery = await userRepository.GetQueryableAsync();
+                var userQuery = await _userRepository.GetQueryableAsync();
                 var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => creatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 userDict = users.ToDictionary(u => u.Id);
             }
@@ -750,12 +795,11 @@ public class TaskAppService(
         foreach (var c in sortedComments)
         {
             var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(c);
-            IdentityUser? commentUser = null;
-            dto.CreatorName = (c.CreatorId.HasValue && userDict.TryGetValue(c.CreatorId.Value, out commentUser) && commentUser != null)
+            dto.CreatorName = (c.CreatorId.HasValue && userDict.TryGetValue(c.CreatorId.Value, out var commentUser) && commentUser != null)
                 ? (!string.IsNullOrWhiteSpace(commentUser.Name) ? commentUser.Name : (commentUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
-            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? new List<CommentAttachment>());
+            var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(c.Attachments?.ToList() ?? []);
             if (attachments.Count == 0)
             {
                 attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
@@ -794,7 +838,7 @@ public class TaskAppService(
             comment.FileName = string.Join(";", comment.Attachments.Select(a => a.FileName));
         }
 
-        var insertedComment = await commentRepository.InsertAsync(comment, autoSave: true);
+        var insertedComment = await _commentRepository.InsertAsync(comment, autoSave: true);
         await LogActivityAsync(taskId, $"Đã thêm bình luận mới{(comment.Attachments?.Count > 0 || !string.IsNullOrEmpty(comment.FileName) ? " (kèm tệp đính kèm)" : "")}");
 
         var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(insertedComment);
@@ -810,11 +854,11 @@ public class TaskAppService(
 
         if (insertedComment.Attachments != null && insertedComment.Attachments.Count > 0)
         {
-            dto.Attachments = insertedComment.Attachments.Select(a => new CommentAttachmentDto
+            dto.Attachments = [.. insertedComment.Attachments.Select(a => new CommentAttachmentDto
             {
                 FileName = a.FileName,
                 FileUrl = a.FileUrl
-            }).ToList();
+            })];
         }
         else
         {
@@ -829,7 +873,7 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task<TaskCommentDto> UpdateCommentAsync(Guid commentId, [FromBody] UpdateTaskCommentDto input)
     {
-        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comment = await AsyncExecuter.FirstOrDefaultAsync(commentQuery.Where(x => x.Id == commentId))
             ?? throw new UserFriendlyException("Không tìm thấy bình luận.");
 
@@ -839,13 +883,13 @@ public class TaskAppService(
         }
 
         comment.Text = input.Text ?? string.Empty;
-        await commentRepository.UpdateAsync(comment, autoSave: true);
+        await _commentRepository.UpdateAsync(comment, autoSave: true);
         await LogActivityAsync(comment.TaskId, "Đã chỉnh sửa bình luận");
 
         var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(comment);
         dto.CreatorName = !string.IsNullOrWhiteSpace(CurrentUser.Name) ? CurrentUser.Name : (CurrentUser.UserName ?? "Hệ thống");
 
-        var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(comment.Attachments?.ToList() ?? new List<CommentAttachment>());
+        var attachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(comment.Attachments?.ToList() ?? []);
         if (attachments.Count == 0)
         {
             attachments = ParseCommentAttachments(comment.FileUrl, comment.FileName);
@@ -860,7 +904,7 @@ public class TaskAppService(
     [UnitOfWork]
     public async Task DeleteCommentAsync(Guid commentId)
     {
-        var comment = await commentRepository.FindAsync(commentId);
+        var comment = await _commentRepository.FindAsync(commentId);
         if (comment != null)
         {
             if (comment.CreatorId != CurrentUser.Id && !await AuthorizationService.IsGrantedAsync(TaskManagementPermissions.Tasks.Delete))
@@ -868,37 +912,18 @@ public class TaskAppService(
                 throw new UserFriendlyException("Bạn không có quyền xóa bình luận này.");
             }
 
-            await commentRepository.DeleteAsync(commentId);
+            await _commentRepository.DeleteAsync(commentId);
             await LogActivityAsync(comment.TaskId, "Đã xóa một bình luận");
         }
     }
     #endregion
 
-    #region Category Lookup Fix
-    [HttpGet("/api/app/task/category-lookup")]
-    [Authorize(TaskManagementPermissions.Tasks.Default)]
-    public async Task<List<TaskLookupDto>> GetCategoryLookupAsync()
-    {
-        var list = new List<TaskLookupDto>
-        {
-            new TaskLookupDto
-            {
-                Id = Guid.Empty,
-                DisplayName = "Tất cả danh mục"
-            }
-        };
-
-        return await Task.FromResult(list);
-    }
-
-    public class TaskLookupDto
-    {
-        public Guid Id { get; set; }
-        public string DisplayName { get; set; } = string.Empty;
-    }
-    #endregion
-
     #region Helper Methods
+    protected override async Task<TaskItem> GetEntityByIdAsync(Guid id)
+    {
+        return await Repository.GetAsync(id);
+    }
+
     private async Task GenerateNextRecurringTaskIfNeededAsync(TaskItem currentTask)
     {
         if (!currentTask.IsRecurring || !currentTask.DueDate.HasValue) return;
@@ -948,7 +973,7 @@ public class TaskAppService(
         {
             try
             {
-                var user = await userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
+                var user = await _userRepository.FindAsync(entity.AssigneeId.Value, cancellationToken: CancellationToken.None);
                 if (user != null)
                 {
                     dto.AssigneeName = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (user.UserName ?? string.Empty);
@@ -958,7 +983,7 @@ public class TaskAppService(
             catch (TaskCanceledException) { }
         }
 
-        var commentQuery = await commentRepository.WithDetailsAsync(x => x.Attachments);
+        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == entity.Id));
         var lastSubmissionComment = comments
             .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
@@ -971,28 +996,28 @@ public class TaskAppService(
 
             if (rawText.Contains("[NỘP TRÌNH DUYỆT]:"))
             {
-                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length).Trim();
+                dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length)..].Trim();
             }
             else if (rawText.Contains("[NỘP TRÌNH DUYỆT]"))
             {
-                dto.SubmissionNote = rawText.Substring(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length).Trim();
+                dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length)..].Trim();
             }
             else
             {
                 dto.SubmissionNote = rawText;
             }
 
-            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? new List<CommentAttachment>());
+            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
             if (submissionAttachments.Count == 0)
             {
                 submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
             }
 
-            dto.SubmissionFiles = submissionAttachments.Select(a => new TaskFileDto
+            dto.SubmissionFiles = [.. submissionAttachments.Select(a => new TaskFileDto
             {
                 FileName = a.FileName,
                 FileUrl = a.FileUrl
-            }).ToList();
+            })];
         }
 
         return dto;
@@ -1001,7 +1026,7 @@ public class TaskAppService(
     protected override async Task<List<TaskDto>> MapToGetListOutputDtosAsync(List<TaskItem> entities)
     {
         var dtos = await base.MapToGetListOutputDtosAsync(entities);
-        if (dtos.Count == 0) return new List<TaskDto>();
+        if (dtos.Count == 0) return [];
 
         for (int i = 0; i < entities.Count; i++)
         {
@@ -1019,14 +1044,13 @@ public class TaskAppService(
         {
             try
             {
-                var queryable = await userRepository.GetQueryableAsync();
+                var queryable = await _userRepository.GetQueryableAsync();
                 var users = await AsyncExecuter.ToListAsync(queryable.Where(x => assigneeIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
                 var userDict = users.ToDictionary(u => u.Id);
 
                 foreach (var dto in dtos)
                 {
-                    IdentityUser? dictUser = null;
-                    if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out dictUser) && dictUser != null)
+                    if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out var dictUser) && dictUser != null)
                     {
                         dto.AssigneeName = !string.IsNullOrWhiteSpace(dictUser.Name) ? dictUser.Name : (dictUser.UserName ?? string.Empty);
                         dto.AssigneeUserName = dictUser.UserName;
@@ -1054,8 +1078,8 @@ public class TaskAppService(
     {
         if (attachments == null || attachments.Count == 0) return;
 
-        List<string> fileUrls = new List<string>();
-        List<string> fileNames = new List<string>();
+        List<string> fileUrls = [];
+        List<string> fileNames = [];
 
         if (!string.IsNullOrWhiteSpace(entity.FileUrl))
             fileUrls.AddRange(entity.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries));
@@ -1098,7 +1122,7 @@ public class TaskAppService(
 
     private static List<CommentAttachmentDto> ParseCommentAttachments(string? fileUrl, string? fileName)
     {
-        if (string.IsNullOrEmpty(fileUrl) || string.IsNullOrEmpty(fileName)) return new List<CommentAttachmentDto>();
+        if (string.IsNullOrEmpty(fileUrl) || string.IsNullOrEmpty(fileName)) return [];
 
         var urls = fileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries);
         var names = fileName.Split(';', StringSplitOptions.RemoveEmptyEntries);
@@ -1137,7 +1161,7 @@ public class TaskAppService(
 
         ValidateFile(fileName, bytes);
 
-        var rootPath = environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var rootPath = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         var uploadsFolder = Path.Combine(rootPath, "uploads");
 
         if (!Directory.Exists(uploadsFolder))
@@ -1174,7 +1198,25 @@ public class TaskAppService(
             TaskId = taskId,
             Action = action
         };
-        await activityLogRepository.InsertAsync(log, autoSave: true);
+        await _activityLogRepository.InsertAsync(log, autoSave: true);
+    }
+
+    private async Task SendNotificationToUserAsync(Guid? userId, string message)
+    {
+        if (!userId.HasValue || userId.Value == Guid.Empty) return;
+
+        try
+        {
+            await _distributedEventBus.PublishAsync(new TaskNotificationEto
+            {
+                UserId = userId.Value,
+                Message = message
+            });
+        }
+        catch
+        {
+            // Nuốt lỗi để không làm gián đoạn luồng giao dịch DB chính
+        }
     }
     #endregion
 }

@@ -4110,6 +4110,21 @@
             }
           ],
           "actions": {
+            "GetCategoryLookupAsync": {
+              "uniqueName": "GetCategoryLookupAsync",
+              "name": "GetCategoryLookupAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/category-lookup",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskAppService_TaskLookupDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskAppService_TaskLookupDto]"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+            },
             "GetTaskDetailAsyncById": {
               "uniqueName": "GetTaskDetailAsyncById",
               "name": "GetTaskDetailAsync",
@@ -5257,21 +5272,6 @@
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
-            },
-            "GetCategoryLookupAsync": {
-              "uniqueName": "GetCategoryLookupAsync",
-              "name": "GetCategoryLookupAsync",
-              "httpMethod": "GET",
-              "url": "api/app/task/category-lookup",
-              "supportedVersions": [],
-              "parametersOnMethod": [],
-              "parameters": [],
-              "returnValue": {
-                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskAppService_TaskLookupDto>",
-                "typeSimple": "[TaskManagement.Tasks.TaskAppService_TaskLookupDto]"
-              },
-              "allowAnonymous": false,
-              "implementFrom": "TaskManagement.Tasks.TaskAppService"
             },
             "DeleteAsyncById": {
               "uniqueName": "DeleteAsyncById",

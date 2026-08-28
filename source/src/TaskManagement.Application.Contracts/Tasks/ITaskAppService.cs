@@ -40,5 +40,7 @@ public interface ITaskAppService : ICrudAppService<
     Task<TaskCommentDto> CreateCommentAsync(Guid taskId, CreateTaskCommentDto input);
     Task<TaskCommentDto> UpdateCommentAsync(Guid commentId, UpdateTaskCommentDto input);
     Task DeleteCommentAsync(Guid commentId);
-    
+    Task<List<TaskLookupDto>> GetCategoryLookupAsync();
+   
+
 }

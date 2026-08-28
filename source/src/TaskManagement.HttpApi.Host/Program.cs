@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
+using TaskManagement.Hubs;
 
 namespace TaskManagement;
 
@@ -26,12 +27,12 @@ public class Program
                 .UseAutofac()
                 .UseSerilog((context, services, loggerConfiguration) =>
                 {
-                    loggerConfiguration
 #if DEBUG
-                        .MinimumLevel.Debug()
+                    loggerConfiguration.MinimumLevel.Debug();
 #else
-                        .MinimumLevel.Information()
+                    loggerConfiguration.MinimumLevel.Information();
 #endif
+                    loggerConfiguration
                         .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
                         .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
                         .Enrich.FromLogContext()
@@ -45,7 +46,6 @@ public class Program
 
             await app.InitializeApplicationAsync();
 
-            // Cấu hình phục vụ file tĩnh từ wwwroot (dùng cho file đính kèm/nộp bài)
             app.UseStaticFiles();
 
             app.Use(async (context, next) =>
@@ -57,6 +57,10 @@ public class Program
                 }
                 await next();
             });
+            app.MapHub<NotificationHub>("/signalr-hubs/notification");
+
+            await app.RunAsync();
+            return 0;
 
             await app.RunAsync();
             return 0;

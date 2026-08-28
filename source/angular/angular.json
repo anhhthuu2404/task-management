@@ -176,7 +176,8 @@
               "buildTarget": "TaskManagement:build:production"
             },
             "development": {
-              "buildTarget": "TaskManagement:build:development"
+              "buildTarget": "TaskManagement:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

@@ -37,6 +37,7 @@
 	<ItemGroup>
 		<!-- Riok.Mapperly cấu hình nạp đầy đủ asset -->
 		<PackageReference Include="Riok.Mapperly" Version="4.3.1" PrivateAssets="none" IncludeAssets="all" />
+		<PackageReference Include="Volo.Abp.AspNetCore.SignalR" Version="10.0.0" />
 		<PackageReference Include="Volo.Abp.Mapperly" Version="10.0.1" />
 		<!-- Thư viện AutoMapper -->
 		<PackageReference Include="AutoMapper" Version="16.2.0" />
