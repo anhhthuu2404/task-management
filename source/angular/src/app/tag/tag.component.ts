@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { ListService, PagedResultDto } from '@abp/ng.core';
+import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core';
 import {
   NgxDatatableListDirective,
   ModalComponent,
@@ -67,6 +67,7 @@ export class TagComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly noti = inject(ToasterService);
+  private readonly permissionService = inject(PermissionService);
   public readonly list = inject(ListService);
 
   items: PagedResultDto<TagDto> = { items: [], totalCount: 0 };
@@ -80,6 +81,22 @@ export class TagComponent implements OnInit {
   isSaving = false;
 
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
+
+  // Kiểm tra quyền hạn theo Policy (hỗ trợ linh hoạt các naming conventions phổ biến)
+  get canCreate(): boolean {
+    return this.permissionService.getGrantedPolicy('TaskManagement.Tags.Create') || 
+           this.permissionService.getGrantedPolicy('MyProject.Tag.Create');
+  }
+
+  get canEdit(): boolean {
+    return this.permissionService.getGrantedPolicy('TaskManagement.Tags.Update') || 
+           this.permissionService.getGrantedPolicy('MyProject.Tag.Update');
+  }
+
+  get canDelete(): boolean {
+    return this.permissionService.getGrantedPolicy('TaskManagement.Tags.Delete') || 
+           this.permissionService.getGrantedPolicy('MyProject.Tag.Delete');
+  }
 
   ngOnInit() {
     this.buildSearchForm();
@@ -114,8 +131,13 @@ export class TagComponent implements OnInit {
       );
     };
 
-    this.list.hookToQuery(streamCreator).subscribe(res => {
-      this.items = res || { items: [], totalCount: 0 };
+    this.list.hookToQuery(streamCreator).subscribe({
+      next: (res) => {
+        this.items = res || { items: [], totalCount: 0 };
+      },
+      error: (err) => {
+        console.error('Lỗi tải danh sách thẻ:', err);
+      }
     });
   }
 
@@ -152,16 +174,23 @@ export class TagComponent implements OnInit {
   }
 
   create() {
+    if (!this.canCreate) return;
     this.selected = {} as TagDto;
     this.buildForm();
     this.isModalOpen = true;
   }
 
   edit(id: string) {
-    this.service.get(id).subscribe(item => {
-      this.selected = item;
-      this.buildForm();
-      this.isModalOpen = true;
+    if (!this.canEdit) return;
+    this.service.get(id).subscribe({
+      next: (item) => {
+        this.selected = item;
+        this.buildForm();
+        this.isModalOpen = true;
+      },
+      error: (err) => {
+        this.noti.error(err?.error?.error?.message || 'Không thể tải thông tin thẻ', 'Lỗi');
+      }
     });
   }
 
@@ -209,14 +238,25 @@ export class TagComponent implements OnInit {
   }
 
   delete(id: string) {
+    if (!this.canDelete) return;
+
     this.confirmation
       .warn('Bạn có chắc chắn muốn xóa thẻ này?', 'Xác nhận xóa')
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
-          this.service.delete(id).subscribe(() => {
-            this.list.get();
-            this.noti.success('Xóa thẻ thành công', 'Thông báo');
-          });
+          this.loading = true;
+          this.service.delete(id)
+            .pipe(finalize(() => (this.loading = false)))
+            .subscribe({
+              next: () => {
+                this.list.get();
+                this.noti.success('Xóa thẻ thành công', 'Thông báo');
+              },
+              error: (err) => {
+                const errorMsg = err?.error?.error?.message || 'Không thể xóa thẻ này do đang được sử dụng hoặc có ràng buộc dữ liệu!';
+                this.noti.error(errorMsg, 'Thất bại');
+              }
+            });
         }
       });
   }

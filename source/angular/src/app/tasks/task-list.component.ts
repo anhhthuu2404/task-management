@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { RestService, PermissionService } from '@abp/ng.core';
 import { ToasterService } from '@abp/ng.theme.shared';
 import { NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
@@ -13,6 +13,7 @@ export interface TaskDto {
   id: string;
   title: string;
   description?: string;
+  projectId?: string; // <-- Bổ sung thuộc tính liên kết dự án
   assigneeId?: string;
   assigneeName?: string;
   priority: number;
@@ -43,6 +44,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
   private readonly rest = inject(RestService);
   private readonly permission = inject(PermissionService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute); // <-- Inject ActivatedRoute để đọc queryParams
   private readonly notificationService = inject(NotificationService);
   private readonly toaster = inject(ToasterService);
   private readonly zone = inject(NgZone);
@@ -82,6 +84,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
     filter: '', 
     categoryId: '',
     assigneeId: '',
+    projectId: '', // <-- Bổ sung tham số lọc theo dự án
     priority: null as number | null,
     status: null as number | null,
     onlyMyTasks: false,
@@ -99,6 +102,25 @@ export class TaskListComponent implements OnInit, OnDestroy {
   readonly canDelete = this.permission.getGrantedPolicy('TaskManagement.Tasks.Delete');
 
   ngOnInit(): void {
+    // --- LẮNG NGHE PROJECT ID TỪ URL ---
+    this.route.queryParams.subscribe(params => {
+      if (params['projectId']) {
+        this.filters.projectId = params['projectId'];
+      }
+    });
+
+    const savedNotifications = localStorage.getItem('task_management_notifications');
+    if (savedNotifications) {
+      try {
+        this.notifications = JSON.parse(savedNotifications).map((item: any) => ({
+          ...item,
+          time: new Date(item.time)
+        }));
+      } catch (e) {
+        this.notifications = [];
+      }
+    }
+
     this.loadCategories();
     this.loadUsers();
     this.fetchTasks();
@@ -113,7 +135,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
             this.fetchTasks();
           }
         }
-        this.notifications = newItems;
+        this.notifications = newItems.length > 0 ? newItems : this.notifications;
+        localStorage.setItem('task_management_notifications', JSON.stringify(this.notifications));
       });
     });
   }
@@ -126,9 +149,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   clearNotifications(): void {
     this.notifications = [];
+    localStorage.removeItem('task_management_notifications');
   }
 
-  // Đã bổ sung hàm lấy danh mục từ API
   loadCategories(): void {
     this.rest.request<any, any>({
       method: 'GET',
@@ -380,7 +403,14 @@ export class TaskListComponent implements OnInit, OnDestroy {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const formattedDate = `${year}-${month}-${day}`;
-    this.router.navigate(['/tasks/create'], { queryParams: { dueDate: formattedDate } });
+    
+    // Gắn thêm projectId nếu đang xem trong ngữ cảnh dự án cụ thể
+    const queryParams: any = { dueDate: formattedDate };
+    if (this.filters.projectId) {
+      queryParams.projectId = this.filters.projectId;
+    }
+
+    this.router.navigate(['/tasks/create'], { queryParams });
   }
 
   updateTaskAssignee(task: TaskDto, assigneeId: string | null): void {

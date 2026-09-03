@@ -2,12 +2,11 @@
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
-using Volo.Abp.DependencyInjection;
 
 namespace TaskManagement.Hubs;
 
 [Authorize]
-public class TaskNotificationHub : Hub, ITransientDependency
+public class TaskNotificationHub : Hub 
 {
     public override async Task OnConnectedAsync()
     {
@@ -31,7 +30,6 @@ public class TaskNotificationHub : Hub, ITransientDependency
         await base.OnDisconnectedAsync(exception);
     }
 
-    // Phương thức phía Client có thể gọi lên Server nếu cần
     public async Task SendMessage(string message)
     {
         await Clients.All.SendAsync("ReceiveMessage", message);

@@ -82,11 +82,6 @@ export interface TaskActivityLogDto extends EntityDto<string> {
   creationTime?: string;
 }
 
-export interface TaskAppService_TaskLookupDto {
-  id?: string;
-  displayName?: string;
-}
-
 export interface TaskAttachmentDto {
   fileName?: string;
   fileContent?: string;
@@ -138,6 +133,11 @@ export interface TaskFileDto {
   fileName?: string;
   fileUrl?: string;
   fileContent?: string;
+}
+
+export interface TaskLookupDto {
+  id?: string;
+  displayName?: string;
 }
 
 export interface UpdateTaskCommentDto {

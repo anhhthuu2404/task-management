@@ -38,12 +38,25 @@ export interface CommentAttachmentDto {
 export interface TaskDto {
   id: string;
   title: string;
-  assigneeId?: string; // Bổ sung an toàn để quản lý ID người thực hiện
+  projectId?: string; // <-- Bổ sung an toàn để liên kết với Quản lý Dự án
+  assigneeId?: string; 
   assigneeName?: string;
   priority: TaskPriority;
   status: TaskStatus;
   progress?: number;
   dueDate?: string;
+}
+
+// --- BỔ SUNG: CREATE TASK DTO ĐỂ TẠO CÔNG VIỆC THUỘC DỰ ÁN ---
+export interface CreateTaskDto {
+  title: string;
+  projectId?: string; // <-- Gắn task vào ID dự án tương ứng
+  description?: string;
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  dueDate?: string;
+  assigneeId?: string;
+  categoryId?: string;
 }
 
 export interface SubTaskDto {
@@ -58,7 +71,7 @@ export interface ChecklistItemDto {
   isDone: boolean;
 }
 
-// === BỔNG SUNG: TASK HISTORY DTO (Lịch sử thay đổi gán người thực hiện) ===
+// --- TASK HISTORY DTO ---
 export interface TaskHistoryDto {
   id?: string;
   taskId?: string;
@@ -125,7 +138,7 @@ export interface TaskDetailDto extends TaskDto {
   checklistItems?: ChecklistItemDto[];
   comments?: TaskCommentDto[];
   activityLogs?: ActivityLogDto[];
-  histories?: TaskHistoryDto[]; // <-- Tích hợp danh sách lịch sử an toàn tuyệt đối
+  histories?: TaskHistoryDto[];
 }
 
 // --- INPUT DTOS ---
@@ -161,7 +174,16 @@ export class TaskService {
     return this.restService.request<any, { items: TaskDto[]; totalCount: number }>({
       method: 'GET',
       url: '/api/app/task',
-      params
+      params // Hỗ trợ nhận cả { projectId: '...', ... } từ component
+    }, { apiName: this.apiName });
+  }
+
+  // --- BỔ SUNG: API TẠO MỚI CÔNG VIỆC ---
+  createTask(input: CreateTaskDto): Observable<TaskDto> {
+    return this.restService.request<CreateTaskDto, TaskDto>({
+      method: 'POST',
+      url: '/api/app/task',
+      body: input
     }, { apiName: this.apiName });
   }
 
@@ -235,10 +257,10 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- BỔ SUNG: API GÁN/ĐỔI NGƯỜI THỰC HIỆN (ASSIGN/RE-ASSIGN) ---
+  // --- API GÁN/ĐỔI NGƯỜI THỰC HIỆN ---
   updateAssignee(id: string, assigneeId: string | null): Observable<TaskDto> {
     return this.restService.request<{ assigneeId: string | null }, TaskDto>({
-      method: 'POST', // Hoặc PUT tùy thuộc vào route API Backend của bạn
+      method: 'POST',
       url: `/api/app/task/${id}/assignee`,
       body: { assigneeId }
     }, { apiName: this.apiName });

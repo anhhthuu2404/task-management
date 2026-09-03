@@ -23,7 +23,7 @@ function configureRoutes() {
       iconClass: 'fas fa-folder',
       order: 2,
       layout: eLayoutType.application,
-      requiredPolicy: 'TaskManagement.Categories', // Khuyến nghị thêm policy nếu có
+      requiredPolicy: 'TaskManagement.Categories',
     },
     {
       path: '/tags',
@@ -65,12 +65,21 @@ function configureRoutes() {
       layout: eLayoutType.application,
       requiredPolicy: 'AbpIdentity.Roles',
     },
+    // --- THÊM MỚI: QUẢN LÝ DỰ ÁN ---
+    {
+      path: '/projects',
+      name: '::Quản lý Dự án',
+      iconClass: 'fas fa-project-diagram',
+      order: 8,
+      layout: eLayoutType.application,
+    },
+    // ---------------------------------
     // --- MENU QUẢN LÝ CÔNG VIỆC CHÍNH ---
     {
       path: '/tasks',
       name: '::Quản lý Công việc',
       iconClass: 'fas fa-tasks',
-      order: 8,
+      order: 9,
       layout: eLayoutType.application,
       requiredPolicy: 'TaskManagement.Tasks', 
     },

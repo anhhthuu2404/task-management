@@ -2,12 +2,12 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { IdentityRoleService, IdentityUserService } from '@abp/ng.identity/proxy';
+import { CoreModule } from '@abp/ng.core';
 
 @Component({
   selector: 'app-role',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CoreModule],
   templateUrl: './role.component.html'
 })
 export class RoleComponent implements OnInit {
@@ -19,14 +19,11 @@ export class RoleComponent implements OnInit {
   roleDisplayName = '';
   roleName = '';
 
-  // Quản lý người dùng
   roleUsers: any[] = [];
   allUsers: any[] = [];
   selectedUserIdToAdd: string = '';
 
   constructor(
-    private roleService: IdentityRoleService,
-    private userService: IdentityUserService,
     private httpClient: HttpClient,
     private cd: ChangeDetectorRef
   ) {}
@@ -37,7 +34,7 @@ export class RoleComponent implements OnInit {
   }
 
   loadRoles(): void {
-    this.roleService.getList({ maxResultCount: 100 }).subscribe({
+    this.httpClient.get<any>('/api/identity/roles?maxResultCount=100').subscribe({
       next: (res: any) => {
         this.roles = res.items || [];
         if (this.roles.length > 0 && !this.selectedRole) {
@@ -54,7 +51,6 @@ export class RoleComponent implements OnInit {
       next: (res: any) => {
         const list = res.items || res.result?.items || (Array.isArray(res) ? res : []);
         
-        // Sử dụng Promise.all để fetch song song danh sách vai trò chi tiết của từng user
         const userObservables = list.map((u: any) => {
           const userId = u.id || u.Id;
           return new Promise((resolve) => {
@@ -125,39 +121,35 @@ export class RoleComponent implements OnInit {
       return;
     }
 
-    this.userService.get(this.selectedUserIdToAdd).subscribe({
-      next: () => {
-        this.httpClient.get<any>(`/api/identity/users/${this.selectedUserIdToAdd}/roles`).subscribe({
-          next: (roleRes: any) => {
-            const rolesData = roleRes.items || roleRes.result?.items || (Array.isArray(roleRes) ? roleRes : []);
-            let currentRoles = rolesData.map((r: any) => typeof r === 'string' ? r : (r.name || r.Name));
+    const targetUserId = this.selectedUserIdToAdd;
 
-            if (!currentRoles.includes(this.selectedRole.name)) {
-              currentRoles.push(this.selectedRole.name);
-            } else {
-              alert('Người dùng này đã thuộc vai trò từ trước!');
-              return;
+    this.httpClient.get<any>(`/api/identity/users/${targetUserId}/roles`).subscribe({
+      next: (roleRes: any) => {
+        const rolesData = roleRes.items || roleRes.result?.items || (Array.isArray(roleRes) ? roleRes : []);
+        let currentRoles = rolesData.map((r: any) => typeof r === 'string' ? r : (r.name || r.Name));
+
+        if (!currentRoles.includes(this.selectedRole.name)) {
+          currentRoles.push(this.selectedRole.name);
+        } else {
+          alert('Người dùng này đã thuộc vai trò từ trước!');
+          return;
+        }
+
+        const payload = { roleNames: currentRoles };
+
+        this.httpClient.put(`/api/identity/users/${targetUserId}/roles`, payload).subscribe({
+          next: () => {
+            alert('Thêm người dùng vào vai trò thành công!');
+            const targetUser = this.allUsers.find(u => u.id === targetUserId);
+            if (targetUser) {
+              targetUser.roleNames = [...currentRoles];
             }
-
-            const payload = { roleNames: currentRoles };
-
-            this.httpClient.put(`/api/identity/users/${this.selectedUserIdToAdd}/roles`, payload).subscribe({
-              next: () => {
-                alert('Thêm người dùng vào vai trò thành công!');
-                this.selectedUserIdToAdd = '';
-                
-                // Đồng bộ trực tiếp vào mảng local
-                const targetUser = this.allUsers.find(u => u.id === this.selectedUserIdToAdd);
-                if (targetUser) {
-                  targetUser.roleNames = [...currentRoles];
-                }
-                this.filterUsersBySelectedRole();
-                this.cd.detectChanges();
-              },
-              error: (err) => {
-                alert(err.error?.error?.message || 'Không thể thêm người dùng vào vai trò!');
-              }
-            });
+            this.selectedUserIdToAdd = '';
+            this.filterUsersBySelectedRole();
+            this.cd.detectChanges();
+          },
+          error: (err) => {
+            alert(err.error?.error?.message || 'Không thể thêm người dùng vào vai trò!');
           }
         });
       }
@@ -172,13 +164,11 @@ export class RoleComponent implements OnInit {
           let currentRoles = rolesData.map((r: any) => typeof r === 'string' ? r : (r.name || r.Name));
 
           currentRoles = currentRoles.filter((r: string) => r !== this.selectedRole.name);
-
           const payload = { roleNames: currentRoles };
 
           this.httpClient.put(`/api/identity/users/${userId}/roles`, payload).subscribe({
             next: () => {
               alert('Đã gỡ người dùng khỏi vai trò!');
-              
               const targetUser = this.allUsers.find(u => u.id === userId);
               if (targetUser) {
                 targetUser.roleNames = [...currentRoles];
@@ -200,7 +190,6 @@ export class RoleComponent implements OnInit {
     this.httpClient.get<any>(url).subscribe({
       next: (res) => {
         let allPerms: any[] = [];
-        
         const groups = res?.groups || res?.result?.groups || [];
         if (Array.isArray(groups)) {
           groups.forEach((group: any) => {
@@ -211,7 +200,6 @@ export class RoleComponent implements OnInit {
                   displayName: p.displayName || p.name,
                   isGranted: p.isGranted || false
                 });
-                
                 if (p.children && Array.isArray(p.children)) {
                   p.children.forEach((child: any) => {
                     allPerms.push({
@@ -225,36 +213,20 @@ export class RoleComponent implements OnInit {
             }
           });
         }
-
-        if (allPerms.length === 0 && (res?.permissions || res?.result?.permissions)) {
-          const rawPermissions = res.permissions || res.result.permissions;
-          allPerms = rawPermissions.map((p: any) => ({
-            name: p.name,
-            displayName: p.displayName || p.name,
-            isGranted: p.isGranted || false
-          }));
-        }
-
         this.permissions = allPerms;
         this.cd.detectChanges();
       },
-      error: (err) => {
-        console.error('Lỗi tải danh sách phân quyền:', err);
-      }
+      error: (err) => console.error('Lỗi tải danh sách phân quyền:', err)
     });
   }
 
   savePermissions(): void {
     if (!this.selectedRole || !this.selectedRole.name) return;
-
     const encodedRoleName = encodeURIComponent(this.selectedRole.name);
     const url = `/api/permission-management/permissions?providerName=R&providerKey=${encodedRoleName}`;
     
     const payload = {
-      permissions: this.permissions.map(p => ({
-        name: p.name,
-        isGranted: p.isGranted
-      }))
+      permissions: this.permissions.map(p => ({ name: p.name, isGranted: p.isGranted }))
     };
 
     this.httpClient.put(url, payload).subscribe({
@@ -304,7 +276,7 @@ export class RoleComponent implements OnInit {
       isPublic: true
     };
 
-    this.roleService.create(payload as any).subscribe({
+    this.httpClient.post('/api/identity/roles', payload).subscribe({
       next: () => {
         this.closeRoleModal();
         this.loadRoles();
@@ -317,7 +289,7 @@ export class RoleComponent implements OnInit {
 
   deleteRole(id: string): void {
     if (confirm('Xóa vai trò này khỏi hệ thống?')) {
-      this.roleService.delete(id).subscribe({
+      this.httpClient.delete(`/api/identity/roles/${id}`).subscribe({
         next: () => {
           this.selectedRole = null;
           this.permissions = [];

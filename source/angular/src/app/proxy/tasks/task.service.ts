@@ -1,5 +1,5 @@
 import type { UpdateTaskScheduleDto } from './dtos/models';
-import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskActivityLogDto, TaskAppService_TaskLookupDto, TaskCommentDto, TaskDetailDto, TaskDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
+import type { ChecklistItemDto, CreateTaskCommentDto, CreateTaskInputDto, CreateUpdateChecklistItemDto, CreateUpdateSubTaskDto, GetTaskListInputDto, RejectTaskInputDto, SubTaskDto, SubmitReviewInputDto, TaskActivityLogDto, TaskCommentDto, TaskDetailDto, TaskDto, TaskLookupDto, UpdateTaskCommentDto, UpdateTaskInputDto } from './models';
 import type { TaskItemStatus } from './task-item-status.enum';
 import { RestService, Rest } from '@abp/ng.core';
 import type { PagedResultDto } from '@abp/ng.core';
@@ -106,7 +106,7 @@ export class TaskService {
   
 
   getCategoryLookup = (config?: Partial<Rest.Config>) =>
-    this.restService.request<any, TaskAppService_TaskLookupDto[]>({
+    this.restService.request<any, TaskLookupDto[]>({
       method: 'GET',
       url: '/api/app/task/category-lookup',
     },

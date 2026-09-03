@@ -4,6 +4,7 @@ using TaskManagement.Categories;
 using TaskManagement.Departments;
 using TaskManagement.LocalizationManagement.Languages;
 using TaskManagement.LocalizationManagement.LanguageTexts;
+using TaskManagement.Projects;
 using TaskManagement.Provider;
 using TaskManagement.SysMasterLists;
 using TaskManagement.Tags;
@@ -187,6 +188,53 @@ public partial class TaskManagementDepartmentToCreateUpdateDepartmentDtoMapper :
 }
 #endregion
 
+#region Projects & Members
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementProjectToProjectDtoMapper : MapperBase<Project, ProjectDto>
+{
+    [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    public override partial ProjectDto Map(Project source);
+
+    [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    public override partial void Map(Project source, ProjectDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementCreateUpdateProjectDtoToProjectMapper : MapperBase<CreateUpdateProjectDto, Project>
+{
+    public override partial Project Map(CreateUpdateProjectDto source);
+    public override partial void Map(CreateUpdateProjectDto source, Project destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementProjectMemberToProjectMemberDtoMapper : MapperBase<ProjectMember, ProjectMemberDto>
+{
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.UserName))]
+    public override partial ProjectMemberDto Map(ProjectMember source);
+
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.UserName))]
+    public override partial void Map(ProjectMember source, ProjectMemberDto destination);
+}
+#endregion
+
+#region Project Milestones
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementProjectMilestoneToMilestoneDtoMapper : MapperBase<ProjectMilestone, MilestoneDto>
+{
+    public override partial MilestoneDto Map(ProjectMilestone source);
+    public override partial void Map(ProjectMilestone source, MilestoneDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class TaskManagementCreateUpdateMilestoneDtoToProjectMilestoneMapper : MapperBase<CreateUpdateMilestoneDto, ProjectMilestone>
+{
+    public override partial ProjectMilestone Map(CreateUpdateMilestoneDto source);
+    public override partial void Map(CreateUpdateMilestoneDto source, ProjectMilestone destination);
+}
+#endregion
+
 #region Tasks & Task Comments
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class TaskManagementTaskHistoryToTaskHistoryDtoMapper : MapperBase<TaskHistory, TaskHistoryDto>
@@ -212,7 +260,7 @@ public partial class TaskManagementCreateTaskInputDtoToTaskItemMapper : MapperBa
 {
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
     [MapperIgnoreSource(nameof(CreateTaskInputDto.Attachments))]
-    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))] 
+    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))]
     public override partial TaskItem Map(CreateTaskInputDto source);
 
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
@@ -226,7 +274,7 @@ public partial class TaskManagementUpdateTaskInputDtoToTaskItemMapper : MapperBa
 {
     [MapperIgnoreTarget(nameof(TaskItem.Id))]
     [MapperIgnoreSource(nameof(UpdateTaskInputDto.Attachments))]
-    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))] // Trường này do Backend tự quản lý
+    [MapperIgnoreTarget(nameof(TaskItem.LastGeneratedDate))]
     public override partial TaskItem Map(UpdateTaskInputDto source);
 
     [MapperIgnoreTarget(nameof(TaskItem.Id))]

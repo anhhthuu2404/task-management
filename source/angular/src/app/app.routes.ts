@@ -88,7 +88,11 @@ export const APP_ROUTES: Routes = [
         path: 'detail/:id',
         loadComponent: () => import('./tasks/task-detail.component').then(m => m.TaskDetailComponent),
       },
-      
     ],
+  },
+  {
+    path: 'projects',
+    loadComponent: () => import('./projects/projects.component').then(m => m.ProjectsComponent),
+    canActivate: [authGuard],
   },
 ];

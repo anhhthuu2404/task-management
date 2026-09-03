@@ -1,12 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IdentityUserService } from '@abp/ng.identity/proxy';
+import { HttpClient } from '@angular/common/http';
+import { CoreModule } from '@abp/ng.core';
 
 @Component({
   selector: 'app-user',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    CoreModule
+  ],
   templateUrl: './user.component.html'
 })
 export class UserComponent implements OnInit {
@@ -29,16 +34,20 @@ export class UserComponent implements OnInit {
     extraProperties: {}
   };
 
-  constructor(private userService: IdentityUserService) {}
+  constructor(
+    private httpClient: HttpClient,
+    private cd: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadUsers();
   }
 
   loadUsers(): void {
-    this.userService.getList({ maxResultCount: 100 }).subscribe({
+    this.httpClient.get<any>('/api/identity/users?maxResultCount=100').subscribe({
       next: (res: any) => {
         this.users = res.items || [];
+        this.cd.detectChanges();
       },
       error: (err) => console.error('Lỗi tải danh sách user:', err)
     });
@@ -55,7 +64,7 @@ export class UserComponent implements OnInit {
         email: user.email,
         name: user.name || '',
         surname: user.surname || '',
-        password: '',
+        password: '', // Để trống khi sửa để không bắt buộc đổi mật khẩu
         isActive: user.isActive ?? true,
         lockoutEnabled: user.lockoutEnabled ?? true,
         roleNames: user.roleNames || [],
@@ -77,15 +86,25 @@ export class UserComponent implements OnInit {
       };
     }
     this.isModalOpen = true; 
+    this.cd.detectChanges();
   }
 
   closeModal(): void {
     this.isModalOpen = false;
+    this.cd.detectChanges();
   }
 
   saveUser(): void {
+    const payload = { ...this.formData };
+
+    if (this.isEditMode) {
+      if (!payload.password || payload.password.trim() === '') {
+        delete payload.password;
+      }
+    }
+
     if (this.isEditMode && this.selectedUserId) {
-      this.userService.update(this.selectedUserId, this.formData).subscribe({
+      this.httpClient.put(`/api/identity/users/${this.selectedUserId}`, payload).subscribe({
         next: () => {
           alert('Cập nhật người dùng thành công!');
           this.closeModal();
@@ -94,7 +113,7 @@ export class UserComponent implements OnInit {
         error: (err: any) => this.handleError(err, 'cập nhật')
       });
     } else {
-      this.userService.create(this.formData).subscribe({
+      this.httpClient.post('/api/identity/users', payload).subscribe({
         next: () => {
           alert('Thêm người dùng thành công!');
           this.closeModal();
@@ -107,7 +126,7 @@ export class UserComponent implements OnInit {
 
   deleteUser(id: string): void {
     if (confirm('Bạn có chắc chắn muốn xóa người dùng này không?')) {
-      this.userService.delete(id).subscribe({
+      this.httpClient.delete(`/api/identity/users/${id}`).subscribe({
         next: () => {
           alert('Xóa người dùng thành công!');
           this.loadUsers();

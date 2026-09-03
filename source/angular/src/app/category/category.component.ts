@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core'; // <-- Thêm PermissionService
+import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core';
 import {
   NgxDatatableListDirective,
   ModalComponent,
@@ -45,7 +45,7 @@ export class CategoryComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly confirmation = inject(ConfirmationService);
   private readonly noti = inject(ToasterService);
-  private readonly permissionService = inject(PermissionService); // <-- Khởi tạo PermissionService
+  private readonly permissionService = inject(PermissionService);
   public readonly list = inject(ListService);
 
   category: PagedResultDto<CategoryDto> = { items: [], totalCount: 0 };
@@ -59,18 +59,20 @@ export class CategoryComponent implements OnInit {
 
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
 
-  // Khai báo các quyền hạn dựa theo policy thường thấy trong ABP (Ví dụ: MyProject.Category)
-  // Bạn hãy thay thế 'MyProject.Category' bằng tên Policy thực tế trên Backend của bạn
+  // Kiểm tra quyền hạn theo Policy (tùy chỉnh lại tên policy cho khớp với backend của bạn nếu cần)
   get canCreate(): boolean {
-    return this.permissionService.getGrantedPolicy('MyProject.Category.Create');
+    return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Create') || 
+           this.permissionService.getGrantedPolicy('MyProject.Category.Create');
   }
 
   get canEdit(): boolean {
-    return this.permissionService.getGrantedPolicy('MyProject.Category.Update');
+    return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Update') || 
+           this.permissionService.getGrantedPolicy('MyProject.Category.Update');
   }
 
   get canDelete(): boolean {
-    return this.permissionService.getGrantedPolicy('MyProject.Category.Delete');
+    return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Delete') || 
+           this.permissionService.getGrantedPolicy('MyProject.Category.Delete');
   }
 
   ngOnInit() {
@@ -91,8 +93,13 @@ export class CategoryComponent implements OnInit {
       );
     };
 
-    this.list.hookToQuery(streamCreator).subscribe(res => {
-      this.category = res || { items: [], totalCount: 0 };
+    this.list.hookToQuery(streamCreator).subscribe({
+      next: (res) => {
+        this.category = res || { items: [], totalCount: 0 };
+      },
+      error: (err) => {
+        console.error('Lỗi tải danh sách category:', err);
+      }
     });
   }
 
@@ -114,18 +121,23 @@ export class CategoryComponent implements OnInit {
   }
 
   createCategory() {
-    if (!this.canCreate) return; // Chặn bảo mật thêm ở code
+    if (!this.canCreate) return;
     this.selectedCategory = {} as CategoryDto;
     this.buildForm();
     this.isModalOpen = true;
   }
 
   editCategory(id: string) {
-    if (!this.canEdit) return; // Chặn bảo mật thêm ở code
-    this.service.get(id).subscribe(item => {
-      this.selectedCategory = item;
-      this.buildForm();
-      this.isModalOpen = true;
+    if (!this.canEdit) return;
+    this.service.get(id).subscribe({
+      next: (item) => {
+        this.selectedCategory = item;
+        this.buildForm();
+        this.isModalOpen = true;
+      },
+      error: (err) => {
+        this.noti.error(err?.error?.error?.message || 'Không thể tải thông tin danh mục', 'Lỗi');
+      }
     });
   }
 
@@ -172,14 +184,24 @@ export class CategoryComponent implements OnInit {
 
   deleteCategory(id: string) {
     if (!this.canDelete) return;
+    
     this.confirmation
       .warn('Bạn có chắc chắn muốn xóa danh mục này?', 'Xác nhận xóa')
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
-          this.service.delete(id).subscribe(() => {
-            this.list.get();
-            this.noti.success('Xóa danh mục thành công', 'Thông báo');
-          });
+          this.loading = true;
+          this.service.delete(id)
+            .pipe(finalize(() => (this.loading = false)))
+            .subscribe({
+              next: () => {
+                this.list.get();
+                this.noti.success('Xóa danh mục thành công', 'Thông báo');
+              },
+              error: (err) => {
+                const errorMsg = err?.error?.error?.message || 'Không thể xóa danh mục này do đang được sử dụng hoặc có ràng buộc dữ liệu!';
+                this.noti.error(errorMsg, 'Thất bại');
+              }
+            });
         }
       });
   }

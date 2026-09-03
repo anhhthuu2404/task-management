@@ -334,6 +334,7 @@ public class TaskManagementHttpApiHostModule : AbpModule
         {
             endpoints.MapControllers();
             endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
+            endpoints.MapRazorPages(); // Bổ sung MapRazorPages để nhận diện trang Login/Account
         });
 
         await context.AddBackgroundWorkerAsync<TaskOverdueBackgroundWorker>();

@@ -2822,6 +2822,845 @@
             }
           }
         },
+        "TaskManagement.Notifications.NotificationAppService": {
+          "controllerName": "Notification",
+          "controllerGroupName": "Notification",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "TaskManagement.Notifications.NotificationAppService",
+          "interfaces": [
+            {
+              "type": "TaskManagement.Notifications.INotificationAppService",
+              "name": "INotificationAppService",
+              "methods": [
+                {
+                  "name": "GetUserNotificationsAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "System.Collections.Generic.List<TaskManagement.Notifications.NotificationDto>",
+                    "typeSimple": "[TaskManagement.Notifications.NotificationDto]"
+                  }
+                },
+                {
+                  "name": "MarkAsReadAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetUserNotificationsAsync": {
+              "uniqueName": "GetUserNotificationsAsync",
+              "name": "GetUserNotificationsAsync",
+              "httpMethod": "GET",
+              "url": "api/app/notification/user-notifications",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Notifications.NotificationDto>",
+                "typeSimple": "[TaskManagement.Notifications.NotificationDto]"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Notifications.INotificationAppService"
+            },
+            "MarkAsReadAsyncById": {
+              "uniqueName": "MarkAsReadAsyncById",
+              "name": "MarkAsReadAsync",
+              "httpMethod": "POST",
+              "url": "api/app/notification/{id}/mark-as-read",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Notifications.INotificationAppService"
+            }
+          }
+        },
+        "TaskManagement.Projects.ProjectAppService": {
+          "controllerName": "Project",
+          "controllerGroupName": "Project",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "TaskManagement.Projects.ProjectAppService",
+          "interfaces": [
+            {
+              "type": "TaskManagement.Projects.IProjectAppService",
+              "name": "IProjectAppService",
+              "methods": [
+                {
+                  "name": "GetMilestonesAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "projectId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>"
+                  }
+                },
+                {
+                  "name": "CreateMilestoneAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "projectId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Projects.CreateUpdateMilestoneDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Projects.CreateUpdateMilestoneDto",
+                      "typeSimple": "TaskManagement.Projects.CreateUpdateMilestoneDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Projects.MilestoneDto",
+                    "typeSimple": "TaskManagement.Projects.MilestoneDto"
+                  }
+                },
+                {
+                  "name": "DeleteMilestoneAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "milestoneId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                },
+                {
+                  "name": "GetMembersAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "projectId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.ProjectMemberDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.ProjectMemberDto>"
+                  }
+                },
+                {
+                  "name": "AddMemberAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "projectId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Projects.AddProjectMemberDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Projects.AddProjectMemberDto",
+                      "typeSimple": "TaskManagement.Projects.AddProjectMemberDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Projects.ProjectMemberDto",
+                    "typeSimple": "TaskManagement.Projects.ProjectMemberDto"
+                  }
+                },
+                {
+                  "name": "RemoveMemberAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "memberId",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                },
+                {
+                  "name": "GetAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Projects.ProjectDto",
+                    "typeSimple": "TaskManagement.Projects.ProjectDto"
+                  }
+                },
+                {
+                  "name": "GetListAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Projects.ProjectListFilterDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Projects.ProjectListFilterDto",
+                      "typeSimple": "TaskManagement.Projects.ProjectListFilterDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "Volo.Abp.Application.Dtos.PagedResultDto<TaskManagement.Projects.ProjectDto>",
+                    "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<TaskManagement.Projects.ProjectDto>"
+                  }
+                },
+                {
+                  "name": "CreateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Projects.CreateUpdateProjectDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Projects.CreateUpdateProjectDto",
+                      "typeSimple": "TaskManagement.Projects.CreateUpdateProjectDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Projects.ProjectDto",
+                    "typeSimple": "TaskManagement.Projects.ProjectDto"
+                  }
+                },
+                {
+                  "name": "UpdateAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    },
+                    {
+                      "name": "input",
+                      "typeAsString": "TaskManagement.Projects.CreateUpdateProjectDto, TaskManagement.Application.Contracts",
+                      "type": "TaskManagement.Projects.CreateUpdateProjectDto",
+                      "typeSimple": "TaskManagement.Projects.CreateUpdateProjectDto",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "TaskManagement.Projects.ProjectDto",
+                    "typeSimple": "TaskManagement.Projects.ProjectDto"
+                  }
+                },
+                {
+                  "name": "DeleteAsync",
+                  "parametersOnMethod": [
+                    {
+                      "name": "id",
+                      "typeAsString": "System.Guid, System.Private.CoreLib",
+                      "type": "System.Guid",
+                      "typeSimple": "string",
+                      "isOptional": false,
+                      "defaultValue": null
+                    }
+                  ],
+                  "returnValue": {
+                    "type": "System.Void",
+                    "typeSimple": "System.Void"
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetMilestonesAsyncByProjectId": {
+              "uniqueName": "GetMilestonesAsyncByProjectId",
+              "name": "GetMilestonesAsync",
+              "httpMethod": "GET",
+              "url": "api/app/project/milestones/{projectId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "projectId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "projectId",
+                  "name": "projectId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Projects.IProjectAppService"
+            },
+            "CreateMilestoneAsyncByProjectIdAndInput": {
+              "uniqueName": "CreateMilestoneAsyncByProjectIdAndInput",
+              "name": "CreateMilestoneAsync",
+              "httpMethod": "POST",
+              "url": "api/app/project/milestone/{projectId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "projectId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Projects.CreateUpdateMilestoneDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Projects.CreateUpdateMilestoneDto",
+                  "typeSimple": "TaskManagement.Projects.CreateUpdateMilestoneDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "projectId",
+                  "name": "projectId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Projects.CreateUpdateMilestoneDto",
+                  "typeSimple": "TaskManagement.Projects.CreateUpdateMilestoneDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Projects.MilestoneDto",
+                "typeSimple": "TaskManagement.Projects.MilestoneDto"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Projects.IProjectAppService"
+            },
+            "DeleteMilestoneAsyncByMilestoneId": {
+              "uniqueName": "DeleteMilestoneAsyncByMilestoneId",
+              "name": "DeleteMilestoneAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/project/milestone/{milestoneId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "milestoneId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "milestoneId",
+                  "name": "milestoneId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Projects.IProjectAppService"
+            },
+            "GetMembersAsyncByProjectId": {
+              "uniqueName": "GetMembersAsyncByProjectId",
+              "name": "GetMembersAsync",
+              "httpMethod": "GET",
+              "url": "api/app/project/members/{projectId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "projectId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "projectId",
+                  "name": "projectId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.ProjectMemberDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.ProjectMemberDto>"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Projects.IProjectAppService"
+            },
+            "AddMemberAsyncByProjectIdAndInput": {
+              "uniqueName": "AddMemberAsyncByProjectIdAndInput",
+              "name": "AddMemberAsync",
+              "httpMethod": "POST",
+              "url": "api/app/project/member/{projectId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "projectId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Projects.AddProjectMemberDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Projects.AddProjectMemberDto",
+                  "typeSimple": "TaskManagement.Projects.AddProjectMemberDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "projectId",
+                  "name": "projectId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Projects.AddProjectMemberDto",
+                  "typeSimple": "TaskManagement.Projects.AddProjectMemberDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Projects.ProjectMemberDto",
+                "typeSimple": "TaskManagement.Projects.ProjectMemberDto"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Projects.IProjectAppService"
+            },
+            "RemoveMemberAsyncByMemberId": {
+              "uniqueName": "RemoveMemberAsyncByMemberId",
+              "name": "RemoveMemberAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/project/member/{memberId}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "memberId",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "memberId",
+                  "name": "memberId",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Projects.IProjectAppService"
+            },
+            "CreateAsyncByInput": {
+              "uniqueName": "CreateAsyncByInput",
+              "name": "CreateAsync",
+              "httpMethod": "POST",
+              "url": "api/app/project",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Projects.CreateUpdateProjectDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "typeSimple": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "typeSimple": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Projects.ProjectDto",
+                "typeSimple": "TaskManagement.Projects.ProjectDto"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "Volo.Abp.Application.Services.ICreateAppService<TaskManagement.Projects.ProjectDto,TaskManagement.Projects.CreateUpdateProjectDto>"
+            },
+            "UpdateAsyncByIdAndInput": {
+              "uniqueName": "UpdateAsyncByIdAndInput",
+              "name": "UpdateAsync",
+              "httpMethod": "PUT",
+              "url": "api/app/project/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                },
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Projects.CreateUpdateProjectDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "typeSimple": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "input",
+                  "jsonName": null,
+                  "type": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "typeSimple": "TaskManagement.Projects.CreateUpdateProjectDto",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "Body",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Projects.ProjectDto",
+                "typeSimple": "TaskManagement.Projects.ProjectDto"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "Volo.Abp.Application.Services.IUpdateAppService<TaskManagement.Projects.ProjectDto,System.Guid,TaskManagement.Projects.CreateUpdateProjectDto>"
+            },
+            "DeleteAsyncById": {
+              "uniqueName": "DeleteAsyncById",
+              "name": "DeleteAsync",
+              "httpMethod": "DELETE",
+              "url": "api/app/project/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Void",
+                "typeSimple": "System.Void"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "Volo.Abp.Application.Services.IDeleteAppService<System.Guid>"
+            },
+            "GetAsyncById": {
+              "uniqueName": "GetAsyncById",
+              "name": "GetAsync",
+              "httpMethod": "GET",
+              "url": "api/app/project/{id}",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "TaskManagement.Projects.ProjectDto",
+                "typeSimple": "TaskManagement.Projects.ProjectDto"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<TaskManagement.Projects.ProjectDto,TaskManagement.Projects.ProjectDto,System.Guid,TaskManagement.Projects.ProjectListFilterDto>"
+            },
+            "GetListAsyncByInput": {
+              "uniqueName": "GetListAsyncByInput",
+              "name": "GetListAsync",
+              "httpMethod": "GET",
+              "url": "api/app/project",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "input",
+                  "typeAsString": "TaskManagement.Projects.ProjectListFilterDto, TaskManagement.Application.Contracts",
+                  "type": "TaskManagement.Projects.ProjectListFilterDto",
+                  "typeSimple": "TaskManagement.Projects.ProjectListFilterDto",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "input",
+                  "name": "Filter",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Status",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "Sorting",
+                  "jsonName": null,
+                  "type": "System.String",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "SkipCount",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "MaxResultCount",
+                  "jsonName": null,
+                  "type": "System.Int32",
+                  "typeSimple": "number",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                }
+              ],
+              "returnValue": {
+                "type": "Volo.Abp.Application.Dtos.PagedResultDto<TaskManagement.Projects.ProjectDto>",
+                "typeSimple": "Volo.Abp.Application.Dtos.PagedResultDto<TaskManagement.Projects.ProjectDto>"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "Volo.Abp.Application.Services.IReadOnlyAppService<TaskManagement.Projects.ProjectDto,TaskManagement.Projects.ProjectDto,System.Guid,TaskManagement.Projects.ProjectListFilterDto>"
+            }
+          }
+        },
         "TaskManagement.SysMasterLists.SysMasterListAppService": {
           "controllerName": "SysMasterList",
           "controllerGroupName": "SysMasterList",
@@ -4014,6 +4853,14 @@
                   }
                 },
                 {
+                  "name": "GetCategoryLookupAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskLookupDto>",
+                    "typeSimple": "[TaskManagement.Tasks.TaskLookupDto]"
+                  }
+                },
+                {
                   "name": "GetAsync",
                   "parametersOnMethod": [
                     {
@@ -4119,11 +4966,11 @@
               "parametersOnMethod": [],
               "parameters": [],
               "returnValue": {
-                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskAppService_TaskLookupDto>",
-                "typeSimple": "[TaskManagement.Tasks.TaskAppService_TaskLookupDto]"
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskLookupDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskLookupDto]"
               },
               "allowAnonymous": false,
-              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+              "implementFrom": "TaskManagement.Tasks.ITaskAppService"
             },
             "GetTaskDetailAsyncById": {
               "uniqueName": "GetTaskDetailAsyncById",
@@ -10352,6 +11199,490 @@
         }
       ]
     },
+    "TaskManagement.Notifications.NotificationDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Id",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Message",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "IsRead",
+          "jsonName": null,
+          "type": "System.Boolean",
+          "typeSimple": "boolean",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "CreationTime",
+          "jsonName": null,
+          "type": "System.DateTime",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.AddProjectMemberDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "UserId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Role",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.CreateUpdateMilestoneDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Title",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Description",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DueDate",
+          "jsonName": null,
+          "type": "System.DateTime",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Status",
+          "jsonName": null,
+          "type": "TaskManagement.Projects.MilestoneStatus",
+          "typeSimple": "enum",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.CreateUpdateProjectDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Description",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "StartDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "EndDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Status",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.MilestoneDto": {
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ProjectId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Title",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Description",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DueDate",
+          "jsonName": null,
+          "type": "System.DateTime",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Status",
+          "jsonName": null,
+          "type": "TaskManagement.Projects.MilestoneStatus",
+          "typeSimple": "enum",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.MilestoneStatus": {
+      "baseType": "System.Enum",
+      "isEnum": true,
+      "enumNames": [
+        "Pending",
+        "InProgress",
+        "Completed"
+      ],
+      "enumValues": [
+        0,
+        1,
+        2
+      ],
+      "genericArguments": null,
+      "properties": null
+    },
+    "TaskManagement.Projects.ProjectDto": {
+      "baseType": "Volo.Abp.Application.Dtos.FullAuditedEntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Description",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "StartDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "EndDate",
+          "jsonName": null,
+          "type": "System.DateTime?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Status",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "MemberCount",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "MilestoneCount",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.ProjectListFilterDto": {
+      "baseType": "Volo.Abp.Application.Dtos.PagedAndSortedResultRequestDto",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Filter",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Status",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Projects.ProjectMemberDto": {
+      "baseType": "Volo.Abp.Application.Dtos.EntityDto<System.Guid>",
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "ProjectId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "UserId",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "UserName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Role",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
     "TaskManagement.SysMasterLists.CreateUpdateSysMasterListDto": {
       "baseType": null,
       "isEnum": false,
@@ -11856,39 +13187,6 @@
         }
       ]
     },
-    "TaskManagement.Tasks.TaskAppService_TaskLookupDto": {
-      "baseType": null,
-      "isEnum": false,
-      "enumNames": null,
-      "enumValues": null,
-      "genericArguments": null,
-      "properties": [
-        {
-          "name": "Id",
-          "jsonName": null,
-          "type": "System.Guid",
-          "typeSimple": "string",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null
-        },
-        {
-          "name": "DisplayName",
-          "jsonName": null,
-          "type": "System.String",
-          "typeSimple": "string",
-          "isRequired": false,
-          "minLength": null,
-          "maxLength": null,
-          "minimum": null,
-          "maximum": null,
-          "regex": null
-        }
-      ]
-    },
     "TaskManagement.Tasks.TaskAttachmentDto": {
       "baseType": null,
       "isEnum": false,
@@ -12411,6 +13709,39 @@
       ],
       "genericArguments": null,
       "properties": null
+    },
+    "TaskManagement.Tasks.TaskLookupDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "Id",
+          "jsonName": null,
+          "type": "System.Guid",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
     },
     "TaskManagement.Tasks.TaskPriority": {
       "baseType": "System.Enum",

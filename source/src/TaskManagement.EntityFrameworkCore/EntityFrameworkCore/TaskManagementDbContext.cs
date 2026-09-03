@@ -6,6 +6,9 @@ using TaskManagement.Departments;
 using TaskManagement.Employees;
 using TaskManagement.LocalizationManagement.Languages;
 using TaskManagement.LocalizationManagement.LanguageTexts;
+using TaskManagement.Notifications;
+using TaskManagement.Notifications;
+using TaskManagement.Projects;
 using TaskManagement.SysMasterLists;
 using TaskManagement.Tags;
 using TaskManagement.Tasks;
@@ -53,7 +56,8 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
     public DbSet<TaskChecklistItem> TaskChecklistItems { get; set; }
     public DbSet<TaskActivityLog> TaskActivityLogs { get; set; }
     public DbSet<TaskComment> TaskComments { get; set; }
-    public DbSet<TaskHistory> TaskHistories { get; set; } // Đã bổ sung DbSet cho TaskHistory ở đây
+    public DbSet<TaskHistory> TaskHistories { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     #region Entities from ABP Modules
 
@@ -70,6 +74,10 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
     // Tenant Management
     public DbSet<Tenant> Tenants { get; set; }
     public DbSet<TenantConnectionString> TenantConnectionStrings { get; set; }
+
+    public DbSet<Project> Projects { get; set; }
+    public DbSet<ProjectMilestone> ProjectMilestones { get; set; }
+    public DbSet<ProjectMember> ProjectMembers { get; set; }
 
     #endregion
 
@@ -212,6 +220,31 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
              .HasForeignKey(x => x.TaskId)
              .IsRequired()
              .OnDelete(DeleteBehavior.Cascade);
+        });
+        builder.Entity<Notification>(b =>
+        {
+            b.ToTable("Notifications");
+            b.ConfigureByConvention();
+            b.Property(x => x.Message).IsRequired().HasMaxLength(1000);
+        });
+        builder.Entity<Project>(b =>
+        {
+            b.ToTable("Projects");
+            b.ConfigureByConvention();
+            b.Property(x => x.Name).IsRequired().HasMaxLength(256);
+        });
+
+        builder.Entity<ProjectMilestone>(b =>
+        {
+            b.ToTable("ProjectMilestones");
+            b.ConfigureByConvention();
+            b.Property(x => x.Title).IsRequired().HasMaxLength(256);
+        });
+
+        builder.Entity<ProjectMember>(b =>
+        {
+            b.ToTable("ProjectMembers");
+            b.ConfigureByConvention();
         });
     }
 }
