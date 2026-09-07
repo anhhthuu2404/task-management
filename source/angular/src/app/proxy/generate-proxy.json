@@ -4972,6 +4972,36 @@
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Tasks.ITaskAppService"
             },
+            "GetProjectLookupAsync": {
+              "uniqueName": "GetProjectLookupAsync",
+              "name": "GetProjectLookupAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/project-lookup",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskLookupDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskLookupDto]"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+            },
+            "GetStatusLookupAsync": {
+              "uniqueName": "GetStatusLookupAsync",
+              "name": "GetStatusLookupAsync",
+              "httpMethod": "GET",
+              "url": "api/app/task/status-lookup",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Tasks.TaskLookupDto>",
+                "typeSimple": "[TaskManagement.Tasks.TaskLookupDto]"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Tasks.TaskAppService"
+            },
             "GetTaskDetailAsyncById": {
               "uniqueName": "GetTaskDetailAsyncById",
               "name": "GetTaskDetailAsync",
@@ -11253,6 +11283,18 @@
           "minimum": null,
           "maximum": null,
           "regex": null
+        },
+        {
+          "name": "TaskId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
         }
       ]
     },
@@ -11337,6 +11379,18 @@
           "jsonName": null,
           "type": "TaskManagement.Projects.MilestoneStatus",
           "typeSimple": "enum",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "AssigneeUserId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,
@@ -11475,6 +11529,18 @@
           "jsonName": null,
           "type": "TaskManagement.Projects.MilestoneStatus",
           "typeSimple": "enum",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "AssigneeUserId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,

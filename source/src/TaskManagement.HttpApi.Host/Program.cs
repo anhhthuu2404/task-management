@@ -11,7 +11,7 @@ namespace TaskManagement;
 
 public class Program
 {
-    public async static Task<int> Main(string[] args)
+    public static async Task<int> Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Async(c => c.File("Logs/logs.txt"))
@@ -57,10 +57,6 @@ public class Program
                 }
                 await next();
             });
-            app.MapHub<NotificationHub>("/signalr-hubs/notification");
-
-            await app.RunAsync();
-            return 0;
 
             await app.RunAsync();
             return 0;

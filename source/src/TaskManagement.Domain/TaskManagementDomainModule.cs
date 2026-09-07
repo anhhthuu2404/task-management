@@ -1,7 +1,9 @@
-using TaskManagement.MultiTenancy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
+using TaskManagement.MultiTenancy;
+using TaskManagement.Tasks;
+using Volo.Abp;
 using Volo.Abp.AuditLogging;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.BlobStoring.Database;
@@ -17,6 +19,7 @@ using Volo.Abp.PermissionManagement.Identity;
 using Volo.Abp.PermissionManagement.OpenIddict;
 using Volo.Abp.SettingManagement;
 using Volo.Abp.TenantManagement;
+using Volo.Abp.BackgroundWorkers;
 
 namespace TaskManagement;
 
@@ -48,5 +51,10 @@ public class TaskManagementDomainModule : AbpModule
 #if DEBUG
         context.Services.Replace(ServiceDescriptor.Singleton<IEmailSender, NullEmailSender>());
 #endif
+    }
+    public override void OnApplicationInitialization(ApplicationInitializationContext context)
+    {
+        // Kích hoạt Background Worker chạy ngầm khi ứng dụng khởi động
+        context.AddBackgroundWorkerAsync<TaskBackgroundWorker>();
     }
 }

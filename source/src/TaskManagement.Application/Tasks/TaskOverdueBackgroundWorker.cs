@@ -46,7 +46,7 @@ public class TaskOverdueBackgroundWorker : AsyncPeriodicBackgroundWorkerBase, IT
             foreach (var task in overdueTasks)
             {
                 task.Status = TaskItemStatus.Overdue;
-                await taskRepository.UpdateAsync(task, autoSave: true);
+                await taskRepository.UpdateAsync(task);
 
                 Logger.LogInformation($"Đã chuyển công việc '{task.Title}' (ID: {task.Id}) sang trạng thái Quá hạn.");
             }

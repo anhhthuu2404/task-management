@@ -39,6 +39,17 @@
           <div class="invalid-feedback">Vui lòng chọn danh mục.</div>
         </div>
 
+        <!-- Dự án (Tự động nhận diện hoặc chọn thủ công) -->
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold">Thuộc dự án</label>
+          <select class="form-select" formControlName="projectId">
+            <option [ngValue]="null">-- Không thuộc dự án nào --</option>
+            <option *ngFor="let proj of projects" [value]="proj.id">{{ proj.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
         <!-- Người thực hiện -->
         <div class="col-md-6 mb-3">
           <label class="form-label fw-semibold">Người thực hiện</label>
@@ -47,11 +58,17 @@
             <option *ngFor="let user of users" [value]="user.id">{{ user.name || user.userName }}</option>
           </select>
         </div>
+
+        <!-- Hạn hoàn thành -->
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold">Hạn hoàn thành</label>
+          <input type="date" class="form-control" formControlName="dueDate" [min]="minDate" />
+        </div>
       </div>
 
       <div class="row">
         <!-- Mức độ ưu tiên -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label required fw-semibold">Độ ưu tiên</label>
           <select class="form-select" formControlName="priority">
             <option [value]="0">Thấp</option>
@@ -62,7 +79,7 @@
         </div>
 
         <!-- Trạng thái -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label required fw-semibold">Trạng thái</label>
           <select class="form-select" formControlName="status">
             <option [value]="0">Mới</option>
@@ -71,22 +88,16 @@
             <option [value]="3">Đã hủy</option>
           </select>
         </div>
-
-        <!-- Hạn hoàn thành -->
-        <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold">Hạn hoàn thành</label>
-          <input type="date" class="form-control" formControlName="dueDate" [min]="minDate" />
-        </div>
       </div>
 
-      <!-- Cấu hình lặp lại công việc (Mới thêm) -->
+      <!-- Cấu hình lặp lại công việc -->
       <div class="p-3 mb-3 bg-light rounded border">
         <div class="form-check mb-2">
           <input type="checkbox" class="form-check-input" id="isRecurring" formControlName="isRecurring">
           <label class="form-check-label fw-semibold" for="isRecurring">Tự động lặp lại công việc định kỳ</label>
         </div>
 
-        <!-- Dropdown chọn tần suất (Chỉ hiển thị khi check chọn lặp lại) -->
+        <!-- Dropdown chọn tần suất -->
         <div class="mt-2" *ngIf="form.get('isRecurring')?.value">
           <label class="form-label fw-semibold small">Tần suất lặp lại</label>
           <select class="form-select form-select-sm" formControlName="frequency">

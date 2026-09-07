@@ -130,6 +130,22 @@ export class TaskService {
     { apiName: this.apiName,...config });
   
 
+  getProjectLookup = (config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskLookupDto[]>({
+      method: 'GET',
+      url: '/api/app/task/project-lookup',
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getStatusLookup = (config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskLookupDto[]>({
+      method: 'GET',
+      url: '/api/app/task/status-lookup',
+    },
+    { apiName: this.apiName,...config });
+  
+
   getTaskDetail = (id: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, TaskDetailDto>({
       method: 'GET',

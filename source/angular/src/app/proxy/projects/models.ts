@@ -11,6 +11,7 @@ export interface CreateUpdateMilestoneDto {
   description?: string;
   dueDate?: string;
   status?: MilestoneStatus;
+  assigneeUserId?: string;
 }
 
 export interface CreateUpdateProjectDto {
@@ -27,6 +28,7 @@ export interface MilestoneDto extends EntityDto<string> {
   description?: string;
   dueDate?: string;
   status?: MilestoneStatus;
+  assigneeUserId?: string;
 }
 
 export interface ProjectDto extends FullAuditedEntityDto<string> {

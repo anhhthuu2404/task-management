@@ -8,7 +8,7 @@ public class Notification : CreationAuditedEntity<Guid>
     public Guid UserId { get; set; }
     public string Message { get; set; } = string.Empty;
     public bool IsRead { get; set; } = false;
-
+    public Guid? TaskId { get; set; }
     protected Notification() { }
 
     public Notification(Guid id, Guid userId, string message) : base(id)

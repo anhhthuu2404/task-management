@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ProjectService, ProjectDto, MilestoneDto, ProjectMemberDto } from '@proxy/projects';
 
 @Component({
@@ -13,6 +13,7 @@ import { ProjectService, ProjectDto, MilestoneDto, ProjectMemberDto } from '@pro
 export class ProjectsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private projectService = inject(ProjectService);
+  private router = inject(Router);
 
   projects: ProjectDto[] = [];
   selectedProject: ProjectDto | null = null;
@@ -222,5 +223,10 @@ export class ProjectsComponent implements OnInit {
     }
     
     return userId;
+  }
+
+  viewProjectTasks(projectId?: string): void {
+    if (!projectId) return;
+    this.router.navigate(['/tasks'], { queryParams: { projectId: projectId } });
   }
 }

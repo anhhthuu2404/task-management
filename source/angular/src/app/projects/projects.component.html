@@ -45,11 +45,18 @@
             </td>
             <td class="text-end pe-4">
               <!-- Nút chuyển nhanh sang trang Quản lý Công việc của dự án này -->
-              <button class="btn btn-sm btn-outline-success shadow-sm px-2 me-1 text-dark" [routerLink]="['/tasks']" [queryParams]="{ projectId: p.id }" title="Xem công việc của dự án">
-                <i class="bi bi-list-task"></i>
+              <button class="btn btn-sm btn-outline-success shadow-sm px-2 me-1 text-dark" 
+                     [routerLink]="['/tasks']" 
+                     [queryParams]="{ projectId: p.id }" 
+                     title="Xem công việc của dự án">
+                     <i class="bi bi-list-task"></i>
+              </button>
+              <!-- Nút Thêm Task nhanh gắn sẵn dự án -->
+              <button class="btn btn-sm btn-outline-primary shadow-sm px-2 me-1" [routerLink]="['/tasks/create']" [queryParams]="{ projectId: p.id }" title="Thêm công việc mới cho dự án">
+                <i class="bi bi-plus-lg"></i>
               </button>
               <!-- Nút Quản lý chi tiết -->
-              <button class="btn btn-sm btn-outline-primary shadow-sm px-2 me-1" (click)="openDetailModal(p)" title="Quản lý chi tiết">
+              <button class="btn btn-sm btn-outline-secondary shadow-sm px-2 me-1" (click)="openDetailModal(p)" title="Quản lý chi tiết">
                 <i class="bi bi-sliders"></i>
               </button>
               <!-- Nút Sửa Dự án -->

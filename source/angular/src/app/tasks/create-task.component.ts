@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { ToasterService } from '@abp/ng.theme.shared';
 import { RestService } from '@abp/ng.core';
 
@@ -20,6 +20,7 @@ export class CreateTaskComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly rest = inject(RestService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly toaster = inject(ToasterService);
 
   readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -34,11 +35,22 @@ export class CreateTaskComponent implements OnInit {
 
   categories: any[] = [];
   users: any[] = [];
+  projects: any[] = []; // Thêm danh sách dự án
 
   ngOnInit(): void {
     this.buildForm();
     this.loadCategories();
     this.loadUsers();
+    this.loadProjects(); // Gọi load danh sách dự án
+
+    // Đọc projectId từ queryParams nếu bấm từ trang Quản lý dự án sang
+    this.route.queryParams.subscribe(params => {
+      if (params['projectId']) {
+        this.form.patchValue({
+          projectId: params['projectId']
+        });
+      }
+    });
   }
 
   buildForm(): void {
@@ -46,12 +58,13 @@ export class CreateTaskComponent implements OnInit {
       title: ['', [Validators.required, Validators.maxLength(128)]],
       description: [''],
       categoryId: ['', [Validators.required]],
+      projectId: [null], // Bổ sung trường projectId vào form
       assigneeId: [null],
       priority: [1, [Validators.required]],
       status: [0, [Validators.required]],
       dueDate: [null],
-      isRecurring: [false], // Thêm trường lặp lại
-      frequency: [0],       // Thêm trường tần suất (0: Daily, 1: Weekly, 2: Monthly)
+      isRecurring: [false], 
+      frequency: [0],      
     });
   }
 
@@ -72,6 +85,17 @@ export class CreateTaskComponent implements OnInit {
     }).subscribe({
       next: (res: any) => (this.users = res.items || res || []),
       error: () => (this.users = [])
+    });
+  }
+
+  loadProjects(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/project',
+      params: { maxResultCount: 100 }
+    }).subscribe({
+      next: (res: any) => (this.projects = Array.isArray(res) ? res : (res?.items || res?.result || [])),
+      error: () => (this.projects = [])
     });
   }
 
@@ -152,7 +176,7 @@ export class CreateTaskComponent implements OnInit {
       ...this.form.value,
       priority: Number(this.form.value.priority),
       status: Number(this.form.value.status),
-      frequency: Number(this.form.value.frequency), // Đảm bảo frequency là kiểu số
+      frequency: Number(this.form.value.frequency),
       attachments: this.attachments
     };
 

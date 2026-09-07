@@ -93,8 +93,8 @@ export class SysMasterListComponent implements OnInit {
     this.service
       .getList({
         keyWord: searchValue?.value?.keyword,
-        masterListGroupCde: searchValue?.groupCode?.map(x => x.id)?.join(DEFAULT_COMMA) ?? null,
-        status: searchValue?.status?.map(x => x.id)?.join(DEFAULT_COMMA) ?? null,
+       masterListGroupCde: searchValue?.groupCode?.map((x: any) => x.id)?.join(DEFAULT_COMMA) ?? null,
+       status: searchValue?.status?.map((x: any) => x.id)?.join(DEFAULT_COMMA) ?? null,
         pageIndex: this.pageIndex + 1,
         pageSize: this.pageSize,
       })
@@ -252,9 +252,9 @@ export class SysMasterListComponent implements OnInit {
 
   loadSelect() {
     this.service.getAllCde('').subscribe(res => {
-      this.groupCdeOptions = res.map(g => ({
+     this.groupCdeOptions = res.map(g => ({
         id: g.masterListCode,
-        text: g.masterListCdeName,
+        text: g.masterListCdeName ?? '',
       }));
     });
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
@@ -6,14 +6,15 @@ import { RestService, PermissionService } from '@abp/ng.core';
 import { ToasterService } from '@abp/ng.theme.shared';
 import { NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { DragDropModule, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
-import { NotificationService } from '../shared/services/notification.service';
+import { NotificationService, NotificationItem } from '../shared/services/notification.service';
 import { Subscription } from 'rxjs';
 
 export interface TaskDto {
   id: string;
   title: string;
   description?: string;
-  projectId?: string; // <-- Bổ sung thuộc tính liên kết dự án
+  projectId?: string;
+  projectName?: string;
   assigneeId?: string;
   assigneeName?: string;
   priority: number;
@@ -44,12 +45,14 @@ export class TaskListComponent implements OnInit, OnDestroy {
   private readonly rest = inject(RestService);
   private readonly permission = inject(PermissionService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute); // <-- Inject ActivatedRoute để đọc queryParams
+  private readonly route = inject(ActivatedRoute); 
   private readonly notificationService = inject(NotificationService);
   private readonly toaster = inject(ToasterService);
   private readonly zone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   private notificationSub?: Subscription;
+  private previousNotificationCount = 0;
 
   readonly backendUrl = 'https://localhost:44399';
 
@@ -58,6 +61,19 @@ export class TaskListComponent implements OnInit, OnDestroy {
   isLoading = false;
 
   currentView: 'list' | 'kanban' | 'calendar' = 'list';
+
+  get notifications(): NotificationItem[] {
+    const subVal = (this.notificationService as any).notificationSubject?.value;
+    if (subVal) return subVal;
+    let list: NotificationItem[] = [];
+    this.notificationService.notifications$.subscribe(items => list = items).unsubscribe();
+    return list;
+  }
+
+  getUnreadCount(): number {
+    const items = this.notifications || [];
+    return items.filter((n: any) => !n.isRead && !n.read).length;
+  }
 
   readonly kanbanColumns = [
     { status: 0, title: 'Mới', headerClass: 'border-secondary text-secondary' },
@@ -78,13 +94,11 @@ export class TaskListComponent implements OnInit, OnDestroy {
   currentCalendarMonthName: string = '';
   currentCalendarYear: number = 0;
 
-  notifications: { message: string; time: Date }[] = [];
-
   filters = {
     filter: '', 
     categoryId: '',
     assigneeId: '',
-    projectId: '', // <-- Bổ sung tham số lọc theo dự án
+    projectId: '', 
     priority: null as number | null,
     status: null as number | null,
     onlyMyTasks: false,
@@ -95,6 +109,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   page = 1;
   categories: any[] = [];
+  projects: any[] = [];
   users: any[] = [];
 
   readonly canCreate = this.permission.getGrantedPolicy('TaskManagement.Tasks.Create');
@@ -102,41 +117,34 @@ export class TaskListComponent implements OnInit, OnDestroy {
   readonly canDelete = this.permission.getGrantedPolicy('TaskManagement.Tasks.Delete');
 
   ngOnInit(): void {
-    // --- LẮNG NGHE PROJECT ID TỪ URL ---
-    this.route.queryParams.subscribe(params => {
-      if (params['projectId']) {
-        this.filters.projectId = params['projectId'];
-      }
-    });
-
-    const savedNotifications = localStorage.getItem('task_management_notifications');
-    if (savedNotifications) {
-      try {
-        this.notifications = JSON.parse(savedNotifications).map((item: any) => ({
-          ...item,
-          time: new Date(item.time)
-        }));
-      } catch (e) {
-        this.notifications = [];
-      }
-    }
+    // Lắng nghe queryParams để cập nhật projectId từ trang Dự án hoặc các module khác
+   this.route.queryParams.subscribe(params => {
+  if (params['projectId']) {
+    this.filters.projectId = params['projectId'];
+  } else {
+    this.filters.projectId = '';
+  }
+  this.fetchTasks();
+});
 
     this.loadCategories();
+    this.loadProjects();
     this.loadUsers();
-    this.fetchTasks();
 
-    this.notificationSub = this.notificationService.notifications$.subscribe(incomingNotifications => {
+    this.notificationSub = this.notificationService.notifications$.subscribe(incoming => {
       this.zone.run(() => {
-        const newItems = incomingNotifications || [];
-        if (newItems.length > this.notifications.length && newItems.length > 0) {
-          const latest = newItems[0];
+        const currentItems = incoming || [];
+        
+        if (currentItems.length > this.previousNotificationCount && this.previousNotificationCount !== 0) {
+          const latest = currentItems[0];
           if (latest && latest.message) {
             this.toaster.info(latest.message, 'Thông báo hệ thống mới');
             this.fetchTasks();
           }
         }
-        this.notifications = newItems.length > 0 ? newItems : this.notifications;
-        localStorage.setItem('task_management_notifications', JSON.stringify(this.notifications));
+        
+        this.previousNotificationCount = currentItems.length;
+        this.cdr.detectChanges();
       });
     });
   }
@@ -147,22 +155,75 @@ export class TaskListComponent implements OnInit, OnDestroy {
     }
   }
 
+  onBellClick(): void {
+    this.notificationService.markAllAsRead();
+    this.cdr.detectChanges();
+  }
+
+  deleteNotification(item: any, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!item) return;
+
+    const targetId = item.id || item.key || item.message;
+    this.notificationService.deleteNotification(targetId);
+    this.cdr.detectChanges();
+  }
+
+  markAsRead(item: any): void {
+    if (!item) return;
+    const targetId = item.id || item.key;
+    if (targetId) {
+      this.notificationService.markAsRead(targetId);
+    } else {
+      this.notificationService.markAsRead();
+    }
+    this.cdr.detectChanges();
+  }
+
+  onNotificationClick(item: any): void {
+    if (!item) return;
+    this.markAsRead(item);
+
+    const targetTaskId = item.taskId || item.referenceId;
+    if (targetTaskId) {
+      this.router.navigate(['/tasks/detail', targetTaskId]);
+    } else {
+      this.router.navigate(['/tasks']);
+    }
+  }
+
   clearNotifications(): void {
-    this.notifications = [];
-    localStorage.removeItem('task_management_notifications');
+    this.notificationService.clearNotifications();
+    this.cdr.detectChanges();
   }
 
   loadCategories(): void {
     this.rest.request<any, any>({
       method: 'GET',
-      url: '/api/app/task/category-lookup'
+      url: '/api/app/task/category-lookup',
+      params: { filter: '' }
     }).subscribe({
       next: (res: any) => { 
-        this.categories = res?.items || res || []; 
+        this.categories = Array.isArray(res) ? res : (res?.items || res?.result || []); 
       },
-      error: (err) => {
-        console.error('Lỗi khi tải danh mục:', err);
-        this.categories = [];
+      error: () => { this.categories = []; }
+    });
+  }
+
+  loadProjects(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/project', 
+      params: { maxResultCount: 100 }
+    }).subscribe({
+      next: (res: any) => {
+        this.projects = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        this.cdr.detectChanges(); // Ép giao diện render lại dữ liệu mới nhận
+      },
+      error: () => { 
+        this.projects = []; 
       }
     });
   }
@@ -173,7 +234,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
       url: '/api/identity/users'
     }).subscribe({
       next: (res: any) => { 
-        this.users = res?.items || res || []; 
+        this.users = Array.isArray(res) ? res : (res?.items || res?.result || []); 
       },
       error: () => {}
     });
@@ -190,7 +251,22 @@ export class TaskListComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (res: any) => {
         const data = res as { items?: TaskDto[]; totalCount?: number };
-        this.taskList = data?.items || [];
+        const rawItems = data?.items || [];
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        this.taskList = rawItems.map(task => {
+          if (task.status === 5 && task.dueDate) {
+            const dueDateObj = new Date(task.dueDate);
+            dueDateObj.setHours(0, 0, 0, 0);
+            if (dueDateObj.getTime() >= today.getTime()) {
+              return { ...task, status: 1 }; 
+            }
+          }
+          return task;
+        });
+
         this.totalCount = data?.totalCount || 0;
         this.isLoading = false;
 
@@ -199,10 +275,11 @@ export class TaskListComponent implements OnInit, OnDestroy {
         if (this.currentView === 'calendar') {
           this.generateCalendar();
         }
+        this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Lỗi khi tải danh sách công việc:', err);
+      error: () => {
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -228,6 +305,12 @@ export class TaskListComponent implements OnInit, OnDestroy {
   onSearch(): void {
     this.page = 1;
     this.fetchTasks();
+  }
+
+  // Phương thức xóa bộ lọc dự án và quay lại xem toàn bộ danh sách công việc
+  clearProjectFilter(): void {
+    this.filters.projectId = '';
+    this.router.navigate(['/tasks'], { queryParams: {} });
   }
 
   toggleMyTasks(): void {
@@ -261,11 +344,10 @@ export class TaskListComponent implements OnInit, OnDestroy {
           this.generateCalendar();
         }
       },
-      error: (err) => {
+      error: () => {
         task.status = oldStatus;
         task.progressPercent = oldProgress;
         this.updateKanbanColumns();
-        console.error('Lỗi đổi trạng thái:', err);
       }
     });
   }
@@ -404,7 +486,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
     const day = String(date.getDate()).padStart(2, '0');
     const formattedDate = `${year}-${month}-${day}`;
     
-    // Gắn thêm projectId nếu đang xem trong ngữ cảnh dự án cụ thể
     const queryParams: any = { dueDate: formattedDate };
     if (this.filters.projectId) {
       queryParams.projectId = this.filters.projectId;
@@ -439,10 +520,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
           this.generateCalendar();
         }
       },
-      error: (err) => {
+      error: () => {
         task.assigneeId = oldAssigneeId;
         task.assigneeName = oldAssigneeName;
-        console.error('Lỗi đổi người thực hiện:', err);
       }
     });
   }

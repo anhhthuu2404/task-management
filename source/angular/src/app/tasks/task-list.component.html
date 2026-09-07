@@ -8,27 +8,52 @@
 
     <div class="d-flex align-items-center gap-2">
       <!-- Dropdown Thông báo -->
-      <div class="dropdown" ngbDropdown placement="bottom-end">
-        <button class="btn btn-primary position-relative" ngbDropdownToggle type="button" id="notificationDropdown">
+      <div class="dropdown" ngbDropdown placement="bottom-end" display="dynamic">
+        <button class="btn btn-primary position-relative rounded-circle p-2 d-flex align-items-center justify-content-center" 
+                style="width: 40px; height: 40px;" 
+                ngbDropdownToggle 
+                type="button" 
+                id="notificationDropdown"
+                title="Thông báo trực tuyến"
+                (click)="onBellClick()">
           <i class="bi bi-bell-fill"></i>
-          <span *ngIf="notifications && notifications.length > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-            {{ notifications.length }}
+          <span *ngIf="getUnreadCount() > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+            {{ getUnreadCount() }}
           </span>
         </button>
-        <div ngbDropdownMenu aria-labelledby="notificationDropdown" class="dropdown-menu p-3 shadow" style="width: 320px; max-height: 400px; overflow-y: auto;">
-          <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-            <h6 class="mb-0 fw-bold">Thông báo trực tuyến</h6>
-            <button *ngIf="notifications && notifications.length > 0" class="btn btn-sm btn-link text-decoration-none p-0" (click)="clearNotifications()">Xóa tất cả</button>
+        <div ngbDropdownMenu aria-labelledby="notificationDropdown" class="dropdown-menu p-0 shadow-lg border-0" style="width: 350px; max-height: 400px; overflow-y: auto; border-radius: 12px;">
+          
+          <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.9rem;">Thông báo trực tuyến</h6>
+            <button *ngIf="notifications && notifications.length > 0" class="btn btn-sm btn-link text-decoration-none p-0 text-primary" style="font-size: 0.85rem;" (click)="clearNotifications()">Xóa tất cả</button>
           </div>
 
-          <div *ngIf="!notifications || notifications.length === 0" class="text-center text-muted py-3">
+          <div *ngIf="!notifications || notifications.length === 0" class="text-center text-muted py-4 small">
+            <i class="bi bi-bell-slash fs-4 d-block mb-1 text-black-50"></i>
             Chưa có thông báo mới nào.
           </div>
 
-          <div *ngFor="let item of notifications" class="dropdown-item-text py-2 border-bottom small">
-            <div class="fw-semibold text-dark">{{ item.message || item.content || item.title || 'Thông báo hệ thống' }}</div>
-            <div class="text-muted" style="font-size: 0.75rem;">
-              {{ (item.time || item.creationTime || item.date) ? ((item.time || item.creationTime || item.date) | date:'dd/MM/yyyy HH:mm:ss') : 'Vừa xong' }}
+          <div class="notification-list">
+            <div *ngFor="let item of notifications" 
+                 class="p-3 border-bottom position-relative d-flex justify-content-between align-items-start" 
+                 [ngClass]="{'bg-white': item.isRead || item.read, 'bg-light': !(item.isRead || item.read)}"
+                 style="cursor: pointer; transition: background-color 0.2s;"
+                 (click)="onNotificationClick(item)">
+              
+              <!-- Chấm xanh biểu thị chưa đọc -->
+              <span *ngIf="!(item.isRead || item.read)" class="position-absolute top-50 start-0 translate-middle-y bg-primary rounded-circle ms-2" style="width: 8px; height: 8px;"></span>
+              
+              <div [ngClass]="{'ms-3': !(item.isRead || item.read)}" class="flex-grow-1 pe-2">
+                <div class="fw-semibold text-dark mb-1" style="font-size: 0.9rem; line-height: 1.4;">{{ item.message || item.content || item.title || 'Thông báo hệ thống' }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">
+                  <i class="bi bi-clock me-1"></i>{{ (item.time || item.creationTime || item.date) ? ((item.time || item.creationTime || item.date) | date:'dd/MM/yyyy HH:mm:ss') : 'Vừa xong' }}
+                </div>
+              </div>
+
+              <!-- Nút xóa riêng cho từng thông báo -->
+              <button class="btn btn-sm text-muted p-1 hover-danger" style="font-size: 0.85rem;" title="Xóa thông báo này" (click)="deleteNotification(item, $event)">
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -63,12 +88,12 @@
           </select>
         </div>
 
-        <!-- Dự án (Đã bổ sung liên kết quản lý dự án) -->
+        <!-- Dự án (Đã tối ưu hóa hiển thị dữ liệu binding chuẩn LookUp DTO) -->
         <div class="col-12 col-md-2">
           <select class="form-select" [(ngModel)]="filters.projectId" (change)="onSearch()">
             <option value="">-- Tất cả dự án --</option>
-            <option *ngFor="let proj of projects" [value]="proj.id || proj.value">
-              {{ proj.name || proj.displayName || proj.title || 'Không rõ tên' }}
+            <option *ngFor="let proj of projects" [value]="proj.id || proj.value || proj.key">
+              {{ proj.name || proj.displayName || proj.title || proj.projectName || 'Không rõ tên' }}
             </option>
           </select>
         </div>

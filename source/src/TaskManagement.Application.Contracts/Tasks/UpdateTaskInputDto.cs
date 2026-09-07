@@ -28,6 +28,8 @@ public class UpdateTaskInputDto
 
     public List<TaskAttachmentDto>? Attachments { get; set; }
 
+    public Guid? ProjectId { get; set; }
+
     // === BỔ SUNG CÁC TRƯỜNG LẶP LẠI ĐỂ HỨNG DỮ LIỆU TỪ FRONTEND ===
     public bool IsRecurring { get; set; } = false;
     public RecurrenceFrequency? Frequency { get; set; }

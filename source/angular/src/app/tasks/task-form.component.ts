@@ -20,6 +20,7 @@ export class TaskFormComponent implements OnInit {
 
   private readonly taskApiUrl = '/api/app/task'; 
   private readonly categoryApiUrl = '/api/app/category';
+  private readonly projectApiUrl = '/api/app/project';
 
   form!: FormGroup;
   taskId: string | null = null;
@@ -32,24 +33,31 @@ export class TaskFormComponent implements OnInit {
 
   categories: any[] = [];
   users: any[] = [];
+  projects: any[] = [];
 
   ngOnInit(): void {
     this.taskId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.taskId;
-    this.buildForm();
+    
+    // Đọc projectId nếu được truyền từ trang Quản lý dự án qua query params
+    const defaultProjectId = this.route.snapshot.queryParamMap.get('projectId');
+
+    this.buildForm(defaultProjectId);
     this.loadCategories();
     this.loadUsers();
+    this.loadProjects();
 
     if (this.isEditMode && this.taskId) {
       this.loadTaskDetail(this.taskId);
     }
   }
 
-  buildForm(): void {
+  buildForm(defaultProjectId: string | null = null): void {
     this.form = this.fb.group({
       title: ['', [Validators.required, Validators.maxLength(128)]],
       description: [''],
       categoryId: ['', [Validators.required]],
+      projectId: [defaultProjectId || null],
       assigneeId: [null],
       priority: [1, [Validators.required]],
       status: [0, [Validators.required]],
@@ -79,6 +87,16 @@ export class TaskFormComponent implements OnInit {
     });
   }
 
+  loadProjects(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: this.projectApiUrl,
+    }).subscribe({
+      next: (res: any) => (this.projects = res.items || res || []),
+      error: () => (this.projects = [])
+    });
+  }
+
   loadTaskDetail(id: string): void {
     this.rest.request<any, any>({
       method: 'GET',
@@ -90,6 +108,7 @@ export class TaskFormComponent implements OnInit {
           title: res.title,
           description: res.description,
           categoryId: res.categoryId,
+          projectId: res.projectId,
           assigneeId: res.assigneeId,
           priority: res.priority ?? 1,
           status: res.status ?? 0,
@@ -151,6 +170,7 @@ export class TaskFormComponent implements OnInit {
       title: formVal.title,
       description: formVal.description,
       categoryId: formVal.categoryId,
+      projectId: formVal.projectId || null,
       assigneeId: formVal.assigneeId || null,
       priority: Number(formVal.priority),
       status: Number(formVal.status),

@@ -30,7 +30,8 @@ public class NotificationAppService : ApplicationService, INotificationAppServic
                 Id = x.Id,
                 Message = x.Message,
                 IsRead = x.IsRead,
-                CreationTime = x.CreationTime
+                CreationTime = x.CreationTime,
+                TaskId = x.TaskId 
             })];
     }
 

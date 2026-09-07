@@ -58,6 +58,7 @@ namespace TaskManagement;
     typeof(TaskManagementApplicationModule),
     typeof(TaskManagementEntityFrameworkCoreModule),
     typeof(AbpAccountWebOpenIddictModule),
+    typeof(AbpOpenIddictAspNetCoreModule),
     typeof(AbpSwashbuckleModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpBackgroundWorkersModule)
@@ -303,7 +304,6 @@ public class TaskManagementHttpApiHostModule : AbpModule
         });
 
         app.UseCors();
-        app.UseRouting();
 
         app.UseAbpRequestLocalization();
 
@@ -315,6 +315,9 @@ public class TaskManagementHttpApiHostModule : AbpModule
         app.MapAbpStaticAssets();
         app.UseAbpStudioLink();
         app.UseAbpSecurityHeaders();
+
+        app.UseRouting();
+
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
 
@@ -330,11 +333,12 @@ public class TaskManagementHttpApiHostModule : AbpModule
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
 
-        app.UseEndpoints(endpoints =>
+        app.UseConfiguredEndpoints(endpoints =>
         {
             endpoints.MapControllers();
             endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
-            endpoints.MapRazorPages(); // Bổ sung MapRazorPages để nhận diện trang Login/Account
+            endpoints.MapRazorPages();
+           
         });
 
         await context.AddBackgroundWorkerAsync<TaskOverdueBackgroundWorker>();

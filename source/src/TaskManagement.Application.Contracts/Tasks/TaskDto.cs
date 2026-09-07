@@ -22,6 +22,9 @@ public class TaskDto : AuditedEntityDto<Guid>
     public RecurrenceFrequency? Frequency { get; set; }
     public DateTime? LastGeneratedDate { get; set; }
 
+    public string? ProjectName { get; set; }
+    public Guid? ProjectId { get; set; }
+
     public string? SubmissionNote { get; set; }
     public List<TaskFileDto> SubmissionFiles { get; set; } = new();
   

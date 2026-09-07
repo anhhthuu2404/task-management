@@ -1,37 +1,39 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
 
-namespace TaskManagement.Hubs;
-
-[Authorize]
-public class TaskNotificationHub : Hub 
+namespace TaskManagement.Hubs
 {
-    public override async Task OnConnectedAsync()
+    [Authorize]
+    public class TaskNotificationHub : Hub
     {
-        var userId = Context.User?.FindFirst(Volo.Abp.Security.Claims.AbpClaimTypes.UserId)?.Value;
-        if (!string.IsNullOrEmpty(userId))
+        public override async Task OnConnectedAsync()
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId}");
+            var userId = Context.User?.FindFirst(Volo.Abp.Security.Claims.AbpClaimTypes.UserId)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId}");
+            }
+
+            await base.OnConnectedAsync();
         }
 
-        await base.OnConnectedAsync();
-    }
-
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        var userId = Context.User?.FindFirst(Volo.Abp.Security.Claims.AbpClaimTypes.UserId)?.Value;
-        if (!string.IsNullOrEmpty(userId))
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"User_{userId}");
+            var userId = Context.User?.FindFirst(Volo.Abp.Security.Claims.AbpClaimTypes.UserId)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"User_{userId}");
+            }
+
+            await base.OnDisconnectedAsync(exception);
         }
 
-        await base.OnDisconnectedAsync(exception);
-    }
-
-    public async Task SendMessage(string message)
-    {
-        await Clients.All.SendAsync("ReceiveMessage", message);
+        public async Task SendMessage(string message)
+        {
+            await Clients.All.SendAsync("ReceiveMessage", message);
+        }
     }
 }

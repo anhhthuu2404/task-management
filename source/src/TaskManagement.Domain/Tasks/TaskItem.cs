@@ -11,6 +11,8 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
 {
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
+
+    public Guid? ProjectId { get; set; }
     public TaskPriority Priority { get; set; }
     public TaskItemStatus Status { get; set; }
     public DateTime? DueDate { get; set; }

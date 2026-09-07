@@ -24,6 +24,8 @@ public class CreateTaskInputDto
 
     public Guid? AssigneeId { get; set; }
 
+    public Guid? ProjectId { get; set; }
+
     [Required]
     public int Priority { get; set; }
 

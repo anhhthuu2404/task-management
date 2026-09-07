@@ -20,7 +20,6 @@ namespace TaskManagement.Hubs
         {
             await base.OnConnectedAsync();
 
-            // Nếu user đã đăng nhập, tự động add connection này vào Group mang tên chính UserId của họ
             if (_currentUser.Id.HasValue)
             {
                 var userId = _currentUser.Id.Value.ToString();
@@ -37,6 +36,15 @@ namespace TaskManagement.Hubs
             }
 
             await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task SendNotification(string message, string? taskId = null)
+        {
+            if (_currentUser.Id.HasValue)
+            {
+                var userId = _currentUser.Id.Value.ToString();
+                await Clients.Group(userId).SendAsync("ReceiveNotification", message, taskId);
+            }
         }
     }
 }
