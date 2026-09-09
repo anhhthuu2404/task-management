@@ -66,7 +66,7 @@ export class ProjectService {
     this.restService.request<any, PagedResultDto<ProjectDto>>({
       method: 'GET',
       url: '/api/app/project',
-      params: { filter: input.filter, status: input.status, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+      params: { filter: input.filter, status: input.status, departmentId: input.departmentId, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
     },
     { apiName: this.apiName,...config });
   
@@ -74,13 +74,13 @@ export class ProjectService {
   getMembers = (projectId: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, ListResultDto<ProjectMemberDto>>({
       method: 'GET',
-      url: `/api/app/project/members/${projectId}`,
+      url: `/api/app/project/by-project/${projectId}/members`,
     },
     { apiName: this.apiName,...config });
   
 
-  getMilestones = (projectId: string, config?: Partial<Rest.Config>) =>
-    this.restService.request<any, ListResultDto<MilestoneDto>>({
+  getMilestonesByProject = (projectId: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, MilestoneDto[]>({
       method: 'GET',
       url: `/api/app/project/milestones/${projectId}`,
     },

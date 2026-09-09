@@ -88,7 +88,7 @@
           </select>
         </div>
 
-        <!-- Dự án (Đã tối ưu hóa hiển thị dữ liệu binding chuẩn LookUp DTO) -->
+        <!-- Dự án -->
         <div class="col-12 col-md-2">
           <select class="form-select" [(ngModel)]="filters.projectId" (change)="onSearch()">
             <option value="">-- Tất cả dự án --</option>
@@ -98,8 +98,18 @@
           </select>
         </div>
 
-        <!-- Trạng thái -->
+        <!-- Phòng ban -->
         <div class="col-12 col-md-2">
+          <select class="form-select" [(ngModel)]="filters.departmentId" (change)="onSearch()">
+            <option value="">-- Tất cả phòng ban --</option>
+            <option *ngFor="let dept of departments" [value]="dept.id || dept.value || dept.key">
+              {{ dept.name || dept.displayName || dept.title || 'Không rõ tên' }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Trạng thái -->
+        <div class="col-12 col-md-3">
           <select class="form-select" [(ngModel)]="filters.status" (change)="onSearch()">
             <option [ngValue]="null">-- Trạng thái --</option>
             <option [ngValue]="0">Mới</option>
@@ -180,6 +190,9 @@
                   {{ task.title }}
                 </a>
                 <div class="text-muted small text-truncate" style="max-width: 280px;" *ngIf="task.description">{{ task.description }}</div>
+                <div class="text-muted small" *ngIf="task.departmentName">
+                  <i class="bi bi-building me-1"></i>{{ task.departmentName }}
+                </div>
                 <div *ngIf="getFileList(task).length > 0" class="mt-1">
                   <a *ngFor="let file of getFileList(task)" [href]="file.url" target="_blank" class="badge bg-light text-dark border me-1 text-decoration-none">
                     <i class="bi bi-paperclip"></i> {{ file.name }}

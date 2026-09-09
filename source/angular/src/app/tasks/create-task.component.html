@@ -13,9 +13,9 @@
           class="form-control" 
           formControlName="title" 
           [class.is-invalid]="form.get('title')?.touched && form.get('title')?.invalid" 
+          placeholder="Nhập tiêu đề công việc..."
         />
-        <div class="invalid-feedback" *ngIf="form.get('title')?.hasError('required')">Tiêu đề không được để trống.</div>
-        <div class="invalid-feedback" *ngIf="form.get('title')?.hasError('maxlength')">Tiêu đề tối đa 128 ký tự.</div>
+        <div class="invalid-feedback">Tiêu đề không được để trống.</div>
       </div>
 
       <!-- Mô tả -->
@@ -36,37 +36,76 @@
             <option value="">-- Chọn danh mục --</option>
             <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
           </select>
-          <div class="invalid-feedback">Vui lòng chọn danh mục.</div>
+          <div class="invalid-feedback">Vوي lòng chọn danh mục.</div>
         </div>
 
-        <!-- Dự án (Tự động nhận diện hoặc chọn thủ công) -->
+        <!-- Dự án (Bắt buộc) -->
         <div class="col-md-6 mb-3">
-          <label class="form-label fw-semibold">Thuộc dự án</label>
-          <select class="form-select" formControlName="projectId">
-            <option [ngValue]="null">-- Không thuộc dự án nào --</option>
+          <label class="form-label required fw-semibold">Thuộc dự án</label>
+          <select 
+            class="form-select" 
+            formControlName="projectId"
+            [class.is-invalid]="form.get('projectId')?.touched && form.get('projectId')?.invalid"
+          >
+            <option [ngValue]="null">-- Chọn dự án --</option>
             <option *ngFor="let proj of projects" [value]="proj.id">{{ proj.name }}</option>
           </select>
+          <div class="invalid-feedback">Vui lòng chọn dự án để tiếp tục phân chia công việc.</div>
         </div>
       </div>
 
+      <!-- Phòng ban & Mốc tiến độ -->
       <div class="row">
-        <!-- Người thực hiện -->
         <div class="col-md-6 mb-3">
-          <label class="form-label fw-semibold">Người thực hiện</label>
-          <select class="form-select" formControlName="assigneeId">
-            <option [ngValue]="null">-- Chọn người thực hiện --</option>
-            <option *ngFor="let user of users" [value]="user.id">{{ user.name || user.userName }}</option>
+          <label class="form-label fw-semibold">Phòng ban</label>
+          <select class="form-select" formControlName="departmentId">
+            <option [ngValue]="null">-- Chọn phòng ban --</option>
+            <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.name }}</option>
           </select>
         </div>
 
-        <!-- Hạn hoàn thành -->
         <div class="col-md-6 mb-3">
-          <label class="form-label fw-semibold">Hạn hoàn thành</label>
-          <input type="date" class="form-control" formControlName="dueDate" [min]="minDate" />
+          <label class="form-label fw-semibold">Mốc tiến độ</label>
+          <select class="form-select" formControlName="milestoneId">
+            <option [ngValue]="null">-- Chọn mốc tiến độ --</option>
+            <option *ngFor="let m of milestones" [value]="m.id || m.Id">
+              {{ m.title || m.Title }}
+            </option>
+          </select>
+          <small class="form-text text-muted">Chọn mốc tiến độ sẽ tự động cập nhật hạn hoàn thành.</small>
         </div>
       </div>
 
+      <!-- Người thực hiện & Hạn hoàn thành -->
       <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label required fw-semibold">Người thực hiện</label>
+          <select 
+            class="form-select" 
+            formControlName="assigneeId"
+            [class.is-invalid]="form.get('assigneeId')?.touched && form.get('assigneeId')?.invalid"
+          >
+            <option [ngValue]="null">-- Chọn người thực hiện --</option>
+            <option *ngFor="let user of filteredUsers" [value]="user.id">
+              {{ user.name }}
+            </option>
+          </select>
+          <div class="invalid-feedback">Vui lòng chọn người thực hiện công việc.</div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label required fw-semibold">Hạn hoàn thành</label>
+          <input 
+            type="date" 
+            class="form-control" 
+            formControlName="dueDate" 
+            [min]="minDate"
+            [class.is-invalid]="form.get('dueDate')?.touched && form.get('dueDate')?.invalid"
+          />
+          <div class="invalid-feedback">Vui lòng chọn hạn hoàn thành.</div>
+        </div>
+      </div>
+        <div class="row">
         <!-- Mức độ ưu tiên -->
         <div class="col-md-6 mb-3">
           <label class="form-label required fw-semibold">Độ ưu tiên</label>

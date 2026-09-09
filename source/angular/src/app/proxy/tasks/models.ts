@@ -27,7 +27,9 @@ export interface CreateTaskInputDto {
   title: string;
   description?: string;
   categoryId: string;
+  departmentId?: string;
   assigneeId?: string;
+  projectId?: string;
   priority: number;
   status: number;
   dueDate?: string;
@@ -50,7 +52,9 @@ export interface GetTaskListInputDto extends PagedAndSortedResultRequestDto {
   keyword?: string;
   filter?: string;
   categoryId?: string;
+  departmentId?: string;
   assigneeId?: string;
+  projectId?: string;
   priority?: TaskPriority;
   status?: TaskItemStatus;
   onlyMyTasks?: boolean;
@@ -125,6 +129,9 @@ export interface TaskDto extends AuditedEntityDto<string> {
   isRecurring?: boolean;
   frequency?: RecurrenceFrequency;
   lastGeneratedDate?: string;
+  projectName?: string;
+  projectId?: string;
+  departmentId?: string;
   submissionNote?: string;
   submissionFiles?: TaskFileDto[];
 }
@@ -153,7 +160,9 @@ export interface UpdateTaskInputDto {
   priority: number;
   status: number;
   dueDate?: string;
+  departmentId?: string;
   attachments?: TaskAttachmentDto[];
+  projectId?: string;
   isRecurring?: boolean;
   frequency?: RecurrenceFrequency;
   lastGeneratedDate?: string;

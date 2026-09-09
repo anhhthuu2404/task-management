@@ -7,6 +7,7 @@ namespace TaskManagement.Projects
     public class Project : FullAuditedAggregateRoot<Guid>
     {
         public string Name { get; set; } = string.Empty;
+        public Guid? DepartmentId { get; set; }
         public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }

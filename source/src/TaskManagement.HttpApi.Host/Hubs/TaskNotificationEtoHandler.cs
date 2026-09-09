@@ -26,9 +26,9 @@ public class TaskNotificationEtoHandler :
             return;
         }
 
-      
+
         await _hubContext.Clients
-            .User(eventData.UserId.ToString())
-            .SendAsync("ReceiveNotification", eventData.Message, eventData.TaskId);
+            .Group(eventData.UserId.ToString())
+            .SendAsync("ReceiveNotification", eventData.Message, eventData.TaskId, eventData.CreationTime);
     }
 }

@@ -43,7 +43,16 @@ namespace TaskManagement.Hubs
             if (_currentUser.Id.HasValue)
             {
                 var userId = _currentUser.Id.Value.ToString();
-                await Clients.Group(userId).SendAsync("ReceiveNotification", message, taskId);
+
+                // Đóng gói đầy đủ thông tin bao gồm cả thời gian hiện tại
+                var notificationData = new
+                {
+                    message = message,
+                    taskId = taskId,
+                    creationTime = DateTime.UtcNow // Hoặc DateTime.Now tùy theo cấu hình múi giờ của bạn
+                };
+
+                await Clients.Group(userId).SendAsync("ReceiveNotification", notificationData);
             }
         }
     }

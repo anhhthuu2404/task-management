@@ -26,6 +26,8 @@ public class UpdateTaskInputDto
 
     public DateTime? DueDate { get; set; }
 
+    public Guid? DepartmentId { get; set; }
+
     public List<TaskAttachmentDto>? Attachments { get; set; }
 
     public Guid? ProjectId { get; set; }

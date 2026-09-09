@@ -8,11 +8,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TaskManagement.Permissions;
-using TaskManagement.Tasks.Dtos;
+using TaskManagement.Projects;
 using TaskManagement.TaskHistories;
-using TaskManagement.Projects; // Namespace chứa Project
+using TaskManagement.Tasks.Dtos;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Identity;
@@ -41,8 +42,6 @@ public class TaskAppService : CrudAppService<
     private readonly IRepository<TaskComment, Guid> _commentRepository;
     private readonly IRepository<Project, Guid> _projectRepository;
 
-
-
     public TaskAppService(
         IRepository<TaskItem, Guid> repository,
         IRepository<IdentityUser, Guid> userRepository,
@@ -51,7 +50,7 @@ public class TaskAppService : CrudAppService<
         IRepository<TaskChecklistItem, Guid> checklistItemRepository,
         IRepository<TaskActivityLog, Guid> activityLogRepository,
         IRepository<TaskComment, Guid> commentRepository,
-        IRepository<Project, Guid> projectRepository, // Khởi tạo projectRepository
+        IRepository<Project, Guid> projectRepository,
         IDistributedEventBus distributedEventBus)
         : base(repository)
     {
@@ -139,6 +138,7 @@ public class TaskAppService : CrudAppService<
             .WhereIf(input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty, x => x.CategoryId == input.CategoryId!.Value)
             .WhereIf(input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty, x => x.ProjectId == input.ProjectId!.Value)
             .WhereIf(input.AssigneeId.HasValue && input.AssigneeId.Value != Guid.Empty, x => x.AssigneeId == input.AssigneeId!.Value)
+            .WhereIf(input.DepartmentId.HasValue && input.DepartmentId.Value != Guid.Empty, x => x.DepartmentId == input.DepartmentId!.Value)
             .WhereIf(input.Priority.HasValue, x => x.Priority == input.Priority!.Value)
             .WhereIf(input.Status.HasValue, x => x.Status == input.Status!.Value)
             .WhereIf(input.OnlyMyTasks && currentUserId.HasValue, x => x.AssigneeId == currentUserId!.Value);
@@ -188,7 +188,6 @@ public class TaskAppService : CrudAppService<
         dto.FileName = entity.FileName;
         dto.FileUrl = entity.FileUrl;
 
-        // Lấy thông tin ProjectName cho TaskDetailDto nếu có
         if (entity.ProjectId.HasValue)
         {
             var project = await _projectRepository.FindAsync(entity.ProjectId.Value);
@@ -379,16 +378,27 @@ public class TaskAppService : CrudAppService<
     [UnitOfWork]
     public override async Task<TaskDto> CreateAsync(CreateTaskInputDto input)
     {
-        // === RÀNG BUỘC HẠN CHÓT CÔNG VIỆC SO VỚI DỰ ÁN ===
         if (input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty && input.DueDate.HasValue)
         {
             var project = await _projectRepository.FindAsync(input.ProjectId.Value);
-            if (project != null && project.EndDate.HasValue && input.DueDate.Value.Date > project.EndDate.Value.Date)
+            if (project != null && project.EndDate.HasValue)
             {
-                throw new UserFriendlyException($"Hạn chót của công việc không được lớn hơn ngày kết thúc của dự án ({project.EndDate.Value:dd/MM/yyyy})!");
+                if (input.DueDate.Value.Date > project.EndDate.Value.Date.AddDays(7))
+                {
+                    throw new UserFriendlyException($"Hạn chót của công việc không được lớn hơn quá 7 ngày so với ngày kết thúc của dự án ({project.EndDate.Value:dd/MM/yyyy})!");
+                }
             }
         }
-        // =================================================
+
+        // Tự động gán người thực hiện mặc định theo phòng ban (DepartmentId) nếu chưa chọn Assignee
+        if ((!input.AssigneeId.HasValue || input.AssigneeId.Value == Guid.Empty) && input.DepartmentId.HasValue && input.DepartmentId.Value != Guid.Empty)
+        {
+            var defaultUserInDept = await GetDefaultUserForDepartmentAsync(input.DepartmentId.Value);
+            if (defaultUserInDept.HasValue)
+            {
+                input.AssigneeId = defaultUserInDept;
+            }
+        }
 
         var entity = await MapToEntityAsync(input);
         entity.ProgressPercent = CalculateProgressByStatus(entity.Status, entity.ProgressPercent);
@@ -409,19 +419,34 @@ public class TaskAppService : CrudAppService<
         var entity = await GetEntityByIdAsync(id);
         var oldStatus = entity.Status;
 
-        // === RÀNG BUỘC HẠN CHÓT CÔNG VIỆC SO VỚI DỰ ÁN KHI CẬP NHẬT ===
         var targetProjectId = input.ProjectId ?? entity.ProjectId;
         var targetDueDate = input.DueDate ?? entity.DueDate;
 
         if (targetProjectId.HasValue && targetProjectId.Value != Guid.Empty && targetDueDate.HasValue)
         {
             var project = await _projectRepository.FindAsync(targetProjectId.Value);
-            if (project != null && project.EndDate.HasValue && targetDueDate.Value.Date > project.EndDate.Value.Date)
+            if (project != null && project.EndDate.HasValue)
             {
-                throw new UserFriendlyException($"Hạn chót của công việc không được lớn hơn ngày kết thúc của dự án ({project.EndDate.Value:dd/MM/yyyy})!");
+                if (targetDueDate.Value.Date > project.EndDate.Value.Date.AddDays(7))
+                {
+                    throw new UserFriendlyException($"Hạn chót của công việc không được lớn hơn quá 7 ngày so với ngày kết thúc của dự án ({project.EndDate.Value:dd/MM/yyyy})!");
+                }
             }
         }
-        // ===============================================================
+
+        // Tự động gán người thực hiện theo phòng ban nếu chưa có Assignee khi cập nhật
+        if ((!input.AssigneeId.HasValue || input.AssigneeId.Value == Guid.Empty) && (!entity.AssigneeId.HasValue || entity.AssigneeId.Value == Guid.Empty))
+        {
+            var targetDeptId = input.DepartmentId ?? entity.DepartmentId;
+            if (targetDeptId.HasValue && targetDeptId.Value != Guid.Empty)
+            {
+                var defaultUserInDept = await GetDefaultUserForDepartmentAsync(targetDeptId.Value);
+                if (defaultUserInDept.HasValue)
+                {
+                    input.AssigneeId = defaultUserInDept;
+                }
+            }
+        }
 
         await MapToEntityAsync(input, entity);
 
@@ -475,7 +500,6 @@ public class TaskAppService : CrudAppService<
     {
         var entity = await GetEntityByIdAsync(id);
 
-        // === RÀNG BUỘC KHI CẬP NHẬT LỊCH HẠN CHÓT ===
         if (entity.ProjectId.HasValue && entity.ProjectId.Value != Guid.Empty && input.DueDate.HasValue)
         {
             var project = await _projectRepository.FindAsync(entity.ProjectId.Value);
@@ -484,7 +508,6 @@ public class TaskAppService : CrudAppService<
                 throw new UserFriendlyException($"Hạn chót của công việc không được lớn hơn ngày kết thúc của dự án ({project.EndDate.Value:dd/MM/yyyy})!");
             }
         }
-        // ============================================
 
         entity.DueDate = input.DueDate;
 
@@ -1071,6 +1094,22 @@ public class TaskAppService : CrudAppService<
         return await Repository.GetAsync(id);
     }
 
+    private async Task<Guid?> GetDefaultUserForDepartmentAsync(Guid departmentId)
+    {
+        try
+        {
+            var userQuery = await _userRepository.GetQueryableAsync();
+            var user = await AsyncExecuter.FirstOrDefaultAsync(
+                userQuery.Where(u => u.GetProperty<Guid?>("DepartmentId") == departmentId)
+            );
+            return user?.Id;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private async Task GenerateNextRecurringTaskIfNeededAsync(TaskItem currentTask)
     {
         if (!currentTask.IsRecurring || !currentTask.DueDate.HasValue) return;
@@ -1095,6 +1134,7 @@ public class TaskAppService : CrudAppService<
                 Description = currentTask.Description,
                 CategoryId = currentTask.CategoryId,
                 AssigneeId = currentTask.AssigneeId,
+                DepartmentId = currentTask.DepartmentId,
                 Priority = currentTask.Priority,
                 Status = TaskItemStatus.New,
                 ProgressPercent = 0,
@@ -1116,7 +1156,6 @@ public class TaskAppService : CrudAppService<
         dto.FileName = entity.FileName;
         dto.FileUrl = entity.FileUrl;
 
-        // Bổ sung lấy ProjectName cho TaskDto đơn lẻ
         if (entity.ProjectId.HasValue)
         {
             var project = await _projectRepository.FindAsync(entity.ProjectId.Value);
@@ -1188,7 +1227,6 @@ public class TaskAppService : CrudAppService<
             dtos[i].FileUrl = entities[i].FileUrl;
         }
 
-        // Lấy danh sách ProjectId để truy vấn tên dự án hàng loạt tối ưu hiệu năng
         var projectIds = entities
             .Where(x => x.ProjectId.HasValue && x.ProjectId.Value != Guid.Empty)
             .Select(x => x.ProjectId!.Value)
@@ -1406,7 +1444,7 @@ public class TaskAppService : CrudAppService<
             }
             catch
             {
-                // Nuốt lỗi ngầm để tránh gián đoạn luồng chính của ứng dụng
+                // Xử lý bắt ngoại lệ ngầm để không làm gián đoạn luồng nghiệp vụ chính
             }
         }
     }

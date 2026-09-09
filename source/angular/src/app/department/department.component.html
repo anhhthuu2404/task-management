@@ -124,8 +124,14 @@
           <input type="text" class="form-control" [value]="parentDepartmentName" disabled />
         </div>
         <div class="mb-3">
-          <label class="form-label required">Mã phòng ban</label>
-          <input type="text" class="form-control" [(ngModel)]="formData.code" name="code" required />
+          <label class="form-label required">Mã phòng ban (Ánh xạ Role)</label>
+          <select class="form-select" [(ngModel)]="formData.code" name="code" required>
+            <option value="">-- Chọn vai trò hệ thống tương ứng --</option>
+            <option *ngFor="let role of availableRoles" [value]="role.name">
+              {{ role.name }}
+            </option>
+          </select>
+          <small class="text-muted">Hệ thống sẽ tự động gán vai trò này cho nhân sự khi vào phòng ban.</small>
         </div>
         <div class="mb-3">
           <label class="form-label required">Tên phòng ban</label>

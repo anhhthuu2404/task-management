@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using TaskManagement.Localization;
 using TaskManagement.Permissions;
 using Volo.Abp.Application.Services;
@@ -20,16 +21,22 @@ public class DepartmentAppService : CrudAppService<
     CreateUpdateDepartmentDto>, IDepartmentAppService
 {
     private readonly IRepository<UserDepartment> _userDepartmentRepository;
-    private readonly IRepository<IdentityUser, Guid> _userRepository;
+    private readonly IRepository<Volo.Abp.Identity.IdentityUser, Guid> _userRepository;
+    private readonly IdentityUserManager _userManager;
+    private readonly IdentityRoleManager _roleManager;
 
     public DepartmentAppService(
         IRepository<Department, Guid> repository,
         IRepository<UserDepartment> userDepartmentRepository,
-        IRepository<IdentityUser, Guid> userRepository)
+        IRepository<Volo.Abp.Identity.IdentityUser, Guid> userRepository,
+        IdentityUserManager userManager,
+        IdentityRoleManager roleManager)
         : base(repository)
     {
         _userDepartmentRepository = userDepartmentRepository;
         _userRepository = userRepository;
+        _userManager = userManager;
+        _roleManager = roleManager;
 
         LocalizationResource = typeof(TaskManagementResource);
         GetPolicyName = TaskManagementPermissions.Departments.Default;
@@ -58,7 +65,7 @@ public class DepartmentAppService : CrudAppService<
             IsDeleted = department.IsDeleted,
             DeleterId = department.DeleterId,
             DeletionTime = department.DeletionTime,
-            Members = new List<DepartmentMemberDto>()
+            Members = []
         };
 
         var query = from userDept in await _userDepartmentRepository.GetQueryableAsync()
@@ -112,6 +119,21 @@ public class DepartmentAppService : CrudAppService<
 
         return BuildTree(null);
     }
+    public async Task<List<DepartmentMemberDto>> GetUsersAsync(Guid id)
+    {
+        var query = from userDept in await _userDepartmentRepository.GetQueryableAsync()
+                    join user in await _userRepository.GetQueryableAsync() on userDept.UserId equals user.Id
+                    where userDept.DepartmentId == id
+                    select new DepartmentMemberDto
+                    {
+                        UserId = user.Id,
+                        UserName = user.UserName ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
+                        IsManager = userDept.IsManager
+                    };
+
+        return await AsyncExecuter.ToListAsync(query);
+    }
 
     public async Task AssignUserAsync(AssignUserToDepartmentDto input)
     {
@@ -131,6 +153,20 @@ public class DepartmentAppService : CrudAppService<
             existing.IsManager = input.IsManager;
             await _userDepartmentRepository.UpdateAsync(existing);
         }
+
+        var user = await _userManager.FindByIdAsync(input.UserId.ToString());
+        var department = await Repository.GetAsync(input.DepartmentId);
+
+        if (user != null && department != null && !string.IsNullOrWhiteSpace(department.Code))
+        {
+            string roleName = department.Code.Trim();
+            var roleExists = await _roleManager.RoleExistsAsync(roleName);
+
+            if (roleExists && !await _userManager.IsInRoleAsync(user, roleName))
+            {
+                await _userManager.AddToRoleAsync(user, roleName);
+            }
+        }
     }
 
     public async Task DeleteUserAsync(Guid departmentId, Guid userId)
@@ -139,6 +175,18 @@ public class DepartmentAppService : CrudAppService<
         if (existing != null)
         {
             await _userDepartmentRepository.DeleteAsync(existing);
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            var department = await Repository.GetAsync(departmentId);
+
+            if (user != null && department != null && !string.IsNullOrWhiteSpace(department.Code))
+            {
+                string roleName = department.Code.Trim();
+                if (await _userManager.IsInRoleAsync(user, roleName))
+                {
+                    await _userManager.RemoveFromRoleAsync(user, roleName);
+                }
+            }
         }
     }
 }

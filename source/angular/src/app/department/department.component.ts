@@ -20,6 +20,12 @@ export interface IdentityUserDto {
   surname?: string;
 }
 
+export interface IdentityRoleDto {
+  id: string;
+  name: string;
+  isDefault?: boolean;
+}
+
 @Component({
   selector: 'app-department',
   standalone: true,
@@ -42,6 +48,7 @@ export class DepartmentComponent implements OnInit {
 
   isAssignModalOpen = false;
   availableUsers: IdentityUserDto[] = [];
+  availableRoles: IdentityRoleDto[] = [];
   assignData: AssignUserToDepartmentDto = { userId: '', departmentId: '', isManager: false };
 
   ngOnInit(): void {
@@ -112,7 +119,27 @@ export class DepartmentComponent implements OnInit {
     return null;
   }
 
-  openCreateModal(parentId?: string | null): void {
+  private loadRoles(): Promise<void> {
+    return new Promise((resolve) => {
+      this.restService.request<{ items: IdentityRoleDto[] }, any>({
+        method: 'GET',
+        url: '/api/identity/roles',
+        params: { maxResultCount: '100' }
+      }, { apiName: 'default' }).subscribe({
+        next: (res) => {
+          this.availableRoles = res.items || [];
+          resolve();
+        },
+        error: (err) => {
+          console.error('Không thể tải danh sách vai trò', err);
+          resolve();
+        }
+      });
+    });
+  }
+
+  async openCreateModal(parentId?: string | null): Promise<void> {
+    await this.loadRoles();
     this.isEditMode = false;
     this.formData = { code: '', name: '', description: '', parentId: parentId ?? undefined, isActive: true };
     
@@ -126,7 +153,8 @@ export class DepartmentComponent implements OnInit {
     this.isModalOpen = true;
   }
 
-  openEditModal(node: DepartmentTreeDto): void {
+  async openEditModal(node: DepartmentTreeDto): Promise<void> {
+    await this.loadRoles();
     this.isEditMode = true;
     this.selectedDepartment = node;
     this.formData = {
@@ -180,23 +208,68 @@ export class DepartmentComponent implements OnInit {
     this.isModalOpen = false;
   }
 
-  openAssignModal(): void {
-    if (!this.selectedDepartment) return;
-    this.assignData = { userId: '', departmentId: this.selectedDepartment.id, isManager: false };
+  async openAssignModal(): Promise<void> {
+    if (!this.selectedDepartment || !this.selectedDepartment.code) {
+      this.noti.warn('Phòng ban này chưa có mã (Role Code) để lọc nhân sự!');
+      return;
+    }
 
-    this.restService.request<{ items: IdentityUserDto[] }, any>({
-      method: 'GET',
-      url: '/api/identity/users',
-      params: { maxResultCount: '100' }
-    }, { apiName: 'default' }).subscribe({
-      next: (res) => {
-        this.availableUsers = res.items || [];
-        this.isAssignModalOpen = true;
-      },
-      error: (err) => {
-        this.noti.error(err.error?.error?.message || 'Không thể tải danh sách người dùng!');
+    this.assignData = { userId: '', departmentId: this.selectedDepartment.id, isManager: false };
+    const roleName = this.selectedDepartment.code.trim();
+
+    try {
+      // 1. Lấy danh sách roles hệ thống
+      const roleRes: any = await this.restService.request({
+        method: 'GET',
+        url: '/api/identity/roles',
+        params: { maxResultCount: '100' }
+      }, { apiName: 'default' }).toPromise();
+
+      const targetRole = (roleRes?.items || []).find((r: IdentityRoleDto) => r.name === roleName);
+      
+      if (!targetRole) {
+        this.noti.warn(`Không tìm thấy vai trò hệ thống có mã/tên là "${roleName}"!`);
+        this.availableUsers = [];
+        return;
       }
-    });
+
+      // 2. Lấy toàn bộ danh sách user của hệ thống
+      const userRes: any = await this.restService.request({
+        method: 'GET',
+        url: '/api/identity/users',
+        params: { maxResultCount: '100' }
+      }, { apiName: 'default' }).toPromise();
+
+      const allUsers: IdentityUserDto[] = userRes?.items || [];
+      const filteredUsers: IdentityUserDto[] = [];
+
+      // 3. Kiểm tra từng user xem có thuộc đúng role này hay không bằng API chuẩn ABP
+      for (const user of allUsers) {
+        try {
+          const rolesRes: any = await this.restService.request({
+            method: 'GET',
+            url: `/api/identity/users/${user.id}/roles`
+          }, { apiName: 'default' }).toPromise();
+
+          const userRoles = rolesRes?.items || rolesRes || [];
+          const isInRole = userRoles.some((r: any) => (typeof r === 'string' ? r === roleName : r.name === roleName));
+
+          if (isInRole) {
+            filteredUsers.push(user);
+          }
+        } catch (e) {
+          // Bỏ qua nếu lỗi request ngầm của user lẻ
+        }
+      }
+
+      // 4. Loại bỏ những người dùng đã nằm sẵn trong phòng ban này
+      const currentMemberIds = (this.selectedDepartment?.members || []).map((m: any) => m.userId);
+      this.availableUsers = filteredUsers.filter((u: IdentityUserDto) => !currentMemberIds.includes(u.id));
+      
+      this.isAssignModalOpen = true;
+    } catch (err: any) {
+      this.noti.error(err?.error?.error?.message || 'Không thể tải danh sách người dùng theo vai trò!');
+    }
   }
 
   saveAssignUser(): void {

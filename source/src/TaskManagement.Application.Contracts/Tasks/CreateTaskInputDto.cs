@@ -21,6 +21,7 @@ public class CreateTaskInputDto
 
     [Required]
     public Guid CategoryId { get; set; }
+    public Guid? DepartmentId { get; set; }
 
     public Guid? AssigneeId { get; set; }
 

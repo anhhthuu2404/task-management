@@ -125,7 +125,7 @@ export class TaskService {
     this.restService.request<any, PagedResultDto<TaskDto>>({
       method: 'GET',
       url: '/api/app/task',
-      params: { keyword: input.keyword, filter: input.filter, categoryId: input.categoryId, assigneeId: input.assigneeId, priority: input.priority, status: input.status, onlyMyTasks: input.onlyMyTasks, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+      params: { keyword: input.keyword, filter: input.filter, categoryId: input.categoryId, departmentId: input.departmentId, assigneeId: input.assigneeId, projectId: input.projectId, priority: input.priority, status: input.status, onlyMyTasks: input.onlyMyTasks, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
     },
     { apiName: this.apiName,...config });
   

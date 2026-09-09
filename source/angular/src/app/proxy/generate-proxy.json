@@ -2930,7 +2930,7 @@
               "name": "IProjectAppService",
               "methods": [
                 {
-                  "name": "GetMilestonesAsync",
+                  "name": "GetMilestonesByProjectAsync",
                   "parametersOnMethod": [
                     {
                       "name": "projectId",
@@ -2942,8 +2942,8 @@
                     }
                   ],
                   "returnValue": {
-                    "type": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>",
-                    "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>"
+                    "type": "System.Collections.Generic.List<TaskManagement.Projects.MilestoneDto>",
+                    "typeSimple": "[TaskManagement.Projects.MilestoneDto]"
                   }
                 },
                 {
@@ -3144,9 +3144,9 @@
             }
           ],
           "actions": {
-            "GetMilestonesAsyncByProjectId": {
-              "uniqueName": "GetMilestonesAsyncByProjectId",
-              "name": "GetMilestonesAsync",
+            "GetMilestonesByProjectAsyncByProjectId": {
+              "uniqueName": "GetMilestonesByProjectAsyncByProjectId",
+              "name": "GetMilestonesByProjectAsync",
               "httpMethod": "GET",
               "url": "api/app/project/milestones/{projectId}",
               "supportedVersions": [],
@@ -3175,8 +3175,8 @@
                 }
               ],
               "returnValue": {
-                "type": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>",
-                "typeSimple": "Volo.Abp.Application.Dtos.ListResultDto<TaskManagement.Projects.MilestoneDto>"
+                "type": "System.Collections.Generic.List<TaskManagement.Projects.MilestoneDto>",
+                "typeSimple": "[TaskManagement.Projects.MilestoneDto]"
               },
               "allowAnonymous": null,
               "implementFrom": "TaskManagement.Projects.IProjectAppService"
@@ -3279,7 +3279,7 @@
               "uniqueName": "GetMembersAsyncByProjectId",
               "name": "GetMembersAsync",
               "httpMethod": "GET",
-              "url": "api/app/project/members/{projectId}",
+              "url": "api/app/project/by-project/{projectId}/members",
               "supportedVersions": [],
               "parametersOnMethod": [
                 {
@@ -3609,6 +3609,18 @@
                   "jsonName": null,
                   "type": "System.String",
                   "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "DepartmentId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
                   "isOptional": false,
                   "defaultValue": null,
                   "constraintTypes": null,
@@ -6279,7 +6291,31 @@
                 },
                 {
                   "nameOnMethod": "input",
+                  "name": "DepartmentId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
                   "name": "AssigneeId",
+                  "jsonName": null,
+                  "type": "System.Guid?",
+                  "typeSimple": "string?",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": null,
+                  "bindingSourceId": "ModelBinding",
+                  "descriptorName": "input"
+                },
+                {
+                  "nameOnMethod": "input",
+                  "name": "ProjectId",
                   "jsonName": null,
                   "type": "System.Guid?",
                   "typeSimple": "string?",
@@ -11456,6 +11492,18 @@
           "regex": null
         },
         {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "Status",
           "jsonName": null,
           "type": "System.String",
@@ -11634,6 +11682,30 @@
           "regex": null
         },
         {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DepartmentName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "MemberCount",
           "jsonName": null,
           "type": "System.Int32",
@@ -11689,6 +11761,18 @@
           "minimum": null,
           "maximum": null,
           "regex": null
+        },
+        {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
         }
       ]
     },
@@ -11737,6 +11821,42 @@
         },
         {
           "name": "Role",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Name",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Surname",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "Email",
           "jsonName": null,
           "type": "System.String",
           "typeSimple": "string",
@@ -12756,7 +12876,31 @@
           "regex": null
         },
         {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "AssigneeId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "ProjectId",
           "jsonName": null,
           "type": "System.Guid?",
           "typeSimple": "string?",
@@ -12984,7 +13128,31 @@
           "regex": null
         },
         {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "AssigneeId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "ProjectId",
           "jsonName": null,
           "type": "System.Guid?",
           "typeSimple": "string?",
@@ -13684,6 +13852,42 @@
           "regex": null
         },
         {
+          "name": "ProjectName",
+          "jsonName": null,
+          "type": "System.String",
+          "typeSimple": "string",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "ProjectId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "SubmissionNote",
           "jsonName": null,
           "type": "System.String",
@@ -13952,10 +14156,34 @@
           "regex": null
         },
         {
+          "name": "DepartmentId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
           "name": "Attachments",
           "jsonName": null,
           "type": "[TaskManagement.Tasks.TaskAttachmentDto]",
           "typeSimple": "[TaskManagement.Tasks.TaskAttachmentDto]",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "ProjectId",
+          "jsonName": null,
+          "type": "System.Guid?",
+          "typeSimple": "string?",
           "isRequired": false,
           "minLength": null,
           "maxLength": null,

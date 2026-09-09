@@ -1,198 +1,196 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { ToasterService } from '@abp/ng.theme.shared';
-import { RestService } from '@abp/ng.core';
-
-interface FileAttachment {
-  fileName: string;
-  fileContent: string;
-}
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { ProjectService } from '@proxy/projects';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-create-task',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './create-task.component.html'
 })
 export class CreateTaskComponent implements OnInit {
-  private readonly fb = inject(FormBuilder);
-  private readonly rest = inject(RestService);
-  private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
-  private readonly toaster = inject(ToasterService);
-
-  readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-  readonly ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg', 'xlsx'];
-
-  form!: FormGroup;
-  selectedFiles: File[] = [];
-  attachments: FileAttachment[] = [];
-  uploadProgress = 0;
-  isSubmitting = false;
-  minDate: string = new Date().toISOString().split('T')[0];
+  private fb = inject(FormBuilder);
+  private httpClient = inject(HttpClient);
+  private projectService = inject(ProjectService);
+  private router = inject(Router);
 
   categories: any[] = [];
+  projects: any[] = [];
+  departments: any[] = [];
   users: any[] = [];
-  projects: any[] = []; // Thêm danh sách dự án
+  milestones: any[] = [];       
+  filteredUsers: any[] = [];    
+  selectedFiles: File[] = [];
+  
+  isSubmitting = false;
+  uploadProgress = 0;
+  minDate = new Date().toISOString().split('T')[0];
+
+  form: FormGroup = this.fb.group({
+    title: ['', [Validators.required, Validators.maxLength(128)]],
+    description: [''],
+    categoryId: ['', Validators.required],
+    projectId: [null, Validators.required],
+    departmentId: [null],
+    milestoneId: [null], 
+    assigneeId: [null, Validators.required],
+    dueDate: [null, Validators.required],
+    priority: [1, Validators.required], 
+    status: [0, Validators.required],    
+    isRecurring: [false],
+    frequency: [0]
+  });
 
   ngOnInit(): void {
-    this.buildForm();
     this.loadCategories();
-    this.loadUsers();
-    this.loadProjects(); // Gọi load danh sách dự án
+    this.loadProjects();
+    this.loadDepartments();
 
-    // Đọc projectId từ queryParams nếu bấm từ trang Quản lý dự án sang
-    this.route.queryParams.subscribe(params => {
-      if (params['projectId']) {
-        this.form.patchValue({
-          projectId: params['projectId']
-        });
+    this.form.get('projectId')?.valueChanges.subscribe(projectId => {
+      this.form.patchValue({ assigneeId: null, milestoneId: null, dueDate: null }, { emitEvent: false });
+      this.milestones = [];
+      this.users = [];
+      this.filteredUsers = [];
+
+      if (projectId) {
+        this.loadProjectMembers(projectId);
+        this.loadProjectMilestones(projectId);
       }
     });
-  }
 
-  buildForm(): void {
-    this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.maxLength(128)]],
-      description: [''],
-      categoryId: ['', [Validators.required]],
-      projectId: [null], // Bổ sung trường projectId vào form
-      assigneeId: [null],
-      priority: [1, [Validators.required]],
-      status: [0, [Validators.required]],
-      dueDate: [null],
-      isRecurring: [false], 
-      frequency: [0],      
+    this.form.get('milestoneId')?.valueChanges.subscribe(milestoneId => {
+      this.form.patchValue({ assigneeId: null }, { emitEvent: false });
+      this.filterUsersByMilestone(milestoneId);
+      this.updateDueDateFromMilestone(milestoneId);
     });
   }
 
   loadCategories(): void {
-    this.rest.request<any, any>({
-      method: 'GET',
-      url: '/api/app/category',
-    }).subscribe({
-      next: (res: any) => (this.categories = res.items || res || []),
-      error: () => (this.categories = [])
-    });
-  }
-
-  loadUsers(): void {
-    this.rest.request<any, any>({
-      method: 'GET',
-      url: '/api/identity/users',
-    }).subscribe({
-      next: (res: any) => (this.users = res.items || res || []),
-      error: () => (this.users = [])
+    this.httpClient.get<any>('/api/app/category').subscribe({
+      next: (res: any) => {
+        this.categories = Array.isArray(res) ? res : (res?.items || res?.result || []);
+      },
+      error: (err) => console.error('Lỗi tải danh mục:', err)
     });
   }
 
   loadProjects(): void {
-    this.rest.request<any, any>({
-      method: 'GET',
-      url: '/api/app/project',
-      params: { maxResultCount: 100 }
-    }).subscribe({
-      next: (res: any) => (this.projects = Array.isArray(res) ? res : (res?.items || res?.result || [])),
-      error: () => (this.projects = [])
+    this.projectService.getList({ maxResultCount: 100, skipCount: 0 }).subscribe({
+      next: (res: any) => {
+        const data = res as { items?: any[] } | any[];
+        this.projects = Array.isArray(data) ? data : (data?.items || []);
+      },
+      error: (err) => console.error('Lỗi tải dự án:', err)
     });
   }
 
-  onFileSelect(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-
-    const newFiles: File[] = [];
-
-    Array.from(input.files).forEach(file => {
-      const ext = file.name.split('.').pop()?.toLowerCase() || '';
-
-      if (!this.ALLOWED_EXTENSIONS.includes(ext)) {
-        this.toaster.warn(`File "${file.name}" không đúng định dạng cho phép.`);
-        return;
-      }
-
-      if (file.size > this.MAX_FILE_SIZE) {
-        this.toaster.warn(`File "${file.name}" vượt quá dung lượng 10MB.`);
-        return;
-      }
-
-      newFiles.push(file);
+  loadDepartments(): void {
+    this.httpClient.get<any>('/api/app/department').subscribe({
+      next: (res: any) => {
+        this.departments = Array.isArray(res) ? res : (res?.items || res?.result || []);
+      },
+      error: (err) => console.error('Lỗi tải phòng ban:', err)
     });
+  }
 
-    this.selectedFiles = [...this.selectedFiles, ...newFiles];
-    this.processFilesToBase64();
-    input.value = '';
+  loadProjectMembers(projectId: string): void {
+    this.httpClient.get<any>(`/api/app/project/by-project/${projectId}/members`).subscribe({
+      next: (res: any) => {
+        const rawMembers = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        this.users = rawMembers.map((m: any) => {
+          const userObj = m.user || m.appUser || m;
+          return {
+            id: userObj.userId || userObj.UserId || userObj.id || userObj.Id || m.userId || m.id,
+            name: userObj.userName || userObj.UserName || userObj.fullName || userObj.FullName || userObj.name || userObj.Name || 'Thành viên'
+          };
+        });
+        this.filteredUsers = [...this.users];
+      },
+      error: (err) => {
+        console.error('Lỗi tải thành viên dự án:', err);
+        this.users = [];
+        this.filteredUsers = [];
+      }
+    });
+  }
+
+  loadProjectMilestones(projectId: string): void {
+    this.httpClient.get<any>(`/api/app/project/milestones/${projectId}`).subscribe({
+      next: (res: any) => {
+        this.milestones = Array.isArray(res) ? res : (res?.items || res?.result || []);
+      },
+      error: (err) => console.error('Lỗi tải mốc tiến độ:', err)
+    });
+  }
+
+  filterUsersByMilestone(milestoneId: string): void {
+    if (!milestoneId) {
+      this.filteredUsers = [...this.users];
+      return;
+    }
+
+    const selectedMilestone = this.milestones.find(m => (m.id || m.Id) === milestoneId);
+    if (selectedMilestone && (selectedMilestone.assigneeUserId || selectedMilestone.AssigneeUserId)) {
+      const assignedUserId = selectedMilestone.assigneeUserId || selectedMilestone.AssigneeUserId;
+      this.filteredUsers = this.users.filter(u => u.id === assignedUserId);
+    } else {
+      this.filteredUsers = [...this.users];
+    }
+  }
+
+  private updateDueDateFromMilestone(milestoneId: string): void {
+    if (!milestoneId) return;
+
+    const selectedMilestone = this.milestones.find(m => (m.id || m.Id) === milestoneId);
+    if (selectedMilestone) {
+      const rawDate = selectedMilestone.dueDate || selectedMilestone.DueDate;
+      if (rawDate) {
+        const formattedDate = new Date(rawDate).toISOString().split('T')[0];
+        this.form.patchValue({ dueDate: formattedDate }, { emitEvent: false });
+      }
+    }
+  }
+
+  onFileSelect(event: any): void {
+    const files: FileList = event.target.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        this.selectedFiles.push(files[i]);
+      }
+    }
   }
 
   removeFile(index: number): void {
     this.selectedFiles.splice(index, 1);
-    this.processFilesToBase64();
-  }
-
-  processFilesToBase64(): void {
-    this.attachments = [];
-    if (this.selectedFiles.length === 0) {
-      this.uploadProgress = 0;
-      return;
-    }
-
-    let processedCount = 0;
-    this.uploadProgress = 10;
-
-    this.selectedFiles.forEach(file => {
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1] || result;
-        this.attachments.push({
-          fileName: file.name,
-          fileContent: base64
-        });
-
-        processedCount++;
-        this.uploadProgress = Math.round((processedCount / this.selectedFiles.length) * 100);
-      };
-
-      reader.readAsDataURL(file);
-    });
-  }
-
-  onCancel(): void {
-    this.router.navigate(['/tasks']);
   }
 
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      alert('Vui lòng điền đầy đủ thông tin bắt buộc trước khi lưu!');
       return;
     }
 
     this.isSubmitting = true;
+    const formValues = this.form.value;
 
-    const dto = {
-      ...this.form.value,
-      priority: Number(this.form.value.priority),
-      status: Number(this.form.value.status),
-      frequency: Number(this.form.value.frequency),
-      attachments: this.attachments
-    };
-
-    this.rest.request<any, any>({
-      method: 'POST',
-      url: '/api/app/task',
-      body: dto,
-    }).subscribe({
+    this.httpClient.post('/api/app/task', formValues).subscribe({
       next: () => {
-        this.toaster.success('Tạo mới công việc thành công!');
+        this.isSubmitting = false;
+        alert('Tạo công việc thành công!');
         this.router.navigate(['/tasks']);
       },
-      error: (err: any) => {
+      error: (err) => {
         this.isSubmitting = false;
-        this.toaster.error(err?.error?.error?.message || 'Đã có lỗi xảy ra khi tạo mới.');
+        console.error('Lỗi khi lưu công việc:', err);
       }
     });
+  }
+
+  onCancel(): void {
+    this.router.navigate(['/tasks']);
   }
 }

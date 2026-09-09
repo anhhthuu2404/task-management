@@ -11,6 +11,8 @@ namespace TaskManagement.Projects
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
+        public Guid? DepartmentId { get; set; }
+        public string DepartmentName { get; set; }
 
         public int MemberCount { get; set; }
         public int MilestoneCount { get; set; }
@@ -22,6 +24,7 @@ namespace TaskManagement.Projects
         public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public Guid? DepartmentId { get; set; }
         public string Status { get; set; } = "Active";
     }
 
@@ -29,6 +32,7 @@ namespace TaskManagement.Projects
     {
         public string? Filter { get; set; }
         public string? Status { get; set; }
+        public Guid? DepartmentId { get; set; }
     }
 
     public class MilestoneDto : EntityDto<Guid>
@@ -54,8 +58,11 @@ namespace TaskManagement.Projects
     {
         public Guid ProjectId { get; set; }
         public Guid UserId { get; set; }
-        public string UserName { get; set; } = string.Empty;
+        public string? UserName { get; set; }
         public string Role { get; set; } = string.Empty;
+        public string? Name { get; set; }
+        public string? Surname { get; set; }
+        public string? Email { get; set; }
     }
 
     public class AddProjectMemberDto

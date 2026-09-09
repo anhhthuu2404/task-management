@@ -19,6 +19,7 @@ export interface CreateUpdateProjectDto {
   description?: string;
   startDate?: string;
   endDate?: string;
+  departmentId?: string;
   status?: string;
 }
 
@@ -37,6 +38,8 @@ export interface ProjectDto extends FullAuditedEntityDto<string> {
   startDate?: string;
   endDate?: string;
   status?: string;
+  departmentId?: string;
+  departmentName?: string;
   memberCount?: number;
   milestoneCount?: number;
 }
@@ -44,6 +47,7 @@ export interface ProjectDto extends FullAuditedEntityDto<string> {
 export interface ProjectListFilterDto extends PagedAndSortedResultRequestDto {
   filter?: string;
   status?: string;
+  departmentId?: string;
 }
 
 export interface ProjectMemberDto extends EntityDto<string> {
@@ -51,4 +55,7 @@ export interface ProjectMemberDto extends EntityDto<string> {
   userId?: string;
   userName?: string;
   role?: string;
+  name?: string;
+  surname?: string;
+  email?: string;
 }

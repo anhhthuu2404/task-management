@@ -17,6 +17,8 @@ export interface TaskDto {
   projectName?: string;
   assigneeId?: string;
   assigneeName?: string;
+  departmentId?: string;    // <-- BỔ SUNG: ID phòng ban
+  departmentName?: string;  // <-- BỔ SUNG: Tên phòng ban
   priority: number;
   status: number;
   progressPercent: number;
@@ -99,6 +101,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
     categoryId: '',
     assigneeId: '',
     projectId: '', 
+    departmentId: '', // <-- BỔ SUNG: Tham số lọc theo phòng ban
     priority: null as number | null,
     status: null as number | null,
     onlyMyTasks: false,
@@ -111,25 +114,26 @@ export class TaskListComponent implements OnInit, OnDestroy {
   categories: any[] = [];
   projects: any[] = [];
   users: any[] = [];
+  departments: any[] = []; // <-- BỔ SUNG: Mảng lưu danh sách phòng ban
 
   readonly canCreate = this.permission.getGrantedPolicy('TaskManagement.Tasks.Create');
   readonly canEdit = this.permission.getGrantedPolicy('TaskManagement.Tasks.Edit');
   readonly canDelete = this.permission.getGrantedPolicy('TaskManagement.Tasks.Delete');
 
   ngOnInit(): void {
-    // Lắng nghe queryParams để cập nhật projectId từ trang Dự án hoặc các module khác
-   this.route.queryParams.subscribe(params => {
-  if (params['projectId']) {
-    this.filters.projectId = params['projectId'];
-  } else {
-    this.filters.projectId = '';
-  }
-  this.fetchTasks();
-});
+    this.route.queryParams.subscribe(params => {
+      if (params['projectId']) {
+        this.filters.projectId = params['projectId'];
+      } else {
+        this.filters.projectId = '';
+      }
+      this.fetchTasks();
+    });
 
     this.loadCategories();
     this.loadProjects();
     this.loadUsers();
+    this.loadDepartments(); // <-- BỔ SUNG: Gọi load danh sách phòng ban khi khởi tạo
 
     this.notificationSub = this.notificationService.notifications$.subscribe(incoming => {
       this.zone.run(() => {
@@ -220,7 +224,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (res: any) => {
         this.projects = Array.isArray(res) ? res : (res?.items || res?.result || []);
-        this.cdr.detectChanges(); // Ép giao diện render lại dữ liệu mới nhận
+        this.cdr.detectChanges();
       },
       error: () => { 
         this.projects = []; 
@@ -237,6 +241,22 @@ export class TaskListComponent implements OnInit, OnDestroy {
         this.users = Array.isArray(res) ? res : (res?.items || res?.result || []); 
       },
       error: () => {}
+    });
+  }
+
+  // --- BỔ SUNG HÀM TẢI DANH SÁCH PHÒNG BAN ---
+  loadDepartments(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/department'
+    }).subscribe({
+      next: (res: any) => {
+        this.departments = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.departments = [];
+      }
     });
   }
 
@@ -307,7 +327,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.fetchTasks();
   }
 
-  // Phương thức xóa bộ lọc dự án và quay lại xem toàn bộ danh sách công việc
   clearProjectFilter(): void {
     this.filters.projectId = '';
     this.router.navigate(['/tasks'], { queryParams: {} });

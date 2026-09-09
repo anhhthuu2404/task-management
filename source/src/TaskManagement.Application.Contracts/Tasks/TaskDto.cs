@@ -24,6 +24,7 @@ public class TaskDto : AuditedEntityDto<Guid>
 
     public string? ProjectName { get; set; }
     public Guid? ProjectId { get; set; }
+    public Guid? DepartmentId { get; set; }
 
     public string? SubmissionNote { get; set; }
     public List<TaskFileDto> SubmissionFiles { get; set; } = new();

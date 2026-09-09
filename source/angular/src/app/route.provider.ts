@@ -23,7 +23,6 @@ function configureRoutes() {
       iconClass: 'fas fa-folder',
       order: 2,
       layout: eLayoutType.application,
-      requiredPolicy: 'TaskManagement.Categories',
     },
     {
       path: '/tags',
@@ -31,7 +30,6 @@ function configureRoutes() {
       iconClass: 'fas fa-tags',
       order: 3,
       layout: eLayoutType.application,
-      requiredPolicy: 'TaskManagement.Tags',
     },
     {
       path: '/departments',
@@ -39,7 +37,6 @@ function configureRoutes() {
       iconClass: 'fas fa-sitemap',
       order: 4,
       layout: eLayoutType.application,
-      requiredPolicy: 'TaskManagement.Departments',
     },
     {
       path: '/books',
@@ -47,7 +44,6 @@ function configureRoutes() {
       iconClass: 'fas fa-book',
       order: 5,
       layout: eLayoutType.application,
-      requiredPolicy: 'TaskManagement.Books',
     },
     {
       path: '/users',
@@ -55,7 +51,6 @@ function configureRoutes() {
       iconClass: 'fas fa-users',
       order: 6,
       layout: eLayoutType.application,
-      requiredPolicy: 'AbpIdentity.Users',
     },
     {
       path: '/roles',
@@ -63,9 +58,7 @@ function configureRoutes() {
       iconClass: 'fas fa-user-shield',
       order: 7,
       layout: eLayoutType.application,
-      requiredPolicy: 'AbpIdentity.Roles',
     },
-    // --- THÊM MỚI: QUẢN LÝ DỰ ÁN ---
     {
       path: '/projects',
       name: '::Quản lý Dự án',
@@ -73,15 +66,12 @@ function configureRoutes() {
       order: 8,
       layout: eLayoutType.application,
     },
-    // ---------------------------------
-    // --- MENU QUẢN LÝ CÔNG VIỆC CHÍNH ---
     {
       path: '/tasks',
       name: '::Quản lý Công việc',
       iconClass: 'fas fa-tasks',
       order: 9,
       layout: eLayoutType.application,
-      requiredPolicy: 'TaskManagement.Tasks', 
     },
     {
       path: '/tasks/list',
@@ -99,14 +89,12 @@ function configureRoutes() {
       order: 2, 
       layout: eLayoutType.application,
     },
-    // ------------------------------------
     {
       path: '/language-texts',
       name: '::Menu:LanguageTexts',
       iconClass: 'fa fa-language',
       layout: eLayoutType.application,
       parentName: 'AbpUiNavigation::Menu:Administration',
-      requiredPolicy: 'TaskManagement.LanguageTexts',
       order: 100,
     },
     {
@@ -115,7 +103,6 @@ function configureRoutes() {
       iconClass: 'fa fa-list',
       layout: eLayoutType.application,
       parentName: 'AbpUiNavigation::Menu:Administration',
-      requiredPolicy: 'TaskManagement.SysMasterLists',
       order: 101,
     },
   ]);

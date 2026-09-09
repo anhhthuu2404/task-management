@@ -38,24 +38,27 @@ export interface CommentAttachmentDto {
 export interface TaskDto {
   id: string;
   title: string;
-  projectId?: string; // <-- Bổ sung an toàn để liên kết với Quản lý Dự án
+  projectId?: string; 
   assigneeId?: string; 
   assigneeName?: string;
+  departmentId?: string;    // <-- BỔ SUNG: Hiển thị phòng ban của công việc
+  departmentName?: string;  // <-- BỔ SUNG: Tên phòng ban
   priority: TaskPriority;
   status: TaskStatus;
   progress?: number;
   dueDate?: string;
 }
 
-// --- BỔ SUNG: CREATE TASK DTO ĐỂ TẠO CÔNG VIỆC THUỘC DỰ ÁN ---
+// --- CREATE TASK DTO ---
 export interface CreateTaskDto {
   title: string;
-  projectId?: string; // <-- Gắn task vào ID dự án tương ứng
+  projectId?: string; 
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
   dueDate?: string;
   assigneeId?: string;
+  departmentId?: string;    // <-- BỔ SUNG: Gán phòng ban khi tạo mới công việc
   categoryId?: string;
 }
 
@@ -174,11 +177,10 @@ export class TaskService {
     return this.restService.request<any, { items: TaskDto[]; totalCount: number }>({
       method: 'GET',
       url: '/api/app/task',
-      params // Hỗ trợ nhận cả { projectId: '...', ... } từ component
+      params // Cho phép truyền { projectId: '...', departmentId: '...', ... } xuống backend
     }, { apiName: this.apiName });
   }
 
-  // --- BỔ SUNG: API TẠO MỚI CÔNG VIỆC ---
   createTask(input: CreateTaskDto): Observable<TaskDto> {
     return this.restService.request<CreateTaskDto, TaskDto>({
       method: 'POST',
@@ -248,7 +250,6 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- CẬP NHẬT LỊCH TRÌNH (CHO CALENDAR VIEW) ---
   updateSchedule(id: string, dueDate: string | null): Observable<void> {
     return this.restService.request<{ dueDate: string | null }, void>({
       method: 'PUT',
@@ -257,7 +258,6 @@ export class TaskService {
     }, { apiName: this.apiName });
   }
 
-  // --- API GÁN/ĐỔI NGƯỜI THỰC HIỆN ---
   updateAssignee(id: string, assigneeId: string | null): Observable<TaskDto> {
     return this.restService.request<{ assigneeId: string | null }, TaskDto>({
       method: 'POST',

@@ -2,28 +2,29 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ProjectService, ProjectDto, MilestoneDto, ProjectMemberDto } from '@proxy/projects';
+import { HttpClient } from '@angular/common/http';
+import { ProjectService, ProjectDto } from '@proxy/projects';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, ReactiveFormsModule],
   templateUrl: './projects.component.html'
 })
 export class ProjectsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private projectService = inject(ProjectService);
   private router = inject(Router);
+  private httpClient = inject(HttpClient);
 
   projects: ProjectDto[] = [];
   selectedProject: ProjectDto | null = null;
-  milestones: MilestoneDto[] = [];
+  milestones: any[] = [];
   members: any[] = [];
   
-  usersList: any[] = [
-    { id: '00000000-0000-0000-0000-000000000001', userName: 'admin', email: 'admin@abp.io' },
-    { id: '00000000-0000-0000-0000-000000000002', userName: 'Anhthuu', email: 'anhthuu24405@gmail.com' }
-  ];
+  usersList: any[] = [];
+  departments: any[] = [];
+  selectedDepartmentId: string = '';
 
   isProjectModalOpen = false;
   isDetailModalOpen = false;
@@ -50,6 +51,17 @@ export class ProjectsComponent implements OnInit {
     role: ['Member', Validators.required]
   });
 
+  get availableUsersList(): any[] {
+    if (!this.members || this.members.length === 0) {
+      return this.usersList;
+    }
+    const existingUserIds = this.members.map(m => m.userId || m.UserId);
+    return this.usersList.filter(u => {
+      const uid = u.id || u.Id;
+      return !existingUserIds.includes(uid);
+    });
+  }
+
   get assignees(): any[] {
     if (!this.members || this.members.length === 0) {
       return [];
@@ -57,8 +69,8 @@ export class ProjectsComponent implements OnInit {
     return this.members.map(m => {
       const uid = m.userId || m.UserId;
       const roleName = m.role || m.Role ? ` (${m.role || m.Role})` : '';
-      const user = this.usersList.find(u => u.id === uid);
-      const name = user ? user.userName : (m.userName || m.UserName || 'Thành viên');
+      const name = this.getUserName(uid);
+      
       return {
         id: uid,
         name: name + roleName
@@ -68,6 +80,8 @@ export class ProjectsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProjects();
+    this.loadUsersList();
+    this.loadDepartments();
   }
 
   loadProjects(): void {
@@ -77,6 +91,30 @@ export class ProjectsComponent implements OnInit {
         this.projects = Array.isArray(data) ? data : (data?.items || []);
       },
       error: (err: any) => console.error('Lỗi tải danh sách dự án:', err)
+    });
+  }
+
+  loadUsersList(): void {
+    this.httpClient.get<any>('/api/identity/users?maxResultCount=100').subscribe({
+      next: (res: any) => {
+        this.usersList = Array.isArray(res) ? res : (res?.items || []);
+        
+        if (this.isDetailModalOpen && this.selectedProject?.id) {
+          this.loadMembers(this.selectedProject.id);
+          this.loadMilestones(this.selectedProject.id);
+        }
+      },
+      error: (err) => console.error('Lỗi tải danh sách người dùng:', err)
+    });
+  }
+
+  loadDepartments(): void {
+    this.httpClient.get<any>('/api/app/department').subscribe({
+      next: (res: any) => {
+        const data = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        this.departments = data;
+      },
+      error: (err) => console.error('Lỗi tải danh sách phòng ban:', err)
     });
   }
 
@@ -146,80 +184,185 @@ export class ProjectsComponent implements OnInit {
     }
   }
 
+  closeDetailModal(): void {
+    this.isDetailModalOpen = false;
+    this.selectedProject = null;
+    this.milestones = [];
+    this.members = [];
+  }
+
   loadMilestones(projectId: string): void {
-    this.projectService.getMilestones(projectId).subscribe({
-      next: (res: unknown) => {
-        const data = res as { items?: MilestoneDto[] } | MilestoneDto[];
-        this.milestones = Array.isArray(data) ? data : (data?.items || []);
+    this.httpClient.get<any>(`/api/app/project/milestones/${projectId}`).subscribe({
+      next: (res: any) => {
+        const data = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        
+        this.milestones = data.map((m: any) => {
+          const assignId = m.assigneeUserId || m.AssigneeUserId;
+          return {
+            id: m.id || m.Id,
+            title: m.title || m.Title,
+            description: m.description || m.Description,
+            dueDate: m.dueDate || m.DueDate,
+            status: m.status || m.Status,
+            assigneeUserId: assignId,
+            resolvedAssigneeName: this.getUserName(assignId)
+          };
+        });
       },
-      error: (err: any) => console.error(err)
+      error: (err: any) => {
+        console.error('Lỗi tải mốc tiến độ dự án:', err);
+        this.milestones = [];
+      }
     });
   }
 
   loadMembers(projectId: string): void {
-    this.projectService.getMembers(projectId).subscribe({
-      next: (res: unknown) => {
-        const data = res as { items?: any[] } | any[];
-        this.members = Array.isArray(data) ? data : (data?.items || []);
+    this.httpClient.get<any>(`/api/app/project/by-project/${projectId}/members`).subscribe({
+      next: (res: any) => {
+        const data = res;
+        const rawMembers = Array.isArray(data) ? data : (data?.items || []);
+        
+        this.members = rawMembers.map((m: any) => {
+          const uid = m.userId || m.UserId;
+          return {
+            ...m,
+            resolvedUserName: this.getUserName(uid)
+          };
+        });
       },
-      error: (err: any) => console.error(err)
+      error: (err: any) => console.error('Lỗi tải thành viên:', err)
     });
   }
 
   addMilestone(): void {
     if (this.milestoneForm.invalid || !this.selectedProject?.id) return;
-    this.projectService.createMilestone(this.selectedProject.id, this.milestoneForm.value).subscribe({
+    
+    this.httpClient.post(`/api/app/project/milestone/${this.selectedProject.id}`, this.milestoneForm.value).subscribe({
       next: () => {
         this.milestoneForm.reset({ status: 0, assigneeUserId: null });
         this.loadMilestones(this.selectedProject!.id!);
       },
-      error: (err: any) => console.error(err)
+      error: (err: any) => console.error('Lỗi khi thêm mốc tiến độ:', err)
     });
   }
 
   deleteMilestone(id: string): void {
-    this.projectService.deleteMilestone(id).subscribe({
-      next: () => {
-        if (this.selectedProject?.id) this.loadMilestones(this.selectedProject.id);
-      },
-      error: (err: any) => console.error(err)
-    });
+    if (confirm('Bạn có chắc muốn xóa cột mốc này?')) {
+      this.httpClient.delete(`/api/app/project/milestone/${id}`).subscribe({
+        next: () => {
+          if (this.selectedProject?.id) this.loadMilestones(this.selectedProject.id);
+        },
+        error: (err: any) => console.error('Lỗi khi xóa mốc tiến độ:', err)
+      });
+    }
   }
 
   addMember(): void {
     if (this.memberForm.invalid || !this.selectedProject?.id) return;
     
+    const formVal = this.memberForm.value;
+    const selectedUserId = formVal.userId;
+
+    const isAlreadyMember = this.members.some(m => (m.userId || m.UserId) === selectedUserId);
+    if (isAlreadyMember) {
+      alert('Thành viên này đã có trong dự án rồi!');
+      return;
+    }
+
     const inputPayload = {
-      projectId: this.selectedProject.id,
-      ...this.memberForm.value
+      userId: selectedUserId,
+      role: formVal.role
     };
 
-    this.projectService.addMember(this.selectedProject.id, inputPayload).subscribe({
+    this.httpClient.post(`/api/app/project/member/${this.selectedProject.id}`, inputPayload).subscribe({
       next: () => {
-        this.memberForm.reset({ role: 'Member' });
+        this.memberForm.reset({ role: 'Member', userId: '' });
         this.loadMembers(this.selectedProject!.id!);
       },
-      error: (err: any) => console.error('Lỗi khi thêm thành viên:', err)
+      error: (err: any) => {
+        console.error('Lỗi khi thêm thành viên:', err);
+        alert('Không thể thêm thành viên này.');
+      }
     });
   }
 
   removeMember(id: string): void {
-    this.projectService.removeMember(id).subscribe({
-      next: () => {
-        if (this.selectedProject?.id) this.loadMembers(this.selectedProject.id);
+    if (confirm('Bạn có chắc muốn xóa thành viên khỏi dự án?')) {
+      this.httpClient.delete(`/api/app/project/member/${id}`).subscribe({
+        next: () => {
+          if (this.selectedProject?.id) this.loadMembers(this.selectedProject.id);
+        },
+        error: (err: any) => console.error('Lỗi khi xóa thành viên:', err)
+      });
+    }
+  }
+
+  addAllMembersByDepartment(): void {
+    if (!this.selectedDepartmentId || !this.selectedProject?.id) {
+      alert('Vui lòng chọn phòng ban trước!');
+      return;
+    }
+
+    this.httpClient.get<any>(`/api/app/department/${this.selectedDepartmentId}/users`).subscribe({
+      next: (res: any) => {
+        const deptUsers = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        
+        if (deptUsers.length === 0) {
+          alert('Phòng ban này không có nhân sự nào.');
+          return;
+        }
+
+        const existingUserIds = this.members.map(m => m.userId || m.UserId);
+        const usersToAdd = deptUsers.filter((u: any) => {
+          const uid = u.id || u.Id || u.userId;
+          return !existingUserIds.includes(uid);
+        });
+
+        if (usersToAdd.length === 0) {
+          alert('Tất cả nhân sự trong phòng ban này đã có trong dự án rồi!');
+          return;
+        }
+
+        let successCount = 0;
+        usersToAdd.forEach((u: any) => {
+          const uid = u.id || u.Id || u.userId;
+          const inputPayload = {
+            userId: uid,
+            role: 'Member'
+          };
+
+          this.httpClient.post(`/api/app/project/member/${this.selectedProject!.id}`, inputPayload).subscribe({
+            next: () => {
+              successCount++;
+              if (successCount === usersToAdd.length) {
+                this.loadMembers(this.selectedProject!.id!);
+                this.selectedDepartmentId = '';
+              }
+            },
+            error: (err) => console.error('Lỗi khi thêm thành viên từ phòng ban:', err)
+          });
+        });
       },
-      error: (err: any) => console.error(err)
+      error: (err) => console.error('Lỗi tải nhân sự theo phòng ban:', err)
     });
   }
 
   getUserName(userId: string): string {
-    if (!userId) return 'Chưa phân công';
-    const user = this.usersList.find(u => u.id === userId);
-    if (user) return user.userName;
+    if (!userId || userId === '00000000-0000-0000-0000-000000000000') return 'Chưa phân công';
+
+    const matchedMember = this.members.find(m => (m.userId || m.UserId) === userId);
+    if (matchedMember && matchedMember.resolvedUserName && matchedMember.resolvedUserName !== userId) {
+      return matchedMember.resolvedUserName;
+    }
+
+    const user = this.usersList.find(u => 
+      u.id === userId || 
+      u.Id === userId || 
+      u.id?.toLowerCase() === userId?.toLowerCase()
+    );
     
-    const member = this.members.find(m => (m.userId || m.UserId) === userId);
-    if (member) {
-      return member.userName || member.UserName || userId;
+    if (user) {
+      return user.userName || user.UserName || user.name || user.Name;
     }
     
     return userId;
