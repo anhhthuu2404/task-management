@@ -1,4 +1,4 @@
-import type { AssignUserToDepartmentDto, CreateUpdateDepartmentDto, DepartmentDto, DepartmentTreeDto, GetDepartmentListDto } from './models';
+import type { AssignUserToDepartmentDto, CreateUpdateDepartmentDto, DepartmentDto, DepartmentMemberDto, DepartmentTreeDto, GetDepartmentListDto } from './models';
 import { RestService, Rest } from '@abp/ng.core';
 import type { PagedResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
@@ -67,6 +67,14 @@ export class DepartmentService {
     this.restService.request<any, DepartmentTreeDto[]>({
       method: 'GET',
       url: '/api/app/department/tree',
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getUsers = (id: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, DepartmentMemberDto[]>({
+      method: 'GET',
+      url: `/api/app/department/${id}/users`,
     },
     { apiName: this.apiName,...config });
   

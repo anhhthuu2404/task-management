@@ -95,4 +95,9 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./projects/projects.component').then(m => m.ProjectsComponent),
     canActivate: [authGuard],
   },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
+    canActivate: [authGuard],
+  },
 ];

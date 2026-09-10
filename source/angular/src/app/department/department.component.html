@@ -87,6 +87,15 @@
                     </span>
                   </td>
                   <td class="text-end">
+                    <!-- Nút phân quyền Trưởng phòng (vương miện) -->
+                    <button 
+                      class="btn btn-sm me-1" 
+                      [ngClass]="member.isManager ? 'btn-warning' : 'btn-outline-secondary'"
+                      [title]="member.isManager ? 'Bỏ vai trò trưởng phòng' : 'Chỉ định làm trưởng phòng'"
+                      (click)="toggleManager(member)">
+                      <i class="fa fa-crown"></i>
+                    </button>
+
                     <button class="btn btn-sm btn-outline-danger" (click)="removeUserFromDept(member.userId!)">
                       <i class="fa fa-user-times"></i> Gỡ
                     </button>

@@ -218,7 +218,6 @@ export class DepartmentComponent implements OnInit {
     const roleName = this.selectedDepartment.code.trim();
 
     try {
-      // 1. Lấy danh sách roles hệ thống
       const roleRes: any = await this.restService.request({
         method: 'GET',
         url: '/api/identity/roles',
@@ -233,7 +232,6 @@ export class DepartmentComponent implements OnInit {
         return;
       }
 
-      // 2. Lấy toàn bộ danh sách user của hệ thống
       const userRes: any = await this.restService.request({
         method: 'GET',
         url: '/api/identity/users',
@@ -243,7 +241,6 @@ export class DepartmentComponent implements OnInit {
       const allUsers: IdentityUserDto[] = userRes?.items || [];
       const filteredUsers: IdentityUserDto[] = [];
 
-      // 3. Kiểm tra từng user xem có thuộc đúng role này hay không bằng API chuẩn ABP
       for (const user of allUsers) {
         try {
           const rolesRes: any = await this.restService.request({
@@ -258,11 +255,10 @@ export class DepartmentComponent implements OnInit {
             filteredUsers.push(user);
           }
         } catch (e) {
-          // Bỏ qua nếu lỗi request ngầm của user lẻ
+          // Bỏ qua lỗi ngầm của user lẻ
         }
       }
 
-      // 4. Loại bỏ những người dùng đã nằm sẵn trong phòng ban này
       const currentMemberIds = (this.selectedDepartment?.members || []).map((m: any) => m.userId);
       this.availableUsers = filteredUsers.filter((u: IdentityUserDto) => !currentMemberIds.includes(u.id));
       
@@ -299,6 +295,44 @@ export class DepartmentComponent implements OnInit {
         this.noti.error(err.error?.error?.message || 'Không thể thêm thành viên!');
       }
     });
+  }
+
+  // Hàm xử lý khi bấm vào icon vương miện để chuyển đổi trạng thái Trưởng phòng
+  toggleManager(member: any): void {
+    if (!this.selectedDepartment?.id || !member.userId) return;
+
+    const newManagerStatus = !member.isManager;
+    const actionText = newManagerStatus ? 'chỉ định làm trưởng phòng' : 'bỏ vai trò trưởng phòng';
+
+    this.confirmation
+      .warn(`Bạn có chắc chắn muốn ${actionText} cho tài khoản "${member.userName}"?`, 'Xác nhận phân quyền')
+      .subscribe(status => {
+        if (status === Confirmation.Status.confirm) {
+          const payload: AssignUserToDepartmentDto = {
+            userId: member.userId,
+            departmentId: this.selectedDepartment!.id,
+            isManager: newManagerStatus
+          };
+
+          this.restService.request<AssignUserToDepartmentDto, void>({
+            method: 'POST',
+            url: '/api/app/department/assign-user',
+            body: payload
+          }, { apiName: 'default' }).subscribe({
+            next: () => {
+              this.noti.success('Cập nhật quyền trưởng phòng thành công');
+              const currentId = this.selectedDepartment?.id;
+              if (currentId) {
+                this.loadDepartmentTree(currentId);
+                this.fetchDepartmentDetail(currentId);
+              }
+            },
+            error: (err) => {
+              this.noti.error(err.error?.error?.message || 'Không thể cập nhật quyền trưởng phòng!');
+            }
+          });
+        }
+      });
   }
 
   removeUserFromDept(userId: string): void {

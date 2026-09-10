@@ -1,5 +1,6 @@
 import * as Books from './books';
 import * as Categories from './categories';
+import * as Dashboards from './dashboards';
 import * as Departments from './departments';
 import * as LocalizationManagement from './localization-management';
 import * as Notifications from './notifications';
@@ -8,4 +9,4 @@ import * as SysMasterLists from './sys-master-lists';
 import * as Tags from './tags';
 import * as TaskHistories from './task-histories';
 import * as Tasks from './tasks';
-export { Books, Categories, Departments, LocalizationManagement, Notifications, Projects, SysMasterLists, Tags, TaskHistories, Tasks };
+export { Books, Categories, Dashboards, Departments, LocalizationManagement, Notifications, Projects, SysMasterLists, Tags, TaskHistories, Tasks };

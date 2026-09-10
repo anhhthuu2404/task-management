@@ -234,18 +234,39 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
-  addMilestone(): void {
-    if (this.milestoneForm.invalid || !this.selectedProject?.id) return;
-    
-    this.httpClient.post(`/api/app/project/milestone/${this.selectedProject.id}`, this.milestoneForm.value).subscribe({
-      next: () => {
-        this.milestoneForm.reset({ status: 0, assigneeUserId: null });
-        this.loadMilestones(this.selectedProject!.id!);
-      },
-      error: (err: any) => console.error('Lỗi khi thêm mốc tiến độ:', err)
-    });
+ addMilestone(): void {
+  if (this.milestoneForm.invalid || !this.selectedProject?.id) return;
+  
+  const formDateStr = this.milestoneForm.value.dueDate;
+  const milestoneDate = new Date(formDateStr);
+  milestoneDate.setHours(0, 0, 0, 0);
+
+  if (this.selectedProject.startDate) {
+    const projectStartDate = new Date(this.selectedProject.startDate);
+    projectStartDate.setHours(0, 0, 0, 0);
+    if (milestoneDate < projectStartDate) {
+      alert(`Ngày mốc tiến độ không được nhỏ hơn ngày bắt đầu của dự án (${this.selectedProject.startDate.substring(0, 10)})!`);
+      return;
+    }
   }
 
+  if (this.selectedProject.endDate) {
+    const projectEndDate = new Date(this.selectedProject.endDate);
+    projectEndDate.setHours(0, 0, 0, 0);
+    if (milestoneDate > projectEndDate) {
+      alert(`Ngày mốc tiến độ không được lớn hơn ngày kết thúc của dự án (${this.selectedProject.endDate.substring(0, 10)})!`);
+      return;
+    }
+  }
+  
+  this.httpClient.post(`/api/app/project/milestone/${this.selectedProject.id}`, this.milestoneForm.value).subscribe({
+    next: () => {
+      this.milestoneForm.reset({ status: 0, assigneeUserId: null });
+      this.loadMilestones(this.selectedProject!.id!);
+    },
+    error: (err: any) => console.error('Lỗi khi thêm mốc tiến độ:', err)
+  });
+}
   deleteMilestone(id: string): void {
     if (confirm('Bạn có chắc muốn xóa cột mốc này?')) {
       this.httpClient.delete(`/api/app/project/milestone/${id}`).subscribe({

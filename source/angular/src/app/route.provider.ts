@@ -90,6 +90,13 @@ function configureRoutes() {
       layout: eLayoutType.application,
     },
     {
+      path: '/dashboard',
+      name: '::Tổng quan hệ thống',
+      iconClass: 'fas fa-chart-pie',
+      order: 11, 
+      layout: eLayoutType.application,
+    },
+    {
       path: '/language-texts',
       name: '::Menu:LanguageTexts',
       iconClass: 'fa fa-language',

@@ -1553,6 +1553,47 @@
             }
           }
         },
+        "TaskManagement.Dashboards.DashboardAppService": {
+          "controllerName": "Dashboard",
+          "controllerGroupName": "Dashboard",
+          "isRemoteService": true,
+          "isIntegrationService": false,
+          "apiVersion": null,
+          "type": "TaskManagement.Dashboards.DashboardAppService",
+          "interfaces": [
+            {
+              "type": "TaskManagement.Dashboards.IDashboardAppService",
+              "name": "IDashboardAppService",
+              "methods": [
+                {
+                  "name": "GetStatisticsAsync",
+                  "parametersOnMethod": [],
+                  "returnValue": {
+                    "type": "TaskManagement.Dashboards.DashboardStatisticsDto",
+                    "typeSimple": "TaskManagement.Dashboards.DashboardStatisticsDto"
+                  }
+                }
+              ]
+            }
+          ],
+          "actions": {
+            "GetStatisticsAsync": {
+              "uniqueName": "GetStatisticsAsync",
+              "name": "GetStatisticsAsync",
+              "httpMethod": "GET",
+              "url": "api/app/dashboard/statistics",
+              "supportedVersions": [],
+              "parametersOnMethod": [],
+              "parameters": [],
+              "returnValue": {
+                "type": "TaskManagement.Dashboards.DashboardStatisticsDto",
+                "typeSimple": "TaskManagement.Dashboards.DashboardStatisticsDto"
+              },
+              "allowAnonymous": null,
+              "implementFrom": "TaskManagement.Dashboards.IDashboardAppService"
+            }
+          }
+        },
         "TaskManagement.Departments.DepartmentAppService": {
           "controllerName": "Department",
           "controllerGroupName": "Department",
@@ -1763,6 +1804,43 @@
               },
               "allowAnonymous": false,
               "implementFrom": "TaskManagement.Departments.IDepartmentAppService"
+            },
+            "GetUsersAsyncById": {
+              "uniqueName": "GetUsersAsyncById",
+              "name": "GetUsersAsync",
+              "httpMethod": "GET",
+              "url": "api/app/department/{id}/users",
+              "supportedVersions": [],
+              "parametersOnMethod": [
+                {
+                  "name": "id",
+                  "typeAsString": "System.Guid, System.Private.CoreLib",
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null
+                }
+              ],
+              "parameters": [
+                {
+                  "nameOnMethod": "id",
+                  "name": "id",
+                  "jsonName": null,
+                  "type": "System.Guid",
+                  "typeSimple": "string",
+                  "isOptional": false,
+                  "defaultValue": null,
+                  "constraintTypes": [],
+                  "bindingSourceId": "Path",
+                  "descriptorName": ""
+                }
+              ],
+              "returnValue": {
+                "type": "System.Collections.Generic.List<TaskManagement.Departments.DepartmentMemberDto>",
+                "typeSimple": "[TaskManagement.Departments.DepartmentMemberDto]"
+              },
+              "allowAnonymous": false,
+              "implementFrom": "TaskManagement.Departments.DepartmentAppService"
             },
             "AssignUserAsyncByInput": {
               "uniqueName": "AssignUserAsyncByInput",
@@ -10668,6 +10746,135 @@
           "isRequired": false,
           "minLength": 0,
           "maxLength": 32,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        }
+      ]
+    },
+    "TaskManagement.Dashboards.DashboardStatisticsDto": {
+      "baseType": null,
+      "isEnum": false,
+      "enumNames": null,
+      "enumValues": null,
+      "genericArguments": null,
+      "properties": [
+        {
+          "name": "TotalCategories",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "TotalTags",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "TotalDepartments",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "TotalUsers",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "TotalProjects",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "TotalTasks",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "CompletedTasks",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "PendingTasks",
+          "jsonName": null,
+          "type": "System.Int32",
+          "typeSimple": "number",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "TasksByStatus",
+          "jsonName": null,
+          "type": "{System.String:System.Int32}",
+          "typeSimple": "{string:number}",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
+          "minimum": null,
+          "maximum": null,
+          "regex": null
+        },
+        {
+          "name": "UsersByDepartment",
+          "jsonName": null,
+          "type": "{System.String:System.Int32}",
+          "typeSimple": "{string:number}",
+          "isRequired": false,
+          "minLength": null,
+          "maxLength": null,
           "minimum": null,
           "maximum": null,
           "regex": null
