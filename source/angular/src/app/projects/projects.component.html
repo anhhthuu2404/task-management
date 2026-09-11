@@ -218,7 +218,9 @@
                     <input type="text" class="form-control form-control-sm rounded-3 bg-white" formControlName="title" placeholder="Tiêu đề mốc tiến độ...">
                   </div>
                   <div class="col-md-5">
-                    <input type="date" class="form-control form-control-sm rounded-3 bg-white" formControlName="dueDate">
+                    <input type="date" class="form-control form-control-sm rounded-3 bg-white" formControlName="dueDate"
+                           [min]="selectedProject?.startDate | date:'yyyy-MM-dd'"
+                           [max]="selectedProject?.endDate | date:'yyyy-MM-dd'">
                   </div>
                 </div>
                 <div class="row g-2">

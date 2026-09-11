@@ -1,0 +1,76 @@
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Báo Cáo Công Việc Chi Tiết</h2>
+    <button class="btn btn-success" (click)="exportToExcel()" [disabled]="reportData.length === 0">
+      <i class="fa fa-file-excel me-1"></i> Xuất Excel (CSV)
+    </button>
+  </div>
+
+  <div class="card p-3 mb-4 shadow-sm border-0">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Phòng ban</label>
+        <select class="form-select" [(ngModel)]="filter.departmentId" (ngModelChange)="onDepartmentChange()">
+          <option [ngValue]="null">-- Tất cả phòng ban --</option>
+          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Nhân sự</label>
+        <select class="form-select" [(ngModel)]="filter.employeeId">
+          <option [ngValue]="null">-- Tất cả nhân sự --</option>
+          <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.userName || e.name }}</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Dự án</label>
+        <select class="form-select" [(ngModel)]="filter.projectId">
+          <option [ngValue]="null">-- Tất cả dự án --</option>
+          <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary w-100" (click)="onSearchReport()">
+          <i class="fa fa-search me-1"></i> Xem báo cáo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <div *ngIf="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+      <div class="table-responsive" *ngIf="!isLoading">
+        <table class="table table-striped table-hover align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Tên công việc</th>
+              <th>Dự án</th>
+              <th>Người thực hiện</th>
+              <th>Trạng thái</th>
+              <th>Tiến độ</th>
+              <th>Hạn hoàn thành</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of reportData; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ item.title }}</td>
+              <td>{{ item.projectName || '---' }}</td>
+              <td>{{ item.assigneeName || '---' }}</td>
+              <td><span class="badge bg-info text-dark">{{ item.status }}</span></td>
+              <td>{{ item.progressPercent }}%</td>
+              <td>{{ item.dueDate ? (item.dueDate | date:'dd/MM/yyyy') : '---' }}</td>
+            </tr>
+            <tr *ngIf="reportData.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">Không có dữ liệu báo cáo phù hợp.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

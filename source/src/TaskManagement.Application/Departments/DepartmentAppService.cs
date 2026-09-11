@@ -189,4 +189,30 @@ public class DepartmentAppService : CrudAppService<
             }
         }
     }
+    public override async Task<Volo.Abp.Application.Dtos.PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input)
+    {
+        var query = await CreateFilteredQueryAsync(input);
+
+        var totalCount = await AsyncExecuter.CountAsync(query);
+
+        query = ApplySorting(query, input);
+        query = ApplyPaging(query, input);
+
+        var departments = await AsyncExecuter.ToListAsync(query);
+
+        var departmentDtos = new List<DepartmentDto>();
+
+        // Duyệt qua từng phòng ban để map và lấy danh sách thành viên tương ứng
+        foreach (var department in departments)
+        {
+            var dto = ObjectMapper.Map<Department, DepartmentDto>(department);
+            dto.Members = await GetUsersAsync(department.Id);
+            departmentDtos.Add(dto);
+        }
+
+        return new Volo.Abp.Application.Dtos.PagedResultDto<DepartmentDto>(
+            totalCount,
+            departmentDtos
+        );
+    }
 }

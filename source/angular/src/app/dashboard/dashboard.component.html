@@ -1,4 +1,3 @@
-
 <div class="container-fluid"> 
   <div class="d-flex justify-content-between align-items-center mb-4"> 
     <h2>Tổng quan hệ thống</h2> 
@@ -18,120 +17,188 @@
   </div> 
 
   <div *ngIf="!isLoading"> 
+    <!-- Chia lưới 3 cột đều nhau (col-md-4) cho tổng cộng 8 thẻ KPI -->
     <div class="row mb-4"> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#c5d3e8'" [class.border-dark]="selectedFilter === 'category'" [class.border-3]="selectedFilter === 'category'" (click)="onSelectFilter('category', $event)" style="cursor: pointer;"> 
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#c5d3e8'" [class.border-dark]="selectedFilter === 'category'" [class.border-3]="selectedFilter === 'category'" (click)="onSelectFilter('category', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Quản lý danh mục</h6> 
           <h3 class="mb-0 text-dark">{{ stats?.totalCategories ?? categoryChartData.labels.length }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#b7efc5'" [class.border-dark]="selectedFilter === 'tag'" [class.border-3]="selectedFilter === 'tag'" (click)="onSelectFilter('tag', $event)" style="cursor: pointer;"> 
+
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#b7efc5'" [class.border-dark]="selectedFilter === 'tag'" [class.border-3]="selectedFilter === 'tag'" (click)="onSelectFilter('tag', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Quản lý thẻ (tag)</h6> 
           <h3 class="mb-0 text-dark">{{ stats?.totalTags ?? tagChartData.labels.length }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#fcf6bd'" [class.border-dark]="selectedFilter === 'department'" [class.border-3]="selectedFilter === 'department'" (click)="onSelectFilter('department', $event)" style="cursor: pointer;"> 
+
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#fcf6bd'" [class.border-dark]="selectedFilter === 'department'" [class.border-3]="selectedFilter === 'department'" (click)="onSelectFilter('department', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Quản lý phòng ban</h6> 
           <h3 class="mb-0 text-dark">{{ stats?.totalDepartments ?? departmentChartData.labels.length }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#ffc8dd'" [class.border-dark]="selectedFilter === 'user'" [class.border-3]="selectedFilter === 'user'" (click)="onSelectFilter('user', $event)" style="cursor: pointer;"> 
+
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#ffc8dd'" [class.border-dark]="selectedFilter === 'user'" [class.border-3]="selectedFilter === 'user'" (click)="onSelectFilter('user', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Quản lý người dùng</h6> 
           <h3 class="mb-0 text-dark">{{ stats?.totalUsers ?? userChartData.labels.length }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#e2ece9'" [class.border-dark]="selectedFilter === 'role'" [class.border-3]="selectedFilter === 'role'" (click)="onSelectFilter('role', $event)" style="cursor: pointer;"> 
+
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#e2ece9'" [class.border-dark]="selectedFilter === 'role'" [class.border-3]="selectedFilter === 'role'" (click)="onSelectFilter('role', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Quản lý vai trò</h6> 
           <h3 class="mb-0 text-dark">{{ roleChartData.labels.length }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#b5e2fa'" [class.border-primary]="selectedFilter === 'project'" [class.border-3]="selectedFilter === 'project'" (click)="onSelectFilter('project', $event)" style="cursor: pointer;"> 
+
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#b5e2fa'" [class.border-primary]="selectedFilter === 'project'" [class.border-3]="selectedFilter === 'project'" (click)="onSelectFilter('project', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Quản lý dự án</h6> 
           <h3 class="mb-0 text-dark">{{ stats?.totalProjects ?? projectChartData.labels.length }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#ccd5ae'" [class.border-primary]="selectedFilter === 'task'" [class.border-3]="selectedFilter === 'task'" (click)="onSelectFilter('task', $event)" style="cursor: pointer;"> 
+
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#ccd5ae'" [class.border-primary]="selectedFilter === 'task'" [class.border-3]="selectedFilter === 'task'" (click)="onSelectFilter('task', $event)" style="cursor: pointer;"> 
           <h6 class="text-uppercase font-weight-bold text-secondary">Tổng số công việc</h6> 
-          <h3 class="mb-0 text-dark">{{ stats?.totalTasks ?? 0 }}</h3> 
+          <h3 class="mb-0 text-dark">{{ stats?.totalTasks ?? totalTasks }}</h3> 
         </div> 
       </div> 
-      <div class="col-md-3 mb-3"> 
-        <div class="card text-dark p-3 shadow-sm h-100 border-0" [style.background-color]="'#ffafcc'" [class.border-primary]="selectedFilter === 'completedTask'" [class.border-3]="selectedFilter === 'completedTask'" (click)="onSelectFilter('completedTask', $event)" style="cursor: pointer;"> 
-          <h6 class="text-uppercase font-weight-bold text-secondary">Công việc hoàn thành</h6> 
-          <h3 class="mb-0 text-dark">{{ stats?.completedTasks ?? 0 }} / {{ stats?.totalTasks ?? 0 }}</h3> 
+
+      <!-- Thẻ gộp: Công việc hoàn thành & Quá hạn -->
+      <div class="col-md-4 mb-3"> 
+        <div class="card text-dark p-3 shadow-sm h-100 border-0 dashboard-card" [style.background-color]="'#ffafcc'" [class.border-primary]="selectedFilter === 'completedTask' || selectedFilter === 'overdueTask'" [class.border-3]="selectedFilter === 'completedTask' || selectedFilter === 'overdueTask'" (click)="onSelectFilter('completedTask', $event)" style="cursor: pointer;"> 
+          <h6 class="text-uppercase font-weight-bold text-secondary">Công việc hoàn thành & Quá hạn</h6> 
+          <h3 class="mb-0 text-dark">{{ completedTasks }} / {{ overdueTasks }}</h3> 
         </div> 
       </div> 
     </div> 
 
+    <!-- Phần hiển thị biểu đồ với điều kiện Empty State chống lỗi rỗng -->
     <div class="row"> 
+      <!-- Biểu đồ Trạng thái Công việc -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'task'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê trạng thái Công việc</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="taskChartData" [type]="'doughnut'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!taskChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu thống kê công việc.</p>
+          </div>
+          <div *ngIf="taskChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="taskChartData" [type]="'doughnut'" [options]="chartOptions"> </canvas> 
+          </div> 
+        </div> 
+      </div>
+
+      <!-- Biểu đồ Hoàn thành & Quá hạn -->
+      <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'completedTask' || selectedFilter === 'overdueTask'"> 
+        <div class="card p-4 shadow-sm h-100 border-0"> 
+          <h5 class="card-title mb-3">Thống kê Công việc: Hoàn thành & Quá hạn</h5> 
+          <div *ngIf="!completedOverdueChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu.</p>
+          </div>
+          <div *ngIf="completedOverdueChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="completedOverdueChartData" [type]="'doughnut'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
 
+      <!-- Biểu đồ Dự án -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'project'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê Dự án</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="projectChartData" [type]="'bar'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!projectChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu dự án.</p>
+          </div>
+          <div *ngIf="projectChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="projectChartData" [type]="'bar'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
 
+      <!-- Biểu đồ Danh mục -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'category'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê Danh mục</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="categoryChartData" [type]="'bar'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!categoryChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu danh mục.</p>
+          </div>
+          <div *ngIf="categoryChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="categoryChartData" [type]="'bar'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
 
+      <!-- Biểu đồ Thẻ (Tag) -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'tag'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê Thẻ (Tag)</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="tagChartData" [type]="'bar'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!tagChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu thẻ.</p>
+          </div>
+          <div *ngIf="tagChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="tagChartData" [type]="'bar'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
 
+      <!-- Biểu đồ Phòng ban -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'department'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê Phòng ban</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="departmentChartData" [type]="'bar'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!departmentChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu phòng ban.</p>
+          </div>
+          <div *ngIf="departmentChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="departmentChartData" [type]="'bar'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
 
+      <!-- Biểu đồ Người dùng -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'user'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê Người dùng</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="userChartData" [type]="'bar'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!userChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu người dùng.</p>
+          </div>
+          <div *ngIf="userChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="userChartData" [type]="'bar'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
 
+      <!-- Biểu đồ Vai trò -->
       <div class="col-md-6 mb-4" *ngIf="selectedFilter === 'all' || selectedFilter === 'role'"> 
         <div class="card p-4 shadow-sm h-100 border-0"> 
           <h5 class="card-title mb-3">Thống kê Vai trò</h5> 
-          <div style="width: 100%; height: 300px; position: relative;"> 
-            <canvas baseChart [data]="roleChartData" [type]="'bar'" [options]="{ responsive: true, maintainAspectRatio: false }"> </canvas> 
+          <div *ngIf="!roleChartData?.labels?.length" class="text-center text-muted my-5 py-4">
+            <i class="fa fa-info-circle mb-2" style="font-size: 2rem;"></i>
+            <p class="mb-0">Chưa có dữ liệu vai trò.</p>
+          </div>
+          <div *ngIf="roleChartData?.labels?.length" style="width: 100%; height: 300px; position: relative;"> 
+            <canvas baseChart [data]="roleChartData" [type]="'bar'" [options]="chartOptions"> </canvas> 
           </div> 
         </div> 
       </div> 
     </div> 
   </div> 
 </div>
+<style>
+  .dashboard-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+  }
+</style>

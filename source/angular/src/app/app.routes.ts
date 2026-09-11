@@ -100,4 +100,8 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard],
   },
+  {
+  path: 'reports',
+  loadComponent: () => import('./reports/report.component').then(m => m.ReportComponent)
+}
 ];

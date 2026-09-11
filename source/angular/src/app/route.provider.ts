@@ -82,6 +82,13 @@ function configureRoutes() {
       layout: eLayoutType.application,
     },
     {
+      path: '/reports',
+      name: '::Báo cáo & Thống kê',
+      iconClass: 'fas fa-chart-bar',
+      order: 10,
+      layout: eLayoutType.application,
+    },
+    {
       path: '/tasks/create',
       name: '::Tạo công việc mới',
       iconClass: 'fas fa-plus',
