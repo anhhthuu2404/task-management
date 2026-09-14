@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 using Volo.Abp.Linq;
-using TaskManagement.Hubs;
+using Volo.Abp.EventBus.Local; // 1. Thêm namespace này cho Event Bus
 using TaskManagement.Notifications;
 
 namespace TaskManagement.Tasks
@@ -16,25 +15,25 @@ namespace TaskManagement.Tasks
     {
         private readonly IRepository<TaskItem, Guid> _taskRepository;
         private readonly IRepository<Notification, Guid> _notificationRepository;
-        private readonly IHubContext<TaskNotificationHub> _hubContext;
+        private readonly ILocalEventBus _localEventBus; // 2. Thay IHubContext bằng ILocalEventBus
         private readonly IClock _clock;
         private readonly IAsyncQueryableExecuter _asyncExecuter;
 
         public TaskManager(
             IRepository<TaskItem, Guid> taskRepository,
             IRepository<Notification, Guid> notificationRepository,
-            IHubContext<TaskNotificationHub> hubContext,
+            ILocalEventBus localEventBus, // 3. Inject ILocalEventBus thay thế hubContext
             IClock clock,
             IAsyncQueryableExecuter asyncExecuter)
         {
             _taskRepository = taskRepository;
             _notificationRepository = notificationRepository;
-            _hubContext = hubContext;
+            _localEventBus = localEventBus;
             _clock = clock;
             _asyncExecuter = asyncExecuter;
         }
 
-        // 1. Quét và cập nhật Task quá hạn tự động kèm sinh thông báo & SignalR
+        // 1. Quét và cập nhật Task quá hạn tự động kèm sinh thông báo & bắn Event
         [UnitOfWork]
         public virtual async Task ProcessOverdueTasksAsync()
         {
@@ -72,14 +71,15 @@ namespace TaskManagement.Tasks
                 };
                 await _notificationRepository.InsertAsync(notification);
 
-                // Gửi thông báo real-time qua SignalR tới đúng User thực hiện
-                await _hubContext.Clients.User(task.AssigneeId.Value.ToString())
-                   .SendAsync("ReceiveTaskNotification", new
-                   {
-                       Title = "Công việc đã quá hạn!",
-                       Message = message,
-                       TaskId = task.Id
-                   });
+                // 4. Bắn Domain Event thay vì gọi trực tiếp SignalR Hub
+                await _localEventBus.PublishAsync(new TaskOverdueEto
+                {
+                    TaskId = task.Id,
+                    AssigneeId = task.AssigneeId.Value,
+                    TaskTitle = task.Title,
+                    DueDate = task.DueDate.Value,
+                    Message = message
+                });
             }
         }
 

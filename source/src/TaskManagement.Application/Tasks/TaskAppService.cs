@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TaskManagement.Notifications;
 using TaskManagement.Permissions;
 using TaskManagement.Projects;
 using TaskManagement.TaskHistories;
@@ -41,6 +42,7 @@ public class TaskAppService : CrudAppService<
     private readonly IRepository<TaskActivityLog, Guid> _activityLogRepository;
     private readonly IRepository<TaskComment, Guid> _commentRepository;
     private readonly IRepository<Project, Guid> _projectRepository;
+    private readonly IRepository<Notification, Guid> _notificationRepository;
 
     public TaskAppService(
         IRepository<TaskItem, Guid> repository,
@@ -51,6 +53,7 @@ public class TaskAppService : CrudAppService<
         IRepository<TaskActivityLog, Guid> activityLogRepository,
         IRepository<TaskComment, Guid> commentRepository,
         IRepository<Project, Guid> projectRepository,
+        IRepository<Notification, Guid> notificationRepository,
         IDistributedEventBus distributedEventBus)
         : base(repository)
     {
@@ -61,6 +64,7 @@ public class TaskAppService : CrudAppService<
         _activityLogRepository = activityLogRepository;
         _commentRepository = commentRepository;
         _projectRepository = projectRepository;
+        _notificationRepository = notificationRepository;
         _distributedEventBus = distributedEventBus;
     }
 
@@ -132,16 +136,29 @@ public class TaskAppService : CrudAppService<
         var currentUserId = CurrentUser.Id;
         var searchKeyword = !string.IsNullOrWhiteSpace(input.Keyword) ? input.Keyword : input.Filter;
 
+        var isManagerOrAdmin = CurrentUser.IsInRole("Manager") || CurrentUser.IsInRole("admin") || CurrentUser.IsInRole("Admin");
+
         return query
+            .WhereIf(!isManagerOrAdmin && !input.OnlyMyTasks && !input.AssigneeId.HasValue && currentUserId.HasValue,
+                x => x.AssigneeId == currentUserId.Value || x.CreatorId == currentUserId.Value)
+            .WhereIf(input.OnlyMyTasks && currentUserId.HasValue,
+                x => x.AssigneeId == currentUserId!.Value || x.CreatorId == currentUserId!.Value)
             .WhereIf(!string.IsNullOrWhiteSpace(searchKeyword), x =>
                 x.Title.Contains(searchKeyword!) || (x.Description != null && x.Description.Contains(searchKeyword!)))
             .WhereIf(input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty, x => x.CategoryId == input.CategoryId!.Value)
             .WhereIf(input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty, x => x.ProjectId == input.ProjectId!.Value)
             .WhereIf(input.AssigneeId.HasValue && input.AssigneeId.Value != Guid.Empty, x => x.AssigneeId == input.AssigneeId!.Value)
-            .WhereIf(input.DepartmentId.HasValue && input.DepartmentId.Value != Guid.Empty, x => x.DepartmentId == input.DepartmentId!.Value)
+
+            // Ưu tiên lọc theo danh sách phòng ban (bao gồm phòng ban cha và các phòng ban con) nếu có
+            .WhereIf(input.DepartmentIds != null && input.DepartmentIds.Count > 0,
+                x => x.DepartmentId != null && input.DepartmentIds.Contains(x.DepartmentId.Value))
+
+            // Nếu không truyền DepartmentIds mà chỉ truyền một DepartmentId đơn lẻ
+            .WhereIf((input.DepartmentIds == null || input.DepartmentIds.Count == 0) && input.DepartmentId.HasValue && input.DepartmentId.Value != Guid.Empty,
+                x => x.DepartmentId == input.DepartmentId!.Value)
+
             .WhereIf(input.Priority.HasValue, x => x.Priority == input.Priority!.Value)
-            .WhereIf(input.Status.HasValue, x => x.Status == input.Status!.Value)
-            .WhereIf(input.OnlyMyTasks && currentUserId.HasValue, x => x.AssigneeId == currentUserId!.Value);
+            .WhereIf(input.Status.HasValue, x => x.Status == input.Status!.Value);
     }
 
     protected override IQueryable<TaskItem> ApplySorting(IQueryable<TaskItem> query, GetTaskListInputDto input)
@@ -390,7 +407,6 @@ public class TaskAppService : CrudAppService<
             }
         }
 
-        // Tự động gán người thực hiện mặc định theo phòng ban (DepartmentId) nếu chưa chọn Assignee
         if ((!input.AssigneeId.HasValue || input.AssigneeId.Value == Guid.Empty) && input.DepartmentId.HasValue && input.DepartmentId.Value != Guid.Empty)
         {
             var defaultUserInDept = await GetDefaultUserForDepartmentAsync(input.DepartmentId.Value);
@@ -434,7 +450,6 @@ public class TaskAppService : CrudAppService<
             }
         }
 
-        // Tự động gán người thực hiện theo phòng ban nếu chưa có Assignee khi cập nhật
         if ((!input.AssigneeId.HasValue || input.AssigneeId.Value == Guid.Empty) && (!entity.AssigneeId.HasValue || entity.AssigneeId.Value == Guid.Empty))
         {
             var targetDeptId = input.DepartmentId ?? entity.DepartmentId;
@@ -543,6 +558,47 @@ public class TaskAppService : CrudAppService<
         await Repository.UpdateAsync(entity, autoSave: true);
         await LogActivityAsync(id, $"Giao công việc cho: {assigneeName}");
         await NotifyTaskStakeholdersAsync(entity, $"Công việc '{entity.Title}' đã được phân công lại cho: {assigneeName}");
+
+        return await MapToGetOutputDtoAsync(entity);
+    }
+
+    [HttpDelete("/api/app/task/{id}/attachment")]
+    [Authorize(TaskManagementPermissions.Tasks.Edit)]
+    [UnitOfWork]
+    public async Task<TaskDto> DeleteTaskAttachmentAsync(Guid id, [FromQuery] string fileUrl)
+    {
+        var entity = await GetEntityByIdAsync(id);
+
+        if (string.IsNullOrWhiteSpace(entity.FileUrl) || string.IsNullOrWhiteSpace(fileUrl))
+        {
+            throw new UserFriendlyException("Không tìm thấy tệp đính kèm cần xóa.");
+        }
+
+        var urls = entity.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+        var names = !string.IsNullOrEmpty(entity.FileName)
+            ? entity.FileName.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList()
+            : new List<string>();
+
+        var index = urls.IndexOf(fileUrl);
+        if (index >= 0)
+        {
+            urls.RemoveAt(index);
+            if (index < names.Count)
+            {
+                names.RemoveAt(index);
+            }
+        }
+        else
+        {
+            throw new UserFriendlyException("Không tìm thấy tệp đính kèm trong công việc này.");
+        }
+
+        entity.FileUrl = urls.Count > 0 ? string.Join(";", urls) : null;
+        entity.FileName = names.Count > 0 ? string.Join(";", names) : null;
+
+        await Repository.UpdateAsync(entity, autoSave: true);
+        await LogActivityAsync(id, "Đã xóa một tệp đính kèm khỏi công việc");
+        await NotifyTaskStakeholdersAsync(entity, $"Công việc '{entity.Title}' đã bị xóa một tệp đính kèm.");
 
         return await MapToGetOutputDtoAsync(entity);
     }
@@ -1158,8 +1214,15 @@ public class TaskAppService : CrudAppService<
 
         if (entity.ProjectId.HasValue)
         {
-            var project = await _projectRepository.FindAsync(entity.ProjectId.Value);
-            dto.ProjectName = project?.Name;
+            try
+            {
+                var project = await _projectRepository.FindAsync(entity.ProjectId.Value, cancellationToken: CancellationToken.None);
+                dto.ProjectName = project?.Name;
+            }
+            catch (TaskCanceledException)
+            {
+                // Bỏ qua lỗi hủy request ngầm
+            }
         }
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
@@ -1176,41 +1239,48 @@ public class TaskAppService : CrudAppService<
             catch (TaskCanceledException) { }
         }
 
-        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
-        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == entity.Id));
-        var lastSubmissionComment = comments
-            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
-            .OrderByDescending(x => x.CreationTime)
-            .FirstOrDefault();
-
-        if (lastSubmissionComment != null)
+        try
         {
-            var rawText = lastSubmissionComment.Text;
+            var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
+            var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == entity.Id));
+            var lastSubmissionComment = comments
+                .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
+                .OrderByDescending(x => x.CreationTime)
+                .FirstOrDefault();
 
-            if (rawText.Contains("[NỘP TRÌNH DUYỆT]:"))
+            if (lastSubmissionComment != null)
             {
-                dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length)..].Trim();
-            }
-            else if (rawText.Contains("[NỘP TRÌNH DUYỆT]"))
-            {
-                dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length)..].Trim();
-            }
-            else
-            {
-                dto.SubmissionNote = rawText;
-            }
+                var rawText = lastSubmissionComment.Text;
 
-            var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
-            if (submissionAttachments.Count == 0)
-            {
-                submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
-            }
+                if (rawText.Contains("[NỘP TRÌNH DUYỆT]:"))
+                {
+                    dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]:") + "[NỘP TRÌNH DUYỆT]:".Length)..].Trim();
+                }
+                else if (rawText.Contains("[NỘP TRÌNH DUYỆT]"))
+                {
+                    dto.SubmissionNote = rawText[(rawText.IndexOf("[NỘP TRÌNH DUYỆT]") + "[NỘP TRÌNH DUYỆT]".Length)..].Trim();
+                }
+                else
+                {
+                    dto.SubmissionNote = rawText;
+                }
 
-            dto.SubmissionFiles = [.. submissionAttachments.Select(a => new TaskFileDto
-            {
-                FileName = a.FileName,
-                FileUrl = a.FileUrl
-            })];
+                var submissionAttachments = ObjectMapper.Map<List<CommentAttachment>, List<CommentAttachmentDto>>(lastSubmissionComment.Attachments?.ToList() ?? []);
+                if (submissionAttachments.Count == 0)
+                {
+                    submissionAttachments = ParseCommentAttachments(lastSubmissionComment.FileUrl, lastSubmissionComment.FileName);
+                }
+
+                dto.SubmissionFiles = [.. submissionAttachments.Select(a => new TaskFileDto
+                {
+                    FileName = a.FileName,
+                    FileUrl = a.FileUrl
+                })];
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Đảm bảo các truy vấn comment cũng được bảo vệ an toàn
         }
 
         return dto;
@@ -1429,12 +1499,46 @@ public class TaskAppService : CrudAppService<
         if (task.CreatorId.HasValue && task.CreatorId.Value != Guid.Empty)
             userIds.Add(task.CreatorId.Value);
 
+        try
+        {
+            var userQuery = await _userRepository.GetQueryableAsync();
+            var allUsers = await AsyncExecuter.ToListAsync(userQuery);
+
+            foreach (var user in allUsers)
+            {
+                var userName = user.UserName?.ToLower() ?? string.Empty;
+                var email = user.Email?.ToLower() ?? string.Empty;
+
+                if (userName.Contains("admin") ||
+                    userName.Contains("manager") ||
+                    userName.Contains("quanly") ||
+                    email.Contains("admin"))
+                {
+                    userIds.Add(user.Id);
+                }
+            }
+        }
+        catch
+        {
+            // Bỏ qua lỗi ngầm
+        }
+
         foreach (var userId in userIds.Distinct())
         {
-            if (excludeUserId.HasValue && userId == excludeUserId.Value) continue;
+            if (excludeUserId.HasValue && userId == excludeUserId.Value && userId != task.AssigneeId)
+                continue;
 
             try
             {
+                var notification = new Notification(
+                    GuidGenerator.Create(),
+                    userId,
+                    message,
+                    task.Id
+                );
+
+                await _notificationRepository.InsertAsync(notification, autoSave: true);
+
                 await _distributedEventBus.PublishAsync(new TaskNotificationEto
                 {
                     UserId = userId,
@@ -1444,7 +1548,7 @@ public class TaskAppService : CrudAppService<
             }
             catch
             {
-                // Xử lý bắt ngoại lệ ngầm để không làm gián đoạn luồng nghiệp vụ chính
+                // Xử lý bắt ngoại lệ ngầm
             }
         }
     }

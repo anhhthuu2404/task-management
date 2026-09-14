@@ -53,6 +53,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   isLoading = false;
   stats: DashboardStatisticsDto | null = null;
   selectedFilter: string = 'all';
+  isToastVisible = false;
 
   totalTasks = 0;
   completedTasks = 0;
@@ -98,9 +99,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     private dashboardService: DashboardService
   ) {}
 
-  ngOnInit(): void {
+ ngOnInit(): void {
+  setTimeout(() => {
     this.loadDashboardData();
-  }
+  });
+}
 
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -122,9 +125,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     });
   }
 
-  loadDashboardData(): void {
-    this.isLoading = true;
-    this.cdr.markForCheck();
+loadDashboardData(): void {
+    requestAnimationFrame(() => {
+      this.isToastVisible = true;
+      this.cdr.markForCheck();
+      
+      setTimeout(() => {
+        this.isToastVisible = false;
+        this.cdr.markForCheck();
+      }, 3000);
+    });
 
     this.dashboardService.getStatistics().pipe(
       catchError(() => of(null))
@@ -144,7 +154,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.cdr.markForCheck();
       }
     });
-
     forkJoin({
       categories: this.httpClient.get<any>('/api/app/category?maxResultCount=100').pipe(catchError(() => of({ items: [] }))),
       tags: this.httpClient.get<any>('/api/app/tag?maxResultCount=100').pipe(catchError(() => of({ items: [] }))),
@@ -174,28 +183,33 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         const projects = extractArray(res.projects);
         const taskItems = extractArray(res.tasks);
 
-        this.totalTasks = taskItems.length;
+       this.totalTasks = taskItems.length;
         
+        // Sửa điều kiện nhận diện Hoàn thành (status === 2 hoặc progressPercent === 100)
         this.completedTasks = taskItems.filter((t: any) => {
-          return t.progressPercent === 100 || t.isCompleted === true || t.status === 2;
+          return t.status === 2 || t.progressPercent === 100 || t.isCompleted === true;
         }).length;
 
         this.inProgressTasks = taskItems.filter((t: any) => {
-          return (t.progressPercent > 0 && t.progressPercent < 100) || t.status === 5;
+          return t.status === 1 || (t.progressPercent > 0 && t.progressPercent < 100);
         }).length;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
 
+        // Sửa điều kiện nhận diện Quá hạn (status === 5 hoặc quá hạn theo ngày)
         this.overdueTasks = taskItems.filter((t: any) => {
+          // Nếu status từ backend đã là 5 (Quá hạn) thì tính luôn
+          if (t.status === 5) return true;
+
           const dateValue = t.dueDate || t.deadline || t.endTime;
           if (!dateValue) return false;
           
           const dueDate = new Date(dateValue);
           dueDate.setHours(0, 0, 0, 0);
 
-          const isCompleted = t.progressPercent === 100 || t.isCompleted === true || t.status === 2;
-          return !isCompleted && dueDate < today;
+          const isCompleted = t.status === 2 || t.progressPercent === 100 || t.isCompleted === true;
+          return !isCompleted && dueDate.getTime() < today.getTime();
         }).length;
 
         this.completedOverdueChartData = {
@@ -205,7 +219,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             backgroundColor: ['#ffafcc', '#ffadad']
           }]
         };
-
         this.categoryChartData = {
           labels: catItems.map((x: any) => x.name ?? ''),
           datasets: [{ 

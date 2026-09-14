@@ -43,7 +43,7 @@ function configureRoutes() {
       name: '::Menu:Books',
       iconClass: 'fas fa-book',
       order: 5,
-      layout: eLayoutType.application,
+      requiredPolicy: 'BookStore.Books',
     },
     {
       path: '/users',
@@ -67,40 +67,38 @@ function configureRoutes() {
       layout: eLayoutType.application,
     },
     {
-      path: '/tasks',
+      path: '/tasks/list',
       name: '::Quản lý Công việc',
       iconClass: 'fas fa-tasks',
-      order: 9,
-      layout: eLayoutType.application,
-    },
-    {
-      path: '/tasks/list',
-      name: '::Danh sách công việc',
-      iconClass: 'fas fa-list-check',
-      parentName: '::Quản lý Công việc',
-      order: 1,
-      layout: eLayoutType.application,
-    },
-    {
-      path: '/reports',
-      name: '::Báo cáo & Thống kê',
-      iconClass: 'fas fa-chart-bar',
-      order: 10,
+      order: 9, // Đã đưa ra ngoài cấp cao nhất, bỏ parentName
       layout: eLayoutType.application,
     },
     {
       path: '/tasks/create',
       name: '::Tạo công việc mới',
       iconClass: 'fas fa-plus',
-      parentName: '::Quản lý Công việc',
-      order: 2, 
+      order: 10, // Đã đưa ra ngoài cấp cao nhất, bỏ parentName
+      layout: eLayoutType.application,
+    },
+    {
+      path: '/tasks/detail',
+      name: '::Chi tiết công việc',
+      iconClass: 'fas fa-info-circle',
+      order: 11,
+      layout: eLayoutType.application,
+    },
+    {
+      path: '/reports',
+      name: '::Báo cáo & Thống kê',
+      iconClass: 'fas fa-chart-bar',
+      order: 12,
       layout: eLayoutType.application,
     },
     {
       path: '/dashboard',
       name: '::Tổng quan hệ thống',
       iconClass: 'fas fa-chart-pie',
-      order: 11, 
+      order: 13, 
       layout: eLayoutType.application,
     },
     {

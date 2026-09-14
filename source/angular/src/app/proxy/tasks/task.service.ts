@@ -97,6 +97,15 @@ export class TaskService {
     { apiName: this.apiName,...config });
   
 
+  deleteTaskAttachment = (id: string, fileUrl: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskDto>({
+      method: 'DELETE',
+      url: `/api/app/task/${id}/attachment`,
+      params: { fileUrl },
+    },
+    { apiName: this.apiName,...config });
+  
+
   get = (id: string, config?: Partial<Rest.Config>) =>
     this.restService.request<any, TaskDto>({
       method: 'GET',

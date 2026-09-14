@@ -79,6 +79,14 @@ export class TaskFormComponent implements OnInit {
       frequency: [0]
     });
 
+    this.form.get('dueDate')?.valueChanges.subscribe(dateValue => {
+      const currentStatus = Number(this.form.get('status')?.value);
+      // Nếu có chọn ngày, và trạng thái hiện tại KHÁC "Đang làm" (1), KHÁC "Hoàn thành" (2) và KHÁC "Đã hủy" (3)
+      if (dateValue && currentStatus !== 1 && currentStatus !== 2 && currentStatus !== 3) {
+        this.form.patchValue({ status: 1 }, { emitEvent: false });
+      }
+    });
+
     this.form.get('projectId')?.valueChanges.subscribe(projectId => {
       if (projectId) {
         this.onProjectChange(projectId);
@@ -124,7 +132,8 @@ export class TaskFormComponent implements OnInit {
     // 3. Load phòng ban
     this.rest.request<any, any>({ method: 'GET', url: '/api/app/department' }).subscribe({
       next: (res) => { 
-        this.departments = Array.isArray(res) ? res : (res?.items || []); 
+        const rawDepts = Array.isArray(res) ? res : (res?.items || []); 
+        this.departments = rawDepts.filter((d: any) => d.parentId || d.parentDepartmentId);
         this.cdr.detectChanges();
       },
       error: () => { this.departments = []; }

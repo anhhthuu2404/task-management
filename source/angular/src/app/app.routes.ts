@@ -1,6 +1,6 @@
 import { authGuard, permissionGuard } from '@abp/ng.core';
 import { Routes } from '@angular/router';
-
+import { TaskListComponent } from './tasks/task-list.component';
 export const APP_ROUTES: Routes = [
   {
     path: '',
@@ -63,37 +63,41 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./role/role.component').then(m => m.RoleComponent), 
     canActivate: [authGuard],
   },
-  {
-    path: 'tasks',
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        redirectTo: 'list',
-        pathMatch: 'full',
-      },
-      {
-        path: 'list', 
-        loadComponent: () => import('./tasks/task-list.component').then(m => m.TaskListComponent),
-      },
-      {
-        path: 'create',
-        loadComponent: () => import('./tasks/create-task.component').then(m => m.CreateTaskComponent),
-      },
-      {
-        path: 'edit/:id',
-        loadComponent: () => import('./tasks/task-form.component').then(m => m.TaskFormComponent),
-      },
-      {
-        path: 'detail/:id',
-        loadComponent: () => import('./tasks/task-detail.component').then(m => m.TaskDetailComponent),
-      },
-    ],
-  },
+  // Các route của projects và tasks đã được tách phẳng:
   {
     path: 'projects',
     loadComponent: () => import('./projects/projects.component').then(m => m.ProjectsComponent),
     canActivate: [authGuard],
+  },
+  {
+    path: 'tasks/list',
+    loadComponent: () => import('./tasks/task-list.component').then(m => m.TaskListComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks/create',
+    loadComponent: () => import('./tasks/create-task.component').then(m => m.CreateTaskComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks/edit/:id',
+    loadComponent: () => import('./tasks/task-form.component').then(m => m.TaskFormComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks/detail/:id',
+    loadComponent: () => import('./tasks/task-detail.component').then(m => m.TaskDetailComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tasks',
+    redirectTo: 'tasks/list',
+    pathMatch: 'full'
+  },
+  {
+    path: 'tasks/detail',
+    redirectTo: 'tasks/list',
+    pathMatch: 'full'
   },
   {
     path: 'dashboard',
@@ -101,7 +105,7 @@ export const APP_ROUTES: Routes = [
     canActivate: [authGuard],
   },
   {
-  path: 'reports',
-  loadComponent: () => import('./reports/report.component').then(m => m.ReportComponent)
-}
+    path: 'reports',
+    loadComponent: () => import('./reports/report.component').then(m => m.ReportComponent)
+  }
 ];

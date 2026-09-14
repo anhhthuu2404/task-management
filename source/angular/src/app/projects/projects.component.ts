@@ -390,7 +390,7 @@ export class ProjectsComponent implements OnInit {
   }
 
   viewProjectTasks(projectId?: string): void {
-    if (!projectId) return;
-    this.router.navigate(['/tasks'], { queryParams: { projectId: projectId } });
-  }
+  if (!projectId) return;
+  this.router.navigate(['/tasks/list'], { queryParams: { projectId: projectId } });
+}
 }

@@ -61,7 +61,11 @@
               <td>{{ item.title }}</td>
               <td>{{ item.projectName || '---' }}</td>
               <td>{{ item.assigneeName || '---' }}</td>
-              <td><span class="badge bg-info text-dark">{{ item.status }}</span></td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(item.status)">
+                  {{ getStatusText(item.status) }}
+                </span>
+              </td>
               <td>{{ item.progressPercent }}%</td>
               <td>{{ item.dueDate ? (item.dueDate | date:'dd/MM/yyyy') : '---' }}</td>
             </tr>

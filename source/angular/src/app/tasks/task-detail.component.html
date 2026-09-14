@@ -1,5 +1,5 @@
 <div class="container-fluid py-4 px-4 bg-light min-vh-100" style="font-size: 1.02rem;">
-  
+
   <!-- HEADER -->
   <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -45,10 +45,10 @@
         </ng-container>
 
         <!-- DROPDOWN TRẠNG THÁI (Dành cho Quản lý / Admin) -->
-        <div class="position-relative status-dropdown-container" *ngIf="isCreatorOrManager">
-          <button class="btn btn-white bg-white border text-secondary dropdown-toggle shadow-xs px-4 py-2 rounded-pill d-flex align-items-center gap-2 fs-6" type="button" (click)="toggleStatusDropdown($event)" [disabled]="isActionLoading">
-            <i class="bi bi-sliders text-primary"></i> Đổi trạng thái
-          </button>
+       <div class="position-relative status-dropdown-container" *ngIf="isCreatorOrManager">
+        <button class="btn btn-white bg-white border text-secondary dropdown-toggle shadow-xs px-4 py-2 rounded-pill d-flex align-items-center gap-2 fs-6" type="button" (click)="toggleStatusDropdown($event)" [disabled]="isActionLoading">
+          <i class="bi bi-sliders text-primary"></i> Đổi trạng thái
+       </button>
 
           <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-2 mt-2 fs-6" [class.show]="isStatusDropdownOpen" style="right: 0; left: auto; z-index: 1050; min-width: 200px;">
             <li>

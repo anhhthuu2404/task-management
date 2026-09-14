@@ -37,7 +37,6 @@ namespace TaskManagement.Reports
             var projects = await _projectRepository.GetListAsync();
             var users = await _userRepository.GetListAsync();
 
-            // Tạo dictionary tra cứu nhanh
             var projectDict = projects.ToDictionary(p => p.Id, p => p.Name);
             var userDict = users.ToDictionary(u => u.Id, u => u.UserName);
 
@@ -53,7 +52,6 @@ namespace TaskManagement.Reports
                 query = query.Where(x => x.AssigneeId == input.EmployeeId.Value);
             }
 
-            // 6. Lọc các điều kiện trên query
             if (input.FromDate.HasValue)
             {
                 query = query.Where(x => x.DueDate >= input.FromDate.Value);
@@ -64,7 +62,16 @@ namespace TaskManagement.Reports
                 query = query.Where(x => x.DueDate <= input.ToDate.Value);
             }
 
-            // Đưa về danh sách C# thông thường trước khi map để dùng được block body và TryGetValue
+            // XỬ LÝ LỌC THEO PHÒNG BAN (Ưu tiên lọc theo danh sách ID phòng ban gồm cả nhánh con, nếu không có thì lọc phòng ban đơn lẻ)
+            if (input.DepartmentIds != null && input.DepartmentIds.Any())
+            {
+                query = query.Where(x => x.DepartmentId.HasValue && input.DepartmentIds.Contains(x.DepartmentId.Value));
+            }
+            else if (input.DepartmentId.HasValue)
+            {
+                query = query.Where(x => x.DepartmentId == input.DepartmentId.Value);
+            }
+
             var filteredTasks = query.ToList();
 
             var result = filteredTasks.Select(task =>
@@ -89,7 +96,7 @@ namespace TaskManagement.Reports
                     ProjectName = projectName,
                     AssignedUserId = task.AssigneeId,
                     AssigneeName = assigneeName,
-                    DepartmentId = input.DepartmentId,
+                    DepartmentId = task.DepartmentId,
                     DepartmentName = string.Empty,
                     Status = task.Status.ToString(),
                     ProgressPercent = task.ProgressPercent,

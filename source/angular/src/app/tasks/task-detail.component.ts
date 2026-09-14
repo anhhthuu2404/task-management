@@ -1,11 +1,12 @@
 import { Component, OnInit, ViewChild, ElementRef, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ToasterService } from '@abp/ng.theme.shared';
 import { ConfigStateService } from '@abp/ng.core';
 import { of, Observable } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+
 import { 
   TaskService, 
   TaskStatus, 
@@ -71,9 +72,15 @@ export class TaskDetailComponent implements OnInit {
            this.taskDetail.assignedToUserId === this.currentUserId;
   }
 
-  get isCreatorOrManager(): boolean {
+ get isCreatorOrManager(): boolean {
     if (!this.currentUserId || !this.taskDetail) return false;
-    return this.taskDetail.creatorId === this.currentUserId || 
+    
+    // Kiểm tra xem user hiện tại có phải là admin không (dựa trên configState hoặc role)
+    const currentUser = this.configState.getOne('currentUser') as { userName?: string; roles?: string[] };
+    const isAdmin = currentUser?.userName === 'admin' || currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('Admin');
+
+    return isAdmin || 
+           this.taskDetail.creatorId === this.currentUserId || 
            this.taskDetail.managerId === this.currentUserId;
   }
 
@@ -127,6 +134,7 @@ export class TaskDetailComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private taskService: TaskService,
     private toaster: ToasterService,
     private cdr: ChangeDetectorRef,
@@ -611,7 +619,7 @@ export class TaskDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.location.back();
+   this.router.navigate(['/tasks/list']);
   }
 
   loadTaskDetail(isSilent: boolean = false): void {

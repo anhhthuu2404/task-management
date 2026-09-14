@@ -14,6 +14,7 @@ export class RoleComponent implements OnInit {
   roles: any[] = [];
   selectedRole: any = null;
   permissions: any[] = [];
+  permissionGroups: any[] = [];
   
   isRoleModalOpen = false;
   roleDisplayName = '';
@@ -31,6 +32,13 @@ export class RoleComponent implements OnInit {
   ngOnInit(): void { 
     this.loadRoles(); 
     this.loadAllUsers();
+  }
+  onPermissionChange(): void {
+    this.permissions = [];
+    this.permissionGroups.forEach((g: any) => {
+      this.permissions.push(...g.permissions);
+    });
+    this.cd.detectChanges();
   }
 
   loadRoles(): void {
@@ -189,31 +197,37 @@ export class RoleComponent implements OnInit {
     
     this.httpClient.get<any>(url).subscribe({
       next: (res) => {
-        let allPerms: any[] = [];
         const groups = res?.groups || res?.result?.groups || [];
-        if (Array.isArray(groups)) {
-          groups.forEach((group: any) => {
-            if (group.permissions && Array.isArray(group.permissions)) {
-              group.permissions.forEach((p: any) => {
-                allPerms.push({
-                  name: p.name,
-                  displayName: p.displayName || p.name,
-                  isGranted: p.isGranted || false
+        
+        // Duyệt sâu qua cả quyền gốc và quyền con (children) để giữ đúng trạng thái isGranted từ database
+        this.permissionGroups = groups.map((group: any) => ({
+          name: group.name,
+          displayName: group.displayName || group.name,
+          permissions: (group.permissions || []).flatMap((p: any) => {
+            const list = [{
+              name: p.name,
+              displayName: p.displayName || p.name,
+              isGranted: p.isGranted || false
+            }];
+            if (p.children && Array.isArray(p.children)) {
+              p.children.forEach((child: any) => {
+                list.push({
+                  name: child.name,
+                  displayName: child.displayName || child.name,
+                  isGranted: child.isGranted || false
                 });
-                if (p.children && Array.isArray(p.children)) {
-                  p.children.forEach((child: any) => {
-                    allPerms.push({
-                      name: child.name,
-                      displayName: child.displayName || child.name,
-                      isGranted: child.isGranted || false
-                    });
-                  });
-                }
               });
             }
-          });
-        }
-        this.permissions = allPerms;
+            return list;
+          })
+        }));
+
+        // Đồng bộ mảng phẳng để phục vụ việc gửi payload khi lưu
+        this.permissions = [];
+        this.permissionGroups.forEach((g: any) => {
+          this.permissions.push(...g.permissions);
+        });
+
         this.cd.detectChanges();
       },
       error: (err) => console.error('Lỗi tải danh sách phân quyền:', err)
@@ -233,6 +247,22 @@ export class RoleComponent implements OnInit {
       next: () => alert('Đã lưu thay đổi phân quyền thành công!'),
       error: (err) => alert(err.error?.error?.message || 'Không thể lưu phân quyền!')
     });
+  }
+  toggleGroupPermissions(group: any, event: any): void {
+    const isChecked = event.target.checked;
+    if (group && group.permissions) {
+      group.permissions.forEach((p: any) => {
+        p.isGranted = isChecked;
+      });
+    }
+
+    // Đồng bộ lại mảng phẳng permissions để khi lưu payload mang đúng dữ liệu mới
+    this.permissions = [];
+    this.permissionGroups.forEach((g: any) => {
+      this.permissions.push(...g.permissions);
+    });
+
+    this.cd.detectChanges();
   }
 
   openRoleModal(): void { 

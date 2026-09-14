@@ -11,10 +11,11 @@ public class Notification : CreationAuditedEntity<Guid>
     public Guid? TaskId { get; set; }
     protected Notification() { }
 
-    public Notification(Guid id, Guid userId, string message) : base(id)
+    public Notification(Guid id, Guid userId, string message, Guid? taskId = null) : base(id)
     {
         UserId = userId;
         Message = message;
         IsRead = false;
+        TaskId = taskId;
     }
 }

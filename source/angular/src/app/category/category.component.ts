@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core';
@@ -46,6 +46,7 @@ export class CategoryComponent implements OnInit {
   private readonly confirmation = inject(ConfirmationService);
   private readonly noti = inject(ToasterService);
   private readonly permissionService = inject(PermissionService);
+  private readonly cdr = inject(ChangeDetectorRef);
   public readonly list = inject(ListService);
 
   category: PagedResultDto<CategoryDto> = { items: [], totalCount: 0 };
@@ -59,7 +60,6 @@ export class CategoryComponent implements OnInit {
 
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
 
-  // Kiểm tra quyền hạn theo Policy (tùy chỉnh lại tên policy cho khớp với backend của bạn nếu cần)
   get canCreate(): boolean {
     return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Create') || 
            this.permissionService.getGrantedPolicy('MyProject.Category.Create');
@@ -85,20 +85,40 @@ export class CategoryComponent implements OnInit {
     const streamCreator = (query: any) => {
       this.loading = true;
       const searchVal = this.searchForm?.value;
-      return this.service.getList({
+      
+      // Gộp các tham số phân trang của ListService với từ khóa tìm kiếm
+      const requestParams = {
         ...query,
         filter: searchVal?.filter || '',
-      } as any).pipe(
-        finalize(() => (this.loading = false))
+        keyword: searchVal?.filter || '', // Dự phòng trường hợp backend nhận tham số là keyword
+      };
+
+      return this.service.getList(requestParams).pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        })
       );
     };
 
     this.list.hookToQuery(streamCreator).subscribe({
-      next: (res) => {
-        this.category = res || { items: [], totalCount: 0 };
+      next: (res: any) => {
+        // Xử lý linh hoạt mọi định dạng kết quả trả về từ API (PagedResultDto hoặc Array thuần)
+        if (Array.isArray(res)) {
+          this.category = { items: res, totalCount: res.length };
+        } else {
+          this.category = {
+            items: res?.items || res?.result || [],
+            totalCount: res?.totalCount || res?.items?.length || 0,
+          };
+        }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải danh sách category:', err);
+        this.category = { items: [], totalCount: 0 };
+        this.noti.error('Không thể tải danh sách danh mục', 'Lỗi');
+        this.cdr.detectChanges();
       }
     });
   }
@@ -134,6 +154,7 @@ export class CategoryComponent implements OnInit {
         this.selectedCategory = item;
         this.buildForm();
         this.isModalOpen = true;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.noti.error(err?.error?.error?.message || 'Không thể tải thông tin danh mục', 'Lỗi');
@@ -169,7 +190,10 @@ export class CategoryComponent implements OnInit {
       : this.service.create(dto as any);
 
     request
-      .pipe(finalize(() => (this.isSaving = false)))
+      .pipe(finalize(() => {
+        this.isSaving = false;
+        this.cdr.detectChanges();
+      }))
       .subscribe({
         next: () => {
           this.isModalOpen = false;
@@ -191,7 +215,10 @@ export class CategoryComponent implements OnInit {
         if (status === Confirmation.Status.confirm) {
           this.loading = true;
           this.service.delete(id)
-            .pipe(finalize(() => (this.loading = false)))
+            .pipe(finalize(() => {
+              this.loading = false;
+              this.cdr.detectChanges();
+            }))
             .subscribe({
               next: () => {
                 this.list.get();

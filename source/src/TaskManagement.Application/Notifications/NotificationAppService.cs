@@ -33,6 +33,18 @@ public class NotificationAppService : ApplicationService, INotificationAppServic
                 CreationTime = x.CreationTime,
                 TaskId = x.TaskId 
             })];
+
+    }
+    public async Task CreateNotificationAsync(Guid targetReviewerId, Guid taskId, string message)
+    {
+        var notification = new Notification(
+            GuidGenerator.Create(),
+            targetReviewerId,
+            message,
+            taskId
+        );
+
+        await _notificationRepository.InsertAsync(notification, autoSave: true);
     }
 
     public async Task MarkAsReadAsync(Guid id)

@@ -90,7 +90,10 @@ export class CreateTaskComponent implements OnInit {
   loadDepartments(): void {
     this.httpClient.get<any>('/api/app/department').subscribe({
       next: (res: any) => {
-        this.departments = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        const rawDepts = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        
+        // Chỉ giữ lại các phòng ban con (có tồn tại parentId hoặc parentDepartmentId)
+        this.departments = rawDepts.filter((d: any) => d.parentId || d.parentDepartmentId);
       },
       error: (err) => console.error('Lỗi tải phòng ban:', err)
     });
