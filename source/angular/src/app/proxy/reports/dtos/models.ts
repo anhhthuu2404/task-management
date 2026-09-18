@@ -18,5 +18,6 @@ export interface TaskReportQueryDto {
   departmentId?: string;
   projectId?: string;
   fromDate?: string;
+  departmentIds?: string[];
   toDate?: string;
 }

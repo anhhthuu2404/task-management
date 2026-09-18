@@ -2,6 +2,7 @@ import type { AddProjectMemberDto, CreateUpdateMilestoneDto, CreateUpdateProject
 import { RestService, Rest } from '@abp/ng.core';
 import type { ListResultDto, PagedResultDto } from '@abp/ng.core';
 import { Injectable, inject } from '@angular/core';
+import type { TaskItem } from '../tasks/models';
 
 @Injectable({
   providedIn: 'root',
@@ -66,7 +67,7 @@ export class ProjectService {
     this.restService.request<any, PagedResultDto<ProjectDto>>({
       method: 'GET',
       url: '/api/app/project',
-      params: { filter: input.filter, status: input.status, departmentId: input.departmentId, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
+      params: { filter: input.filter, status: input.status, departmentId: input.departmentId, categoryId: input.categoryId, sorting: input.sorting, skipCount: input.skipCount, maxResultCount: input.maxResultCount },
     },
     { apiName: this.apiName,...config });
   
@@ -83,6 +84,14 @@ export class ProjectService {
     this.restService.request<any, MilestoneDto[]>({
       method: 'GET',
       url: `/api/app/project/milestones/${projectId}`,
+    },
+    { apiName: this.apiName,...config });
+  
+
+  getTasksByProject = (projectId: string, config?: Partial<Rest.Config>) =>
+    this.restService.request<any, TaskItem[]>({
+      method: 'GET',
+      url: `/api/app/project/${projectId}/tasks`,
     },
     { apiName: this.apiName,...config });
   

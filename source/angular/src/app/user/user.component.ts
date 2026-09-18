@@ -1,8 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { CoreModule } from '@abp/ng.core';
+import { CoreModule, LocalizationService } from '@abp/ng.core';
+import { ToasterService, ConfirmationService, Confirmation } from '@abp/ng.theme.shared';
 
 @Component({
   selector: 'app-user',
@@ -15,12 +16,22 @@ import { CoreModule } from '@abp/ng.core';
   templateUrl: './user.component.html'
 })
 export class UserComponent implements OnInit {
+  private readonly httpClient = inject(HttpClient);
+  private readonly cd = inject(ChangeDetectorRef);
+  private readonly toaster = inject(ToasterService);
+  private readonly confirmation = inject(ConfirmationService);
+  private readonly localizationService = inject(LocalizationService);
 
   users: any[] = [];
+  totalCount = 0;           // Biến lưu tổng số lượng user
+  pageSize = 10;            // Số lượng bản ghi trên 1 trang
+  page = 0;                 // Trang hiện tại (ABP bắt đầu từ 0 hoặc tính theo skipCount)
+
   isModalOpen = false;
   isEditMode = false;
   selectedUserId: string | null = null;
   showPassword = false;
+  changePassword = false; 
 
   formData: any = {
     userName: '',
@@ -34,27 +45,36 @@ export class UserComponent implements OnInit {
     extraProperties: {}
   };
 
-  constructor(
-    private httpClient: HttpClient,
-    private cd: ChangeDetectorRef
-  ) {}
-
   ngOnInit(): void {
     this.loadUsers();
   }
 
-  loadUsers(): void {
-    this.httpClient.get<any>('/api/identity/users?maxResultCount=100').subscribe({
+  // Hàm tải dữ liệu có phân trang
+  loadUsers(pageOffset: number = 0): void {
+    this.page = pageOffset;
+    const skipCount = this.page * this.pageSize;
+    
+    // Gọi API Identity User của ABP kèm theo phân trang skipCount và maxResultCount
+    this.httpClient.get<any>(`/api/identity/users?skipCount=${skipCount}&maxResultCount=${this.pageSize}`).subscribe({
       next: (res: any) => {
         this.users = res.items || [];
+        this.totalCount = res.totalCount || 0; // Lấy tổng số lượng từ API trả về
         this.cd.detectChanges();
       },
-      error: (err) => console.error('Lỗi tải danh sách user:', err)
+      error: (err) => console.error('Error loading users:', err)
     });
+  }
+
+  // Hàm lắng nghe sự kiện đổi trang từ giao diện <abp-paginator>
+  getData(pageInfo: any): void {
+    // ABP paginator thường truyền về offset hoặc số trang, ta tính toán lại page
+    const pageIndex = pageInfo.offset ? pageInfo.offset : (pageInfo - 1 >= 0 ? pageInfo - 1 : 0);
+    this.loadUsers(pageIndex);
   }
 
   openModal(user?: any): void {
     this.showPassword = false;
+    this.changePassword = false; 
     
     if (user) {
       this.isEditMode = true;
@@ -64,7 +84,7 @@ export class UserComponent implements OnInit {
         email: user.email,
         name: user.name || '',
         surname: user.surname || '',
-        password: '', // Để trống khi sửa để không bắt buộc đổi mật khẩu
+        password: '', 
         isActive: user.isActive ?? true,
         lockoutEnabled: user.lockoutEnabled ?? true,
         roleNames: user.roleNames || [],
@@ -94,11 +114,17 @@ export class UserComponent implements OnInit {
     this.cd.detectChanges();
   }
 
+  onChangePasswordToggle(): void {
+    if (!this.changePassword) {
+      this.formData.password = '';
+    }
+  }
+
   saveUser(): void {
     const payload = { ...this.formData };
 
     if (this.isEditMode) {
-      if (!payload.password || payload.password.trim() === '') {
+      if (!this.changePassword || !payload.password || payload.password.trim() === '') {
         delete payload.password;
       }
     }
@@ -106,45 +132,49 @@ export class UserComponent implements OnInit {
     if (this.isEditMode && this.selectedUserId) {
       this.httpClient.put(`/api/identity/users/${this.selectedUserId}`, payload).subscribe({
         next: () => {
-          alert('Cập nhật người dùng thành công!');
+          this.toaster.success('User updated successfully.', 'Success');
           this.closeModal();
-          this.loadUsers();
+          this.loadUsers(this.page); // Load lại trang hiện tại
         },
-        error: (err: any) => this.handleError(err, 'cập nhật')
+        error: (err: any) => this.handleError(err, 'update')
       });
     } else {
       this.httpClient.post('/api/identity/users', payload).subscribe({
         next: () => {
-          alert('Thêm người dùng thành công!');
+          this.toaster.success('User created successfully.', 'Success');
           this.closeModal();
-          this.loadUsers();
+          this.loadUsers(0); // Tạo mới xong quay về trang đầu tiên
         },
-        error: (err: any) => this.handleError(err, 'thêm mới')
+        error: (err: any) => this.handleError(err, 'create')
       });
     }
   }
 
   deleteUser(id: string): void {
-    if (confirm('Bạn có chắc chắn muốn xóa người dùng này không?')) {
-      this.httpClient.delete(`/api/identity/users/${id}`).subscribe({
-        next: () => {
-          alert('Xóa người dùng thành công!');
-          this.loadUsers();
-        },
-        error: (err: any) => {
-          let errorMsg = err.error?.error?.message || 'Không thể xóa người dùng!';
-          alert(errorMsg);
+    this.confirmation
+      .warn('Are you sure you want to delete this user?', 'AreYouSure')
+      .subscribe((status) => {
+        if (status === Confirmation.Status.confirm) {
+          this.httpClient.delete(`/api/identity/users/${id}`).subscribe({
+            next: () => {
+              this.toaster.success('User deleted successfully.', 'Success');
+              this.loadUsers(this.page); // Load lại trang hiện tại
+            },
+            error: (err: any) => {
+              const errorMsg = err.error?.error?.message || 'Could not delete the user!';
+              this.toaster.error(errorMsg, 'Error');
+            }
+          });
         }
       });
-    }
   }
 
   private handleError(err: any, actionName: string): void {
-    let errorMsg = `Có lỗi khi ${actionName} user!`;
+    let errorMsg = `An error occurred while trying to ${actionName} user!`;
     if (err.error?.error) {
       const abpError = err.error.error;
       errorMsg = abpError.details || abpError.message || errorMsg;
     }
-    alert(`Không thể ${actionName} người dùng:\n` + errorMsg);
+    this.toaster.error(errorMsg, 'Error');
   }
 }

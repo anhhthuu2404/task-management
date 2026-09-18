@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core';
+import { CoreModule, ListService, PagedResultDto, PermissionService } from '@abp/ng.core'; // <--- Thêm CoreModule ở đây
 import {
   NgxDatatableListDirective,
   ModalComponent,
@@ -48,12 +48,12 @@ import { CategoryDto } from '../proxy/categories/models';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    CoreModule,          // <--- THÊM CoreModule VÀO ĐÂY ĐỂ NHẬN PIPE abpLocalization
     NgxDatatableModule,
     NgbDropdownModule,
     ModalComponent,
     ModalCloseDirective,
     PageModule,
-    NgxDatatableListDirective,
     ThemeSharedModule,
   ],
   providers: [

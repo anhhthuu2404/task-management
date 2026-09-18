@@ -1,9 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RestService } from '@abp/ng.core';
+import { CoreModule, RestService } from '@abp/ng.core';
 import { ToasterService, ConfirmationService, Confirmation, ThemeSharedModule } from '@abp/ng.theme.shared';
 import { PageModule } from '@abp/ng.components/page';
+
 import { 
   DepartmentService, 
   DepartmentDto, 
@@ -29,7 +30,7 @@ export interface IdentityRoleDto {
 @Component({
   selector: 'app-department',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageModule, ThemeSharedModule],
+  imports: [CommonModule, CoreModule, FormsModule, PageModule, ThemeSharedModule],
   templateUrl: './department.component.html'
 })
 export class DepartmentComponent implements OnInit {
@@ -50,6 +51,11 @@ export class DepartmentComponent implements OnInit {
   availableUsers: IdentityUserDto[] = [];
   availableRoles: IdentityRoleDto[] = [];
   assignData: AssignUserToDepartmentDto = { userId: '', departmentId: '', isManager: false };
+
+  // Biến phục vụ phân trang danh sách nhân sự
+  page: number = 1;
+  pageSize: number = 5;
+  mathCeil = Math.ceil;
 
   ngOnInit(): void {
     this.loadDepartmentTree();
@@ -87,9 +93,24 @@ export class DepartmentComponent implements OnInit {
 
   selectDepartment(node: DepartmentTreeDto): void {
     this.selectedDepartment = node;
+    this.page = 1; // Reset về trang 1 khi chọn phòng ban mới
     if (node && node.id) {
       this.fetchDepartmentDetail(node.id);
     }
+  }
+
+  // Getter tính toán nhân sự hiển thị trên trang hiện tại
+  get paginatedMembers() {
+    if (!this.selectedDepartment || !this.selectedDepartment.members) {
+      return [];
+    }
+    const start = (this.page - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    return this.selectedDepartment.members.slice(start, end);
+  }
+
+  onPageChange(newPage: number): void {
+    this.page = newPage;
   }
 
   private fetchDepartmentDetail(id: string): void {
@@ -297,7 +318,6 @@ export class DepartmentComponent implements OnInit {
     });
   }
 
-  // Hàm xử lý khi bấm vào icon vương miện để chuyển đổi trạng thái Trưởng phòng
   toggleManager(member: any): void {
     if (!this.selectedDepartment?.id || !member.userId) return;
 

@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-
+import { CoreModule } from '@abp/ng.core';
 @Component({
   selector: 'app-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule , CoreModule],
   templateUrl: './report.component.html'
 })
 export class ReportComponent implements OnInit {

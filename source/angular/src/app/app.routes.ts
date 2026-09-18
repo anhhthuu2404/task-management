@@ -1,6 +1,6 @@
 import { authGuard, permissionGuard } from '@abp/ng.core';
 import { Routes } from '@angular/router';
-import { TaskListComponent } from './tasks/task-list.component';
+
 export const APP_ROUTES: Routes = [
   {
     path: '',
@@ -63,11 +63,15 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./role/role.component').then(m => m.RoleComponent), 
     canActivate: [authGuard],
   },
-  // Các route của projects và tasks đã được tách phẳng:
   {
     path: 'projects',
     loadComponent: () => import('./projects/projects.component').then(m => m.ProjectsComponent),
     canActivate: [authGuard],
+  },
+  {
+    path: 'tasks',
+    redirectTo: 'tasks/list',
+    pathMatch: 'full',
   },
   {
     path: 'tasks/list',
@@ -90,22 +94,13 @@ export const APP_ROUTES: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'tasks',
-    redirectTo: 'tasks/list',
-    pathMatch: 'full'
-  },
-  {
-    path: 'tasks/detail',
-    redirectTo: 'tasks/list',
-    pathMatch: 'full'
-  },
-  {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard],
   },
   {
     path: 'reports',
-    loadComponent: () => import('./reports/report.component').then(m => m.ReportComponent)
+    loadComponent: () => import('./reports/report.component').then(m => m.ReportComponent),
+    canActivate: [authGuard],
   }
 ];

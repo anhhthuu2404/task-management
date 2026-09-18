@@ -20,6 +20,7 @@ export interface CreateUpdateProjectDto {
   startDate?: string;
   endDate?: string;
   departmentId?: string;
+  categoryId?: string;
   status?: string;
 }
 
@@ -40,6 +41,8 @@ export interface ProjectDto extends FullAuditedEntityDto<string> {
   status?: string;
   departmentId?: string;
   departmentName?: string;
+  categoryId?: string;
+  categoryName?: string;
   memberCount?: number;
   milestoneCount?: number;
 }
@@ -48,6 +51,7 @@ export interface ProjectListFilterDto extends PagedAndSortedResultRequestDto {
   filter?: string;
   status?: string;
   departmentId?: string;
+  categoryId?: string;
 }
 
 export interface ProjectMemberDto extends EntityDto<string> {

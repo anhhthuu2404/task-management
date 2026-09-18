@@ -6,7 +6,7 @@ import { ToasterService } from '@abp/ng.theme.shared';
 import { ConfigStateService } from '@abp/ng.core';
 import { of, Observable } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-
+import { CoreModule } from '@abp/ng.core';
 import { 
   TaskService, 
   TaskStatus, 
@@ -50,7 +50,7 @@ export interface LocalTaskDetailDto extends TaskDetailDto {
     .cursor-pointer { cursor: pointer; }
   `],
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule]
+  imports: [CommonModule,CoreModule, FormsModule, RouterModule]
 })
 export class TaskDetailComponent implements OnInit {
   @ViewChild('submitFileInput') submitFileInput!: ElementRef<HTMLInputElement>;

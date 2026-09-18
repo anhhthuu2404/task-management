@@ -1,51 +1,65 @@
-<div class="card shadow-sm border-0">
-  <div class="card-body">
+<div class="card shadow-sm border-0 rounded-4">
+  <div class="card-body p-4 p-lg-5">
     <!-- Header trang -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="fw-bold text-primary m-0">Quản Lý Người dùng</h2>
-      <button type="button" class="btn btn-primary d-flex align-items-center gap-2" (click)="openModal()">
-        <i class="fa fa-plus"></i> Thêm người dùng
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+         <div>
+            <h3 class="fw-bold text-dark m-0">{{ '::Menu:Users' | abpLocalization }}</h3>
+            <p class="text-secondary m-0 mt-1" style="font-size: 14px;">{{ '::UsersHeaderDescription' | abpLocalization }}</p>
+         </div>
+      <button type="button" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2 rounded-3" (click)="openModal()">
+        <i class="fa fa-plus-circle fs-5"></i> <span>{{ '::NewUser' | abpLocalization }}</span>
       </button>
     </div>
 
     <!-- Bảng danh sách User -->
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
+    <div class="table-responsive bg-white rounded-4 shadow-sm border overflow-hidden mb-4">
+      <table class="table table-hover align-middle mb-0 fs-6">
         <thead class="table-light">
           <tr>
-            <th style="width: 25%;">Tên đăng nhập</th>
-            <th style="width: 25%;">Họ tên</th>
-            <th style="width: 25%;">E-mail</th>
-            <th style="width: 12%;">Trạng thái</th>
-            <th class="text-end" style="width: 13%;">Thao tác</th>
+            <th class="ps-4 py-3" style="width: 25%;">{{ '::UserName' | abpLocalization }}</th>
+            <th class="py-3" style="width: 25%;">{{ '::DisplayName' | abpLocalization }}</th>
+            <th class="py-3" style="width: 25%;">{{ '::Email' | abpLocalization }}</th>
+            <th class="py-3" style="width: 12%;">{{ '::Status' | abpLocalization }}</th>
+            <th class="text-center py-3 pe-4" style="width: 13%;">{{ '::Actions' | abpLocalization }}</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let u of users">
-            <td class="fw-bold text-dark">{{ u.userName }}</td>
-            <td>{{ (u.surname ? u.surname + ' ' : '') + (u.name || '') }}</td>
-            <td>{{ u.email }}</td>
-            <td>
-              <span class="badge px-2 py-1" [ngClass]="u.isActive ? 'bg-success' : 'bg-danger'">
-                {{ u.isActive ? 'Hoạt động' : 'Đã khóa' }}
+            <td class="ps-4 py-3 fw-semibold text-dark">{{ u.userName }}</td>
+            <td class="py-3">{{ (u.surname ? u.surname + ' ' : '') + (u.name || '') }}</td>
+            <td class="py-3 text-muted">{{ u.email }}</td>
+            <td class="py-3">
+              <span class="badge px-3 py-2 fw-semibold text-white rounded-pill" [ngClass]="u.isActive ? 'bg-success' : 'bg-secondary'">
+                {{ u.isActive ? ('::Active' | abpLocalization) : ('::Locked' | abpLocalization) }}
               </span>
             </td>
-            <td class="text-end">
+            <td class="text-end pe-4 py-3">
               <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-sm btn-outline-primary" (click)="openModal(u)" title="Sửa">
-                  <i class="fa fa-pen"></i>
+                <button type="button" class="btn btn-sm btn-outline-primary px-2 py-1" (click)="openModal(u)" title="Edit">
+                  <i class="fa fa-pen fs-6"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteUser(u.id)" title="Xóa">
-                  <i class="fa fa-trash"></i>
+                <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" (click)="deleteUser(u.id)" title="Delete">
+                  <i class="fa fa-trash fs-6"></i>
                 </button>
               </div>
             </td>
           </tr>
           <tr *ngIf="users.length === 0">
-            <td colspan="5" class="text-center text-muted py-4">Không có dữ liệu người dùng</td>
+            <td colspan="5" class="text-center text-muted py-5 fs-6">{{ '::NoData' | abpLocalization }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Thanh Phân trang & Đếm số lượng -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 pt-2" *ngIf="totalCount > 0">
+      <!-- Hiển thị tổng số lượng -->
+      <div class="text-secondary fs-6">
+        {{ '::TotalCount' | abpLocalization }}: <span class="fw-bold text-dark">{{ totalCount }}</span>
+      </div>
+
+      <!-- Component Phân trang ABP hoặc nút chuyển trang cơ bản -->
+      <abp-paginator [fullyLoaded]="false" (pageChange)="getData($event)"></abp-paginator>
     </div>
   </div>
 </div>
@@ -53,52 +67,60 @@
 <!-- Modal Thêm / Sửa User -->
 <div *ngIf="isModalOpen" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg border-0">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title fw-bold">{{ isEditMode ? 'Cập nhật Người dùng' : 'Thêm mới Người dùng' }}</h5>
+    <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+      <div class="modal-header bg-primary text-white px-4 py-3">
+        <h5 class="modal-title fw-bold fs-5">{{ isEditMode ? ('::EditUser' | abpLocalization) : ('::NewUser' | abpLocalization) }}</h5>
         <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-4">
         <div class="mb-3">
-          <label class="form-label fw-bold">Tên đăng nhập <span class="text-danger">*</span></label>
-          <input [(ngModel)]="formData.userName" [disabled]="isEditMode" type="text" class="form-control" placeholder="VD: anhthu" />
+          <label class="form-label fw-bold text-dark fs-6">{{ '::UserName' | abpLocalization }} <span class="text-danger">*</span></label>
+          <input [(ngModel)]="formData.userName" [disabled]="isEditMode" type="text" class="form-control fs-6 py-2" placeholder="anhthu" />
         </div>
 
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Họ</label>
-            <input [(ngModel)]="formData.surname" type="text" class="form-control" placeholder="VD: Nguyễn" />
+            <label class="form-label fw-bold text-dark fs-6">{{ '::Surname' | abpLocalization }}</label>
+            <input [(ngModel)]="formData.surname" type="text" class="form-control fs-6 py-2" placeholder="Nguyễn" />
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Tên</label>
-            <input [(ngModel)]="formData.name" type="text" class="form-control" placeholder="VD: Anh Thư" />
+            <label class="form-label fw-bold text-dark fs-6">{{ '::Name' | abpLocalization }}</label>
+            <input [(ngModel)]="formData.name" type="text" class="form-control fs-6 py-2" placeholder="Anh Thư" />
           </div>
         </div>
         
-        <!-- Ô mật khẩu có tích hợp nút ẩn/hiện con mắt -->
-        <div class="mb-3" *ngIf="!isEditMode">
-          <label class="form-label fw-bold">Mật khẩu <span class="text-danger">*</span></label>
-          <div class="input-group">
-            <input [(ngModel)]="formData.password" [type]="showPassword ? 'text' : 'password'" class="form-control" placeholder="VD: 123456Ab@" />
-            <button class="btn btn-outline-secondary" type="button" (click)="showPassword = !showPassword">
-              <i class="fa" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+        <!-- Ô nhập mật khẩu -->
+        <div class="mb-3" *ngIf="!isEditMode || changePassword">
+          <label class="form-label fw-bold text-dark fs-6">
+            {{ isEditMode ? ('::NewPassword' | abpLocalization) : ('::Password' | abpLocalization) }} <span class="text-danger">*</span>
+          </label>
+          <div class="input-group shadow-xs">
+            <input [(ngModel)]="formData.password" [type]="showPassword ? 'text' : 'password'" class="form-control fs-6 py-2" placeholder="123456Ab@" />
+            <button class="btn btn-outline-secondary px-3" type="button" (click)="showPassword = !showPassword" title="Toggle password visibility">
+              <i class="fa fs-6" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
             </button>
           </div>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label fw-bold">E-mail <span class="text-danger">*</span></label>
-          <input [(ngModel)]="formData.email" type="email" class="form-control" placeholder="VD: admin@abp.io" />
+        <!-- Checkbox chọn Đổi mật khẩu -->
+        <div class="mb-3 form-check" *ngIf="isEditMode">
+          <input type="checkbox" class="form-check-input fs-5" id="changePasswordCheck" [(ngModel)]="changePassword" (change)="onChangePasswordToggle()">
+          <label class="form-check-label text-primary fw-semibold fs-6 ms-1" for="changePasswordCheck">{{ '::ChangePassword' | abpLocalization }}</label>
         </div>
 
-        <div class="form-check">
-          <input [(ngModel)]="formData.isActive" type="checkbox" class="form-check-input" id="activeCheck" />
-          <label class="form-check-label fw-semibold" for="activeCheck">Kích hoạt tài khoản</label>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-dark fs-6">{{ '::Email' | abpLocalization }} <span class="text-danger">*</span></label>
+          <input [(ngModel)]="formData.email" type="email" class="form-control fs-6 py-2" placeholder="admin@abp.io" />
+        </div>
+
+        <div class="form-check form-switch mt-3 d-flex align-items-center gap-2">
+          <input [(ngModel)]="formData.isActive" type="checkbox" class="form-check-input fs-5 m-0" id="activeCheck" role="switch" />
+          <label class="form-check-label fw-semibold text-dark fs-6 m-0" for="activeCheck">{{ '::Active' | abpLocalization }}</label>
         </div>
       </div>
-      <div class="modal-footer bg-light">
-        <button type="button" class="btn btn-secondary" (click)="closeModal()">Hủy bỏ</button>
-        <button type="button" class="btn btn-primary" (click)="saveUser()">Lưu</button>
+      <div class="modal-footer bg-light px-4 py-3">
+        <button type="button" class="btn btn-outline-secondary px-4 py-2 fw-medium rounded-3" (click)="closeModal()">{{ '::Cancel' | abpLocalization }}</button>
+        <button type="button" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm rounded-3" (click)="saveUser()">{{ '::Save' | abpLocalization }}</button>
       </div>
     </div>
   </div>

@@ -3,72 +3,75 @@
   <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 px-4">
       <div>
-        <h5 class="mb-1 fw-bold text-dark">Quản lý Dự án</h5>
-        <p class="text-muted small mb-0">Theo dõi, phân công và quản lý tiến độ các dự án trong hệ thống.</p>
+        <h4 class="mb-1 fw-bold text-dark">{{ '::Project:Management' | abpLocalization }}</h4>
+        <p class="text-muted mb-0">{{ '::Project:Subtitle' | abpLocalization }}</p>
       </div>
-      <button class="btn btn-primary px-3 rounded-pill shadow-sm" (click)="openCreateProjectModal()">
-        <i class="bi bi-plus-lg me-1"></i> Thêm Dự Án Mới
+      <button class="btn btn-primary px-4 py-2 rounded-3 shadow-sm fw-semibold d-flex align-items-center gap-2" (click)="openCreateProjectModal()">
+        <i class="bi bi-plus-lg fs-5"></i> {{ '::Project:AddNew' | abpLocalization }}
       </button>
     </div>
-    
     <div class="card-body p-0">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light text-uppercase fs-7 text-muted">
+          <!-- Header bảng căn giữa và sửa lại hiển thị phòng ban -->
+          <thead style="background-color: #e9ecef; color: #212529;" class="text-uppercase text-center">
             <tr>
-              <th class="py-3 px-4">Tên Dự Án</th>
-              <th class="py-3">Mô tả</th>
-              <th class="py-3">Ngày bắt đầu</th>
-              <th class="py-3">Ngày kết thúc</th>
-              <th class="py-3">Trạng thái</th>
-              <th class="py-3 text-end px-4">Hành động</th>
+              <th class="py-3 px-4 fw-bold text-dark text-start">{{ '::Project:Name' | abpLocalization }}</th>
+              <th class="py-3 fw-bold text-dark text-center">{{ ('::Project:Department' | abpLocalization) || 'Phòng ban' }}</th>
+              <th class="py-3 fw-bold text-dark text-center">{{ ('::Project:Category' | abpLocalization) || 'Danh mục' }}</th>
+              <th class="py-3 fw-bold text-dark text-start">{{ '::Project:Description' | abpLocalization }}</th>
+              <th class="py-3 fw-bold text-dark text-center">{{ '::Project:StartDate' | abpLocalization }}</th>
+              <th class="py-3 fw-bold text-dark text-center">{{ '::Project:EndDate' | abpLocalization }}</th>
+              <th class="py-3 text-center px-4 fw-bold text-dark">{{ '::Project:Actions' | abpLocalization }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let p of projects">
-              <td class="py-3 px-4">
-                <span class="fw-semibold text-primary">{{ p.name }}</span>
+              <td class="py-3 px-4 text-start">
+                <span class="fw-semibold text-primary fs-6">{{ p.name || p.Name }}</span>
               </td>
-              <td class="text-muted text-truncate" style="max-width: 250px;">
-                {{ p.description || 'Không có mô tả' }}
-              </td>
-              <td>
-                <span class="text-secondary small"><i class="bi bi-calendar-event me-1"></i>{{ p.startDate ? (p.startDate | date:'dd/MM/yyyy') : '---' }}</span>
-              </td>
-              <td>
-                <span class="text-secondary small"><i class="bi bi-calendar-check me-1"></i>{{ p.endDate ? (p.endDate | date:'dd/MM/yyyy') : '---' }}</span>
-              </td>
-              <td>
-                <span class="badge rounded-pill px-3 py-2 fw-normal" 
-                      [ngClass]="{
-                        'bg-success-subtle text-success': p.status === 'Active',
-                        'bg-primary-subtle text-primary': p.status === 'Completed',
-                        'bg-warning-subtle text-warning': p.status === 'OnHold'
-                      }">
-                  {{ p.status }}
+              <td class="text-center">
+                <span class="badge fw-semibold px-2 py-1" 
+                      [ngClass]="(p.departmentName || p.DepartmentName || getDepartmentName(p.departmentId || p.DepartmentId) !== '---') ? 'bg-info-subtle text-info' : 'bg-light text-muted border'">
+                  {{ p.departmentName || p.DepartmentName || getDepartmentName(p.departmentId || p.DepartmentId) }}
                 </span>
               </td>
-              <td class="text-end px-4">
-                <div class="btn-group" role="group">
-                  <button class="btn btn-light btn-sm text-info px-2" title="Chi tiết, Thành viên & Mốc tiến độ" (click)="openDetailModal(p)">
-                    <i class="bi bi-info-circle"></i> Chi tiết
+              <td class="text-center">
+                <span class="badge bg-secondary-subtle text-secondary fw-semibold px-2 py-1">
+                  {{ getCategoryName(p.categoryId || p.CategoryId) }}
+                </span>
+              </td>
+              <td class="text-muted text-truncate text-start" style="max-width: 200px;">
+                {{ p.description || p.Description || ('::Project:NoDescription' | abpLocalization) }}
+              </td>
+              <td class="text-center">
+                <span class="text-secondary"><i class="bi bi-calendar-event me-1"></i>{{ (p.startDate || p.StartDate) ? ((p.startDate || p.StartDate) | date:'dd/MM/yyyy') : '---' }}</span>
+              </td>
+              <td class="text-center">
+                <span class="text-secondary"><i class="bi bi-calendar-check me-1"></i>{{ (p.endDate || p.EndDate) ? ((p.endDate || p.EndDate) | date:'dd/MM/yyyy') : '---' }}</span>
+              </td>
+              <!-- Nhóm nút Hành động căn giữa -->
+              <td class="text-center px-4">
+                <div class="btn-group p-1 rounded-3 d-inline-flex justify-content-center align-items-center" role="group" style="background-color: #f8f9fa; border: 1px solid #eef2f6;">
+                  <button class="btn btn-link btn-sm text-info text-decoration-none px-2 py-1" [title]="'::Project:DetailTooltip' | abpLocalization" (click)="openDetailModal(p)">
+                    <i class="bi bi-info-circle"></i> {{ '::Common:Detail' | abpLocalization }}
                   </button>
-                  <button class="btn btn-light btn-sm text-primary px-2" title="Xem danh sách công việc" (click)="viewProjectTasks(p.id)">
-                    <i class="bi bi-list-task"></i> Task
+                  <button class="btn btn-link btn-sm text-primary text-decoration-none px-2 py-1" [title]="'::Project:TaskTooltip' | abpLocalization" (click)="viewProjectTasks(p.id || p.Id)">
+                    <i class="bi bi-list-task"></i> {{ '::Common:Task' | abpLocalization }}
                   </button>
-                  <button class="btn btn-light btn-sm text-warning px-2" title="Chỉnh sửa" (click)="openEditProjectModal(p)">
+                  <button class="btn btn-link btn-sm text-warning text-decoration-none px-2 py-1" [title]="'::Common:Edit' | abpLocalization" (click)="openEditProjectModal(p)">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-light btn-sm text-danger px-2" title="Xóa" (click)="deleteProject(p.id)">
+                  <button class="btn btn-link btn-sm text-danger text-decoration-none px-2 py-1" [title]="'::Common:Delete' | abpLocalization" (click)="deleteProject(p.id || p.Id)">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </td>
             </tr>
             <tr *ngIf="projects.length === 0">
-              <td colspan="6" class="text-center py-5 text-muted">
+              <td colspan="7" class="text-center py-5 text-muted">
                 <i class="bi bi-folder2-open display-6 d-block mb-2 text-secondary opacity-50"></i>
-                Chưa có dự án nào được tạo.
+                {{ '::Project:NoProjects' | abpLocalization }}
               </td>
             </tr>
           </tbody>
@@ -82,40 +85,62 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
         <div class="modal-header bg-light px-4 py-3">
-          <h5 class="modal-title fw-bold text-dark">{{ selectedEditingProjectId ? 'Cập nhật Dự án' : 'Tạo Dự án Mới' }}</h5>
+          <h5 class="modal-title fw-bold text-dark">{{ selectedEditingProjectId ? ('::Project:EditTitle' | abpLocalization) : ('::Project:CreateTitle' | abpLocalization) }}</h5>
           <button type="button" class="btn-close" (click)="isProjectModalOpen = false"></button>
         </div>
         <div class="modal-body p-4">
           <form [formGroup]="projectForm" (ngSubmit)="saveProject()">
             <div class="mb-3">
-              <label class="form-label fw-semibold small text-muted">Tên Dự án <span class="text-danger">*</span></label>
-              <input type="text" class="form-control rounded-3" formControlName="name" placeholder="Ví dụ: Phát triển ứng dụng Mobile...">
+              <label class="form-label fw-bold text-dark">{{ '::Project:Name' | abpLocalization }} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control rounded-3" formControlName="name" [placeholder]="'::Project:NamePlaceholder' | abpLocalization">
             </div>
+
+            <div class="row">
+              <!-- Chọn Phòng ban -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold text-dark">{{ ('::Project:Department' | abpLocalization) || 'Phòng ban' }}</label>
+                <select class="form-select rounded-3" formControlName="departmentId">
+                  <option [ngValue]="null">{{ ('::Department:SelectDepartmentHint' | abpLocalization) || '-- Chọn phòng ban --' }}</option>
+                  <option *ngFor="let dept of parentDepartments" [ngValue]="dept.id || dept.Id">
+                    {{ dept.name || dept.Name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Chọn Danh mục dự án -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold text-dark">{{ ('::Project:Category' | abpLocalization) || 'Danh mục' }}</label>
+                <select class="form-select rounded-3" formControlName="categoryId">
+                  <option [ngValue]="null">{{ '-- Chọn danh mục --' }}</option>
+                  <option *ngFor="let cat of categories" [ngValue]="cat.id || cat.Id">
+                    {{ cat.name || cat.Name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
             <div class="mb-3">
-              <label class="form-label fw-semibold small text-muted">Mô tả</label>
-              <textarea class="form-control rounded-3" rows="3" formControlName="description" placeholder="Nhập mô tả ngắn gọn về dự án..."></textarea>
+              <label class="form-label fw-bold text-dark">{{ '::Project:Description' | abpLocalization }}</label>
+              <textarea class="form-control rounded-3" rows="3" formControlName="description" [placeholder]="'::Project:DescriptionPlaceholder' | abpLocalization"></textarea>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold small text-muted">Ngày bắt đầu</label>
+                <label class="form-label fw-bold text-dark">{{ '::Project:StartDate' | abpLocalization }}</label>
                 <input type="date" class="form-control rounded-3" formControlName="startDate">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold small text-muted">Ngày kết thúc</label>
+                <label class="form-label fw-bold text-dark">{{ '::Project:EndDate' | abpLocalization }}</label>
                 <input type="date" class="form-control rounded-3" formControlName="endDate">
               </div>
             </div>
-            <div class="mb-4">
-              <label class="form-label fw-semibold small text-muted">Trạng thái</label>
+            <div class="mb-4" style="display: none;">
               <select class="form-select rounded-3" formControlName="status">
                 <option value="Active">Active</option>
-                <option value="Completed">Completed</option>
-                <option value="OnHold">OnHold</option>
               </select>
             </div>
             <div class="text-end">
-              <button type="button" class="btn btn-light px-4 me-2 rounded-3" (click)="isProjectModalOpen = false">Hủy</button>
-              <button type="submit" class="btn btn-primary px-4 rounded-3 shadow-sm" [disabled]="projectForm.invalid">Lưu thông tin</button>
+              <button type="button" class="btn btn-light px-4 me-2 rounded-3 fw-semibold" (click)="isProjectModalOpen = false">{{ '::Common:Cancel' | abpLocalization }}</button>
+              <button type="submit" class="btn btn-primary px-4 rounded-3 shadow-sm fw-semibold" [disabled]="projectForm.invalid">{{ '::Common:Save' | abpLocalization }}</button>
             </div>
           </form>
         </div>
@@ -123,13 +148,13 @@
     </div>
   </div>
 
-  <!-- Modal Chi tiết Dự Án (Quản lý Thành viên & Mốc tiến độ) -->
+  <!-- Modal Chi tiết Dự Án -->
   <div class="modal fade show d-block" tabindex="-1" *ngIf="isDetailModalOpen" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
         <div class="modal-header bg-light px-4 py-3">
           <h5 class="modal-title fw-bold text-dark">
-            Chi tiết Dự án: <span class="text-primary">{{ selectedProject?.name }}</span>
+            {{ '::Project:DetailTitle' | abpLocalization }} <span class="text-primary">{{ selectedProject?.name || selectedProject?.Name }}</span>
           </h5>
           <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
         </div>
@@ -139,128 +164,171 @@
             <div class="col-lg-5 border-end-lg pe-lg-4">
               <div class="d-flex align-items-center mb-3">
                 <i class="bi bi-people-fill text-primary fs-5 me-2"></i>
-                <h6 class="fw-bold mb-0">Thành viên Dự án</h6>
+                <h5 class="fw-bold mb-0 text-dark">{{ '::Project:Members' | abpLocalization }}</h5>
               </div>
 
-              <!-- Thêm nhanh theo Phòng ban -->
               <div class="p-3 bg-light rounded-4 border-0 shadow-xs mb-3">
-                <label class="form-label small fw-bold text-secondary mb-2">Thêm nhanh theo Phòng ban</label>
-                <div class="input-group input-group-sm">
-                  <select class="form-select rounded-start-3 bg-white" [value]="selectedDepartmentId || ''" (change)="selectedDepartmentId = $any($event.target).value">
-                    <option value="" disabled>-- Chọn phòng ban --</option>
-                    <option *ngFor="let dept of departments" [value]="dept.id || dept.Id">
-                      {{ dept.name || dept.Name }}
-                    </option>
-                  </select>
-                  <button class="btn btn-outline-primary rounded-end-3 px-3" type="button" (click)="addAllMembersByDepartment()">
-                    <i class="bi bi-plus-circle me-1"></i> Thêm tất cả
-                  </button>
+                <label class="form-label fw-bold text-dark mb-2">{{ '::Project:AddByDepartment' | abpLocalization }}</label>
+                <div class="row g-2 align-items-center">
+                  <div class="col-8">
+                   <select class="form-select rounded-3 bg-white border-secondary-subtle text-dark w-100" [value]="selectedDepartmentId || ''" (change)="selectedDepartmentId = $any($event.target).value" style="height: 40px; font-size: 13px;">
+                     <option value="" disabled>{{ '::Department:SelectDepartmentHint' | abpLocalization }}</option>
+                     <option *ngFor="let dept of getChildDepartmentsForSelectedProject()" [value]="dept.id || dept.Id">
+                       {{ dept.name || dept.Name }}
+                     </option>
+                   </select>
+                  </div>
+                  <div class="col-4">
+                    <button class="btn btn-outline-primary w-100 rounded-3 fw-semibold text-nowrap px-1 d-flex align-items-center justify-content-center" type="button" (click)="addAllMembersByDepartment()" style="height: 40px; font-size: 13px;">
+                      <i class="bi bi-plus-circle me-1"></i> {{ '::Common:AddAll' | abpLocalization }}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Thêm từng thành viên lẻ -->
               <div class="p-3 bg-light rounded-4 border-0 shadow-xs mb-3">
-                <label class="form-label small fw-bold text-secondary mb-2">Thêm thành viên thủ công</label>
+                <label class="form-label fw-bold text-dark mb-2">{{ '::Project:AddMemberManual' | abpLocalization }}</label>
                 <form [formGroup]="memberForm" (ngSubmit)="addMember()">
                   <div class="mb-2">
-                    <select class="form-select form-select-sm rounded-3 bg-white" formControlName="userId">
-                      <option value="" disabled>-- Chọn người dùng --</option>
+                    <select class="form-select rounded-3 bg-white border-secondary-subtle text-dark" formControlName="userId" style="height: 40px; font-size: 13px;">
+                      <option value="" disabled>{{ '::Project:SelectUser' | abpLocalization }}</option>
                       <option *ngFor="let u of availableUsersList" [value]="u.id || u.Id">
                         {{ u.userName || u.UserName || u.name || u.Name }}
                       </option>
                     </select>
                   </div>
                   <div class="row g-2">
-                    <div class="col-8">
-                      <input type="text" class="form-control form-control-sm rounded-3 bg-white" formControlName="role" placeholder="Vai trò (Member, Leader...)">
+                    <div class="col-7">
+                      <input type="text" class="form-control rounded-3 bg-white border-secondary-subtle text-dark" formControlName="role" [placeholder]="'::Project:RolePlaceholder' | abpLocalization" style="height: 40px; font-size: 13px;">
                     </div>
-                    <div class="col-4">
-                      <button type="submit" class="btn btn-success btn-sm w-100 rounded-3" [disabled]="memberForm.invalid">
-                        <i class="bi bi-person-plus"></i> Thêm
+                    <div class="col-5">
+                      <button type="submit" class="btn btn-success w-100 rounded-3 fw-semibold shadow-xs text-nowrap px-2 d-flex align-items-center justify-content-center" [disabled]="memberForm.invalid" style="height: 40px; font-size: 13px;">
+                        <i class="bi bi-person-plus me-1"></i> {{ '::Common:Add' | abpLocalization }}
                       </button>
                     </div>
                   </div>
                 </form>
               </div>
 
-              <!-- Danh sách thành viên hiện tại -->
-              <div class="list-group rounded-4 overflow-hidden border shadow-xs" style="max-height: 220px; overflow-y: auto;">
-                <div *ngFor="let m of members" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 border-0 border-bottom">
-                  <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary-subtle text-primary rounded-circle fw-bold d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 13px;">
-                      {{ (m.resolvedUserName || 'U').charAt(0).toUpperCase() }}
+              <div class="border rounded-4 shadow-xs bg-white" style="max-height: 220px; overflow-y: auto; overflow-x: hidden;">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let m of members" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3">
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-sm bg-primary-subtle text-primary rounded-circle fw-bold d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px; font-size: 14px; flex-shrink: 0;">
+                        {{ ((m.resolvedUserName || m.ResolvedUserName || m.userName || m.UserName || 'U')).charAt(0).toUpperCase() }}
+                      </div>
+                      <div>
+                        <span class="fw-semibold text-dark d-block">{{ m.resolvedUserName || m.ResolvedUserName || m.userName || m.UserName }}</span>
+                        <span class="badge bg-secondary-subtle text-secondary fw-semibold">{{ m.role || m.Role }}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span class="fw-semibold text-dark d-block small">{{ m.resolvedUserName }}</span>
-                      <span class="badge bg-secondary-subtle text-secondary fw-normal fs-8">{{ m.role || m.Role }}</span>
-                    </div>
+                    <button class="btn btn-outline-danger btn-sm border-0 rounded-circle p-1 text-danger" (click)="removeMember(m.id || m.Id)" [title]="'::Project:RemoveMember' | abpLocalization">
+                      <i class="bi bi-x-lg fs-6"></i>
+                    </button>
                   </div>
-                  <button class="btn btn-outline-danger btn-sm border-0 rounded-circle p-1 text-danger hover-bg-danger-subtle" (click)="removeMember(m.id || m.Id)" title="Xóa thành viên">
-                    <i class="bi bi-x-lg"></i>
-                  </button>
-                </div>
-                <div *ngIf="members.length === 0" class="text-center text-muted small py-4">
-                  Chưa có thành viên nào trong dự án.
+                  <div *ngIf="members.length === 0" class="text-center text-muted py-4">
+                    {{ '::Project:NoMembers' | abpLocalization }}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Cột Phải: Mốc tiến độ (Milestones) -->
+            <!-- Cột Phải: Form Mốc tiến độ & Gộp chung 1 Bảng -->
             <div class="col-lg-7">
               <div class="d-flex align-items-center mb-3">
                 <i class="bi bi-flag-fill text-warning fs-5 me-2"></i>
-                <h6 class="fw-bold mb-0">Mốc tiến độ (Milestones)</h6>
+                <h5 class="fw-bold mb-0 text-dark">{{ '::Project:Milestones' | abpLocalization }}</h5>
               </div>
 
               <form [formGroup]="milestoneForm" (ngSubmit)="addMilestone()" class="p-3 bg-light rounded-4 border-0 mb-3">
                 <div class="row g-2 mb-2">
                   <div class="col-md-7">
-                    <input type="text" class="form-control form-control-sm rounded-3 bg-white" formControlName="title" placeholder="Tiêu đề mốc tiến độ...">
+                    <input type="text" class="form-control rounded-3 bg-white border-secondary-subtle text-dark" formControlName="title" [placeholder]="'::Project:MilestoneTitlePlaceholder' | abpLocalization" style="height: 40px; font-size: 13px;">
                   </div>
                   <div class="col-md-5">
-                    <input type="date" class="form-control form-control-sm rounded-3 bg-white" formControlName="dueDate"
-                           [min]="selectedProject?.startDate | date:'yyyy-MM-dd'"
-                           [max]="selectedProject?.endDate | date:'yyyy-MM-dd'">
+                    <input type="date" class="form-control rounded-3 bg-white border-secondary-subtle text-dark" formControlName="dueDate"
+                           [min]="(selectedProject?.startDate || selectedProject?.StartDate) | date:'yyyy-MM-dd'"
+                           [max]="(selectedProject?.endDate || selectedProject?.EndDate) | date:'yyyy-MM-dd'" style="height: 40px; font-size: 13px;">
                   </div>
                 </div>
                 <div class="row g-2">
                   <div class="col-md-7">
-                    <select class="form-select form-select-sm rounded-3 bg-white" formControlName="assigneeUserId">
-                      <option [ngValue]="null">-- Người phụ trách --</option>
-                      <option *ngFor="let a of assignees" [ngValue]="a.id">{{ a.name }}</option>
+                    <select class="form-select rounded-3 bg-white border-secondary-subtle text-dark" formControlName="assigneeUserId" style="height: 40px; font-size: 13px;">
+                      <option [ngValue]="null">{{ '::Project:Assignee' | abpLocalization }}</option>
+                      <option *ngFor="let a of assignees" [ngValue]="a.id || a.Id">{{ a.name || a.Name || a.userName || a.UserName }}</option>
                     </select>
                   </div>
                   <div class="col-md-5">
-                    <button type="submit" class="btn btn-primary btn-sm w-100 rounded-3 shadow-xs" [disabled]="milestoneForm.invalid">
-                      <i class="bi bi-plus-circle me-1"></i> Thêm mốc tiến độ
+                    <button type="submit" class="btn btn-primary w-100 rounded-3 shadow-xs fw-semibold text-nowrap px-2 d-flex align-items-center justify-content-center" [disabled]="milestoneForm.invalid" style="height: 40px; font-size: 13px;">
+                      <i class="bi bi-plus-circle me-1"></i> {{ '::Project:AddMilestone' | abpLocalization }}
                     </button>
                   </div>
                 </div>
               </form>
 
-              <div class="table-responsive rounded-4 border overflow-hidden" style="max-height: 290px; overflow-y: auto;">
-                <table class="table table-sm table-hover align-middle mb-0">
-                  <thead class="table-light fs-7 text-uppercase text-muted">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-table text-primary fs-5 me-2"></i>
+                  <h5 class="fw-bold mb-0 text-dark">{{ '::Project:MilestonesAndTasks' | abpLocalization }}</h5>
+                </div>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" (click)="viewProjectTasks(selectedProject?.id || selectedProject?.Id)" style="height: 34px;">
+                  <i class="bi bi-box-arrow-up-right me-1"></i> {{ '::Project:ManageTask' | abpLocalization }}
+                </button>
+              </div>
+
+              <div class="border rounded-4 shadow-xs bg-white" style="max-height: 250px; overflow-y: auto; overflow-x: hidden;">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="text-uppercase sticky-top" style="z-index: 1; top: 0; background-color: #e9ecef !important; color: #212529 !important;">
                     <tr>
-                      <th class="py-2 px-3">Tiêu đề</th>
-                      <th class="py-2">Hạn chót</th>
-                      <th class="py-2">Phụ trách</th>
-                      <th class="py-2 text-end px-3">Xóa</th>
+                      <th class="py-2.5 px-3 text-dark fw-bold">{{ '::Project:TitleOrType' | abpLocalization }}</th>
+                      <th class="py-2.5 text-dark fw-bold">{{ '::Project:Assignee' | abpLocalization }}</th>
+                      <th class="py-2.5 text-dark fw-bold">{{ '::Project:DueDate' | abpLocalization }}</th>
+                      <th class="py-2.5 text-center px-3 text-dark fw-bold">{{ '::Project:Actions' | abpLocalization }}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let ms of milestones">
-                      <td class="py-2 px-3 fw-medium text-dark">{{ ms.title }}</td>
-                      <td class="py-2 text-muted small"><i class="bi bi-clock me-1"></i>{{ ms.dueDate ? (ms.dueDate | date:'dd/MM/yyyy') : '---' }}</td>
-                      <td class="py-2"><span class="badge bg-light text-dark border">{{ ms.resolvedAssigneeName }}</span></td>
-                      <td class="py-2 text-end px-3">
-                        <button class="btn btn-outline-danger btn-sm border-0 py-0 px-2" (click)="deleteMilestone(ms.id)" title="Xóa mốc tiến độ">
-                          <i class="bi bi-trash"></i>
+                    <tr *ngFor="let ms of milestones; let i = index">
+                      <td class="py-3 px-3">
+                        <span class="badge bg-warning-subtle text-warning fw-bold me-1 px-2 py-1">{{ '::Project:MilestoneBadge' | abpLocalization }}</span>
+                        <span class="fw-semibold text-dark">{{ ms.title || ms.Title }}</span>
+                      </td>
+                      <td class="py-3">
+                        <span class="badge bg-light text-dark border px-2 py-1 fw-semibold">
+                          <i class="bi bi-person me-1"></i>{{ ms.resolvedAssigneeName || ms.ResolvedAssigneeName || ms.assigneeName || ms.AssigneeName || ('::Project:Unassigned' | abpLocalization) }}
+                        </span>
+                      </td>
+                      <td class="py-3 text-secondary fw-medium">
+                        <i class="bi bi-clock me-1"></i>{{ (ms.dueDate || ms.DueDate) ? ((ms.dueDate || ms.dueDate) | date:'dd/MM/yyyy') : '---' }}
+                      </td>
+                      <td class="py-3 text-center px-3">
+                        <button class="btn btn-outline-danger btn-sm border-0 py-0 px-2" (click)="deleteMilestone(ms.id || ms.Id)" [title]="'::Project:DeleteMilestone' | abpLocalization">
+                          <i class="bi bi-trash fs-6"></i>
                         </button>
                       </td>
                     </tr>
-                    <tr *ngIf="milestones.length === 0">
-                      <td colspan="4" class="text-center text-muted small py-4">Chưa có mốc tiến độ nào được thiết lập.</td>
+
+                    <tr *ngFor="let t of projectTasks">
+                      <td class="py-3 px-3">
+                        <span class="badge bg-primary-subtle text-primary fw-bold me-1 px-2 py-1">Task</span>
+                        <span class="fw-semibold text-dark">{{ t.title || t.Title }}</span>
+                      </td>
+                      <td class="py-3">
+                        <span class="badge bg-light text-dark border px-2 py-1 fw-semibold">
+                          <i class="bi bi-person me-1"></i>{{ t.assigneeName || t.AssigneeName || t.resolvedAssigneeName || t.ResolvedAssigneeName || t.userName || t.UserName || ('::Project:Unassigned' | abpLocalization) }}
+                        </span>
+                      </td>
+                      <td class="py-3 text-secondary fw-medium">
+                        <i class="bi bi-calendar-event me-1"></i>{{ (t.dueDate || t.DueDate) ? ((t.dueDate || t.DueDate) | date:'dd/MM/yyyy') : '---' }}
+                      </td>
+                      <td class="py-3 text-center px-3">
+                        <button class="btn btn-outline-danger btn-sm border-0 py-0 px-2" (click)="deleteTask(t.id || t.Id)" [title]="'::Project:DeleteTask' | abpLocalization">
+                          <i class="bi bi-trash fs-6"></i>
+                        </button>
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="milestones.length === 0 && projectTasks.length === 0">
+                      <td colspan="4" class="text-center text-muted py-4">{{ '::Project:NoMilestonesOrTasks' | abpLocalization }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -268,8 +336,8 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer bg-light px-4 py-3">
-          <button type="button" class="btn btn-secondary px-4 rounded-3 btn-sm" (click)="closeDetailModal()">Đóng</button>
+        <div class="modal-header bg-light px-4 py-3 justify-content-end">
+          <button type="button" class="btn btn-secondary px-4 rounded-3 fw-semibold" (click)="closeDetailModal()">{{ '::Common:Close' | abpLocalization }}</button>
         </div>
       </div>
     </div>

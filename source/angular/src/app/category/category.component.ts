@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { ListService, PagedResultDto, PermissionService } from '@abp/ng.core';
+import { ListService, PagedResultDto, PermissionService, LocalizationModule } from '@abp/ng.core';
+
 import {
   NgxDatatableListDirective,
   ModalComponent,
@@ -34,6 +35,7 @@ import { CategoryDto } from '../proxy/categories/models';
     PageModule,
     NgxDatatableListDirective,
     ThemeSharedModule,
+    LocalizationModule, // <-- Đã đặt đúng vào đây
   ],
   providers: [
     ListService,

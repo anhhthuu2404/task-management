@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { BaseChartDirective } from 'ng2-charts';
+import { CoreModule } from '@abp/ng.core';
 import {
   Chart,
   DoughnutController,
@@ -47,7 +48,7 @@ import { DashboardService, DashboardStatisticsDto } from './dashboard.service';
   styleUrls: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, BaseChartDirective]
+  imports: [CommonModule, BaseChartDirective, CoreModule]
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
   isLoading = false;

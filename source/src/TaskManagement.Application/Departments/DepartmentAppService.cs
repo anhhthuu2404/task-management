@@ -1,165 +1,132 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using TaskManagement.Localization;
 using TaskManagement.Permissions;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
-using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
+using Volo.Abp.Uow;
 
 namespace TaskManagement.Departments;
 
 [Authorize(TaskManagementPermissions.Departments.Default)]
-public class DepartmentAppService : CrudAppService<
-    Department,
-    DepartmentDto,
-    Guid,
-    GetDepartmentListDto,
-    CreateUpdateDepartmentDto>, IDepartmentAppService
+public class DepartmentAppService : ApplicationService, IDepartmentAppService
 {
-    private readonly IRepository<UserDepartment> _userDepartmentRepository;
-    private readonly IRepository<Volo.Abp.Identity.IdentityUser, Guid> _userRepository;
+    private readonly IDepartmentProvider _departmentProvider;
     private readonly IdentityUserManager _userManager;
     private readonly IdentityRoleManager _roleManager;
 
     public DepartmentAppService(
-        IRepository<Department, Guid> repository,
-        IRepository<UserDepartment> userDepartmentRepository,
-        IRepository<Volo.Abp.Identity.IdentityUser, Guid> userRepository,
+        IDepartmentProvider departmentProvider,
         IdentityUserManager userManager,
         IdentityRoleManager roleManager)
-        : base(repository)
     {
-        _userDepartmentRepository = userDepartmentRepository;
-        _userRepository = userRepository;
+        _departmentProvider = departmentProvider;
         _userManager = userManager;
         _roleManager = roleManager;
 
         LocalizationResource = typeof(TaskManagementResource);
-        GetPolicyName = TaskManagementPermissions.Departments.Default;
-        GetListPolicyName = TaskManagementPermissions.Departments.Default;
-        CreatePolicyName = TaskManagementPermissions.Departments.Create;
-        UpdatePolicyName = TaskManagementPermissions.Departments.Edit;
-        DeletePolicyName = TaskManagementPermissions.Departments.Delete;
     }
 
-    public override async Task<DepartmentDto> GetAsync(Guid id)
+    public async Task<DepartmentDto> GetAsync(Guid id)
     {
-        var department = await Repository.GetAsync(id);
-
-        var dto = new DepartmentDto
-        {
-            Id = department.Id,
-            Code = department.Code,
-            Name = department.Name,
-            Description = department.Description,
-            ParentId = department.ParentId,
-            IsActive = department.IsActive,
-            CreationTime = department.CreationTime,
-            CreatorId = department.CreatorId,
-            LastModificationTime = department.LastModificationTime,
-            LastModifierId = department.LastModifierId,
-            IsDeleted = department.IsDeleted,
-            DeleterId = department.DeleterId,
-            DeletionTime = department.DeletionTime,
-            Members = []
-        };
-
-        var query = from userDept in await _userDepartmentRepository.GetQueryableAsync()
-                    join user in await _userRepository.GetQueryableAsync() on userDept.UserId equals user.Id
-                    where userDept.DepartmentId == id
-                    select new DepartmentMemberDto
-                    {
-                        UserId = user.Id,
-                        UserName = user.UserName ?? string.Empty,
-                        Email = user.Email ?? string.Empty,
-                        IsManager = userDept.IsManager
-                    };
-
-        dto.Members = await AsyncExecuter.ToListAsync(query);
-
+        var dto = await _departmentProvider.GetByIdAsync(id);
+        dto.Members = await GetUsersAsync(id);
         return dto;
     }
 
-    protected override async Task<IQueryable<Department>> CreateFilteredQueryAsync(GetDepartmentListDto input)
+    public async Task<PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input)
     {
-        var query = await base.CreateFilteredQueryAsync(input);
+        var pagedResult = await _departmentProvider.GetListAsync(input);
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        // Gắn danh sách thành viên cho từng phòng ban trong danh sách
+        foreach (var department in pagedResult.Items)
         {
-            query = query.Where(x => x.Name.Contains(input.Filter) || x.Code.Contains(input.Filter));
+            department.Members = await GetUsersAsync(department.Id);
         }
 
-        if (input.IsActive.HasValue)
-        {
-            query = query.Where(x => x.IsActive == input.IsActive.Value);
-        }
+        return pagedResult;
+    }
 
-        return query;
+    [Authorize(TaskManagementPermissions.Departments.Create)]
+    public async Task<DepartmentDto> CreateAsync(CreateUpdateDepartmentDto input)
+    {
+        var id = Guid.NewGuid();
+        await _departmentProvider.CreateAsync(input, id, CurrentUser.Id);
+        return await GetAsync(id);
+    }
+
+    [Authorize(TaskManagementPermissions.Departments.Edit)]
+    public async Task<DepartmentDto> UpdateAsync(Guid id, CreateUpdateDepartmentDto input)
+    {
+        await _departmentProvider.UpdateAsync(id, input, CurrentUser.Id);
+        return await GetAsync(id);
+    }
+
+    [Authorize(TaskManagementPermissions.Departments.Delete)]
+    public async Task DeleteAsync(Guid id)
+    {
+        await _departmentProvider.DeleteAsync(id, CurrentUser.Id);
     }
 
     public async Task<List<DepartmentTreeDto>> GetTreeAsync()
     {
-        var departments = await Repository.GetListAsync();
-        var departmentDtos = ObjectMapper.Map<List<Department>, List<DepartmentTreeDto>>(departments);
-
-        var lookup = departmentDtos.ToLookup(x => x.ParentId);
-
-        List<DepartmentTreeDto> BuildTree(Guid? parentId)
-        {
-            return lookup[parentId].Select(node =>
-            {
-                node.Children = BuildTree(node.Id);
-                return node;
-            }).ToList();
-        }
-
-        return BuildTree(null);
+        return await _departmentProvider.GetTreeAsync();
     }
+
     public async Task<List<DepartmentMemberDto>> GetUsersAsync(Guid id)
     {
-        var query = from userDept in await _userDepartmentRepository.GetQueryableAsync()
-                    join user in await _userRepository.GetQueryableAsync() on userDept.UserId equals user.Id
-                    where userDept.DepartmentId == id
-                    select new DepartmentMemberDto
-                    {
-                        UserId = user.Id,
-                        UserName = user.UserName ?? string.Empty,
-                        Email = user.Email ?? string.Empty,
-                        IsManager = userDept.IsManager
-                    };
-
-        return await AsyncExecuter.ToListAsync(query);
+        // Chuyển logic truy vấn qua Provider để tuân thủ kiến trúc
+        return await _departmentProvider.GetUsersByDepartmentIdAsync(id);
     }
 
+    [UnitOfWork]
     public async Task AssignUserAsync(AssignUserToDepartmentDto input)
     {
-        var existing = await _userDepartmentRepository.FirstOrDefaultAsync(x => x.UserId == input.UserId && x.DepartmentId == input.DepartmentId);
+        // 1. Cập nhật/Thêm phân quyền cho phòng ban hiện tại (thông qua Provider)
+        await _departmentProvider.UpsertUserDepartmentAsync(input.UserId, input.DepartmentId, input.IsManager);
+        await SyncUserRoleAsync(input.UserId, input.DepartmentId);
 
-        if (existing == null)
+        // 2. Nếu gán làm Trưởng phòng, tự động đồng bộ xuống các phòng ban con
+        if (input.IsManager)
         {
-            await _userDepartmentRepository.InsertAsync(new UserDepartment
+            await SyncManagerToChildDepartmentsRecursiveAsync(input.DepartmentId, input.UserId);
+        }
+    }
+
+    public async Task DeleteUserAsync(Guid departmentId, Guid userId)
+    {
+        // Xóa liên kết thông qua Provider
+        var deleted = await _departmentProvider.DeleteUserDepartmentAsync(departmentId, userId);
+        if (deleted)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            var departmentDto = await _departmentProvider.GetByIdAsync(departmentId);
+
+            if (user != null && departmentDto != null && !string.IsNullOrWhiteSpace(departmentDto.Code))
             {
-                UserId = input.UserId,
-                DepartmentId = input.DepartmentId,
-                IsManager = input.IsManager
-            });
+                string roleName = departmentDto.Code.Trim();
+                if (await _userManager.IsInRoleAsync(user, roleName))
+                {
+                    await _userManager.RemoveFromRoleAsync(user, roleName);
+                }
+            }
         }
-        else
-        {
-            existing.IsManager = input.IsManager;
-            await _userDepartmentRepository.UpdateAsync(existing);
-        }
+    }
 
-        var user = await _userManager.FindByIdAsync(input.UserId.ToString());
-        var department = await Repository.GetAsync(input.DepartmentId);
+    #region Helper Methods (Đồng bộ phân cấp phòng ban)
 
-        if (user != null && department != null && !string.IsNullOrWhiteSpace(department.Code))
+    private async Task SyncUserRoleAsync(Guid userId, Guid departmentId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        var departmentDto = await _departmentProvider.GetByIdAsync(departmentId);
+
+        if (user != null && departmentDto != null && !string.IsNullOrWhiteSpace(departmentDto.Code))
         {
-            string roleName = department.Code.Trim();
+            string roleName = departmentDto.Code.Trim();
             var roleExists = await _roleManager.RoleExistsAsync(roleName);
 
             if (roleExists && !await _userManager.IsInRoleAsync(user, roleName))
@@ -169,50 +136,37 @@ public class DepartmentAppService : CrudAppService<
         }
     }
 
-    public async Task DeleteUserAsync(Guid departmentId, Guid userId)
+    private async Task SyncManagerToChildDepartmentsRecursiveAsync(Guid parentId, Guid userId)
     {
-        var existing = await _userDepartmentRepository.FirstOrDefaultAsync(x => x.DepartmentId == departmentId && x.UserId == userId);
-        if (existing != null)
+        var allTree = await _departmentProvider.GetTreeAsync();
+        var parentNode = FindDepartmentInTree(allTree, parentId);
+
+        if (parentNode?.Children != null)
         {
-            await _userDepartmentRepository.DeleteAsync(existing);
-
-            var user = await _userManager.FindByIdAsync(userId.ToString());
-            var department = await Repository.GetAsync(departmentId);
-
-            if (user != null && department != null && !string.IsNullOrWhiteSpace(department.Code))
+            foreach (var child in parentNode.Children)
             {
-                string roleName = department.Code.Trim();
-                if (await _userManager.IsInRoleAsync(user, roleName))
-                {
-                    await _userManager.RemoveFromRoleAsync(user, roleName);
-                }
+                await _departmentProvider.UpsertUserDepartmentAsync(userId, child.Id, true);
+                await SyncUserRoleAsync(userId, child.Id);
+
+                // Đệ quy xuống các cấp cháu sâu hơn
+                await SyncManagerToChildDepartmentsRecursiveAsync(child.Id, userId);
             }
         }
     }
-    public override async Task<Volo.Abp.Application.Dtos.PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input)
+
+    private static DepartmentTreeDto? FindDepartmentInTree(List<DepartmentTreeDto> list, Guid id)
     {
-        var query = await CreateFilteredQueryAsync(input);
-
-        var totalCount = await AsyncExecuter.CountAsync(query);
-
-        query = ApplySorting(query, input);
-        query = ApplyPaging(query, input);
-
-        var departments = await AsyncExecuter.ToListAsync(query);
-
-        var departmentDtos = new List<DepartmentDto>();
-
-        // Duyệt qua từng phòng ban để map và lấy danh sách thành viên tương ứng
-        foreach (var department in departments)
+        foreach (var node in list)
         {
-            var dto = ObjectMapper.Map<Department, DepartmentDto>(department);
-            dto.Members = await GetUsersAsync(department.Id);
-            departmentDtos.Add(dto);
+            if (node.Id == id) return node;
+            if (node.Children != null && node.Children.Count > 0)
+            {
+                var found = FindDepartmentInTree(node.Children, id);
+                if (found != null) return found;
+            }
         }
-
-        return new Volo.Abp.Application.Dtos.PagedResultDto<DepartmentDto>(
-            totalCount,
-            departmentDtos
-        );
+        return null;
     }
+
+    #endregion
 }

@@ -14,7 +14,7 @@ export class ReportService {
     this.restService.request<any, TaskReportItemDto[]>({
       method: 'GET',
       url: '/api/app/report/get-task-report',
-      params: { employeeId: input.employeeId, departmentId: input.departmentId, projectId: input.projectId, fromDate: input.fromDate, toDate: input.toDate },
+      params: { employeeId: input.employeeId, departmentId: input.departmentId, projectId: input.projectId, fromDate: input.fromDate, departmentIds: input.departmentIds, toDate: input.toDate },
     },
     { apiName: this.apiName,...config });
 }

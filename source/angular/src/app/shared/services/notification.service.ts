@@ -8,7 +8,7 @@ export interface NotificationItem {
   taskId?: string;
   message: string;
   time: Date;
-  expiresAt?: Date; // Bổ sung thời gian hết hạn tùy chọn
+  expiresAt?: Date;
   isRead?: boolean;
   read?: boolean;
 }
@@ -20,17 +20,19 @@ export class NotificationService {
   private notificationSubject = new BehaviorSubject<NotificationItem[]>([]);
   public notifications$ = this.notificationSubject.asObservable();
 
-  private hubConnection!: signalR.HubConnection;
+  private hubConnection: signalR.HubConnection | null = null;
   private readonly authService = inject(AuthService);
   private readonly restService = inject(RestService);
   private readonly zone = inject(NgZone);
 
-  private readonly STORAGE_KEY = 'task_management_notifications_v2';
-  private readonly EXPIRATION_TIME_MS = 24 * 60 * 60 * 1000; // Thời gian sống: 24 giờ
+  private readonly STORAGE_KEY = 'task_management_notifications_v3'; // Nâng version storage để làm sạch cache cũ nếu cần
+  private readonly EXPIRATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 giờ
   private isStarting = false;
 
   constructor() {
     this.loadFromStorage();
+    
+    // Đợi 1 chút để đảm bảo AuthService đã sẵn sàng token rồi mới kết nối
     setTimeout(() => {
       this.startConnection();
     }, 1000);
@@ -52,11 +54,10 @@ export class NotificationService {
             time: new Date(item.time),
             expiresAt: item.expiresAt ? new Date(item.expiresAt) : new Date(new Date(item.time).getTime() + this.EXPIRATION_TIME_MS)
           }))
-          // Chỉ giữ lại những thông báo chưa quá hạn so với hiện tại
           .filter((item: NotificationItem) => !item.expiresAt || new Date(item.expiresAt).getTime() > now);
 
         this.notificationSubject.next(parsed);
-        this.saveToStorage(parsed); // Cập nhật lại kho lưu trữ sau khi đã lọc bỏ mục quá hạn
+        this.saveToStorage(parsed);
       } catch (e: unknown) {
         this.notificationSubject.next([]);
       }
@@ -82,7 +83,7 @@ export class NotificationService {
     }
   }
 
-  private startConnection() {
+  private async startConnection() {
     if (this.isStarting) return;
 
     if (this.hubConnection && (
@@ -100,42 +101,76 @@ export class NotificationService {
 
     this.isStarting = true;
 
+    // Đảm bảo dọn dẹp kết nối cũ hoàn toàn trước khi tạo mới để tránh đăng ký sự kiện nhiều lần (gây lặp)
     if (this.hubConnection) {
-      this.hubConnection.off('ReceiveNotification');
-      this.hubConnection.stop();
+      try {
+        this.hubConnection.off('ReceiveNotification');
+        await this.hubConnection.stop();
+      } catch (e) {
+        console.error('Lỗi khi dừng kết nối cũ:', e);
+      }
+      this.hubConnection = null;
     }
 
+    // Lấy apiurl từ cấu hình ABP hoặc fallback sang đường dẫn tuyệt đối/tương đối của bạn
+    const baseUrl = (this.restService as any).apiURL || 'https://localhost:44399';
+    const hubUrl = `${baseUrl.replace(/\/$/, '')}/signalr-hubs/notification`;
+
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl('https://localhost:44399/signalr-hubs/notification', {
+      .withUrl(hubUrl, {
         accessTokenFactory: () => this.authService.getAccessToken() || ''
       })
       .withAutomaticReconnect()
       .build();
 
-    this.hubConnection.on('ReceiveNotification', (message: string, taskId?: string) => {
-      console.log('Nhận được thông báo từ Hub:', message, taskId);
-      
+    // Đăng ký sự kiện lắng nghe 1 lần duy nhất trên instance mới
+    this.hubConnection.on('ReceiveNotification', (arg1: any, arg2?: string) => {
+      console.log('Nhận được thông báo từ Hub:', arg1, arg2);
+
+      let message = '';
+      let taskId: string | undefined = undefined;
+      let notificationId = arg1?.id || arg1?.Id || ('_' + Math.random().toString(36).substr(2, 9));
+      let timeVal = new Date();
+
+      if (typeof arg1 === 'object' && arg1 !== null) {
+        message = arg1.message || arg1.Message || '';
+        taskId = arg1.taskId || arg1.TaskId || arg1.taskID || arg1.TaskID;
+        
+        const rawTime = arg1.creationTime || arg1.CreationTime || arg1.time || arg1.Time;
+        timeVal = rawTime ? new Date(rawTime) : new Date();
+      } 
+      else if (typeof arg1 === 'string') {
+        message = arg1;
+        taskId = arg2;
+      }
+
       if (!message) return;
 
       this.zone.run(() => {
         const currentList = this.notificationSubject.value;
 
-        // Chống trùng lặp thông báo trong khoảng 3 giây
+        // 1. Chống trùng lặp nghiêm ngặt theo ID (nếu Backend có truyền ID cố định)
+        if (notificationId && currentList.some(item => item.id === notificationId)) {
+          return;
+        }
+
+        // 2. Chống trùng lặp thông báo giống hệt nhau trong khoảng thời gian 5 giây
         const isDuplicateRecent = currentList.some(
-          item => item.message === message && (new Date().getTime() - new Date(item.time).getTime() < 3000)
+          item => item.message === message && 
+                  item.taskId === taskId && 
+                  (new Date().getTime() - new Date(item.time).getTime() < 5000)
         );
 
         if (isDuplicateRecent) {
           return;
         }
 
-        const now = new Date();
         const newNotification: NotificationItem = {
-          id: '_' + Math.random().toString(36).substr(2, 9),
+          id: notificationId,
           taskId: taskId,
           message: message,
-          time: now,
-          expiresAt: new Date(now.getTime() + this.EXPIRATION_TIME_MS), // Thiết lập hạn sử dụng 24h
+          time: timeVal,
+          expiresAt: new Date(timeVal.getTime() + this.EXPIRATION_TIME_MS),
           isRead: false,
           read: false
         };
@@ -146,17 +181,15 @@ export class NotificationService {
       });
     });
 
-    this.hubConnection
-      .start()
-      .then(() => {
-        this.isStarting = false;
-        console.log('SignalR Connected Successfully to NotificationHub!');
-      })
-      .catch((err: unknown) => {
-        this.isStarting = false;
-        console.log('Error while starting SignalR connection: ' + err);
-        setTimeout(() => this.startConnection(), 5000);
-      });
+    try {
+      await this.hubConnection.start();
+      this.isStarting = false;
+      console.log('SignalR Connected Successfully to NotificationHub!');
+    } catch (err: unknown) {
+      this.isStarting = false;
+      console.log('Error while starting SignalR connection: ' + err);
+      setTimeout(() => this.startConnection(), 5000);
+    }
   }
 
   markAsRead(id?: string): void {

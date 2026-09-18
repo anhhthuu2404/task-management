@@ -4,12 +4,13 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { HttpClient } from '@angular/common/http';
 import { ProjectService } from '@proxy/projects';
 import { Router } from '@angular/router';
-
+import { CoreModule } from '@abp/ng.core';
 @Component({
   selector: 'app-create-task',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CoreModule],
   templateUrl: './create-task.component.html'
+  
 })
 export class CreateTaskComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -92,8 +93,8 @@ export class CreateTaskComponent implements OnInit {
       next: (res: any) => {
         const rawDepts = Array.isArray(res) ? res : (res?.items || res?.result || []);
         
-        // Chỉ giữ lại các phòng ban con (có tồn tại parentId hoặc parentDepartmentId)
-        this.departments = rawDepts.filter((d: any) => d.parentId || d.parentDepartmentId);
+        // Chỉ giữ lại các phòng ban chính (không có parentId hoặc parentDepartmentId)
+        this.departments = rawDepts.filter((d: any) => !d.parentId && !d.parentDepartmentId);
       },
       error: (err) => console.error('Lỗi tải phòng ban:', err)
     });

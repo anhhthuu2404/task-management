@@ -6,19 +6,19 @@
       
       <!-- Tiêu đề và Trạng thái -->
       <div class="d-flex align-items-center gap-3 flex-grow-1 overflow-hidden">
-        <button class="btn btn-light btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 40px; height: 40px;" (click)="goBack()" title="Quay lại">
+        <button class="btn btn-light btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0" style="width: 40px; height: 40px;" (click)="goBack()" [title]="'::Task:Back' | abpLocalization">
           <i class="bi bi-arrow-left fs-4 text-secondary"></i>
         </button>
         <div class="overflow-hidden">
           <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
-            <h3 class="mb-0 text-truncate fw-bold text-dark fs-4" title="Chi tiết công việc ">
-              Chi tiết công việc
+            <h3 class="mb-0 text-truncate fw-bold text-dark fs-4" [title]="'::Task:DetailTitle' | abpLocalization">
+              {{ '::Task:DetailTitle' | abpLocalization }}
             </h3>
             <span class="badge rounded-pill px-3 py-2 fw-semibold shadow-xs fs-6" [ngClass]="getStatusBadgeClass(taskDetail?.status)">
               {{ getStatusText(taskDetail?.status) }}
             </span>
           </div>
-          <small class="text-muted fs-6">Quản lý tiến độ, báo cáo và thảo luận công việc</small>
+          <small class="text-muted fs-6">{{ '::Task:DetailSubtitle' | abpLocalization }}</small>
         </div>
       </div>
 
@@ -29,59 +29,59 @@
         <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm px-4 py-2 rounded-pill fs-6" 
                 (click)="openSubmitModal(false)" 
                 *ngIf="isAssignee && (taskDetail?.status === TaskStatus.InProgress || taskDetail?.status === TaskStatus.New)">
-          <i class="bi bi-send-fill"></i> Nộp báo cáo / Gửi duyệt
+          <i class="bi bi-send-fill"></i> {{ '::Task:SubmitReportOrReview' | abpLocalization }}
         </button>
 
         <!-- Quản lý / Người giao (Manager): Duyệt hoặc Từ chối khi ở trạng thái Chờ duyệt -->
         <ng-container *ngIf="isCreatorOrManager && taskDetail?.status === TaskStatus.InReview">
           <button class="btn btn-success d-flex align-items-center gap-2 shadow-sm px-4 py-2 rounded-pill fs-6" 
                   (click)="approveTask()" [disabled]="isActionLoading">
-            <i class="bi bi-check-circle-fill"></i> Duyệt công việc
+            <i class="bi bi-check-circle-fill"></i> {{ '::Task:Approve' | abpLocalization }}
           </button>
           <button class="btn btn-warning text-white d-flex align-items-center gap-2 shadow-sm px-4 py-2 rounded-pill fs-6" 
                   (click)="openRejectModal()" [disabled]="isActionLoading">
-            <i class="bi bi-x-circle-fill"></i> Từ chối duyệt
+            <i class="bi bi-x-circle-fill"></i> {{ '::Task:Reject' | abpLocalization }}
           </button>
         </ng-container>
 
         <!-- DROPDOWN TRẠNG THÁI (Dành cho Quản lý / Admin) -->
        <div class="position-relative status-dropdown-container" *ngIf="isCreatorOrManager">
         <button class="btn btn-white bg-white border text-secondary dropdown-toggle shadow-xs px-4 py-2 rounded-pill d-flex align-items-center gap-2 fs-6" type="button" (click)="toggleStatusDropdown($event)" [disabled]="isActionLoading">
-          <i class="bi bi-sliders text-primary"></i> Đổi trạng thái
+          <i class="bi bi-sliders text-primary"></i> {{ '::Task:ChangeStatus' | abpLocalization }}
        </button>
 
           <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-2 mt-2 fs-6" [class.show]="isStatusDropdownOpen" style="right: 0; left: auto; z-index: 1050; min-width: 200px;">
             <li>
               <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.New)">
-                <i class="bi bi-circle-fill text-secondary"></i> Mới
+                <i class="bi bi-circle-fill text-secondary"></i> {{ '::Enum:TaskStatus.0' | abpLocalization }}
               </button>
             </li>
             <li>
               <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.InProgress)">
-                <i class="bi bi-play-circle-fill text-primary"></i> Đang làm
+                <i class="bi bi-play-circle-fill text-primary"></i> {{ '::Enum:TaskStatus.1' | abpLocalization }}
               </button>
             </li>
             <li>
               <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.InReview)">
-                <i class="bi bi-clock-history text-warning"></i> Chờ duyệt
+                <i class="bi bi-clock-history text-warning"></i> {{ '::Enum:TaskStatus.2' | abpLocalization }}
               </button>
             </li>
             <li>
               <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2" type="button" (click)="changeStatus(TaskStatus.Completed)">
-                <i class="bi bi-check-circle-fill text-success"></i> Hoàn thành
+                <i class="bi bi-check-circle-fill text-success"></i> {{ '::Enum:TaskStatus.3' | abpLocalization }}
               </button>
             </li>
             <li><hr class="dropdown-divider my-1"></li>
             <li>
               <button class="dropdown-item d-flex align-items-center gap-2 py-2.5 rounded-2 text-danger" type="button" (click)="changeStatus(TaskStatus.Cancelled)">
-                <i class="bi bi-x-circle-fill"></i> Đã hủy
+                <i class="bi bi-x-circle-fill"></i> {{ '::Enum:TaskStatus.4' | abpLocalization }}
               </button>
             </li>
           </ul>
         </div>
 
         <!-- NÚT XÓA CÔNG VIỆC (Dành cho Quản lý) -->
-        <button class="btn btn-outline-danger d-flex align-items-center gap-1 shadow-xs px-3 py-2 rounded-pill fs-6" (click)="onDeleteTask()" [disabled]="isActionLoading" title="Xóa công việc" *ngIf="isCreatorOrManager">
+        <button class="btn btn-outline-danger d-flex align-items-center gap-1 shadow-xs px-3 py-2 rounded-pill fs-6" (click)="onDeleteTask()" [disabled]="isActionLoading" [title]="'::General:Delete' | abpLocalization" *ngIf="isCreatorOrManager">
           <i class="bi bi-trash-fill fs-5"></i>
         </button>
       </div>
@@ -92,7 +92,7 @@
   <!-- LOADING SPINNER -->
   <div *ngIf="isLoading" class="text-center py-5">
     <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-      <span class="visually-hidden">Đang tải...</span>
+      <span class="visually-hidden">{{ '::General:Loading' | abpLocalization }}</span>
     </div>
   </div>
 
@@ -103,27 +103,27 @@
     <div class="card shadow-sm border-0 rounded-4 bg-white overflow-hidden mb-4">
       <div class="card-header bg-white border-bottom px-4 py-3">
         <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2 fs-5">
-          <i class="bi bi-info-circle text-primary"></i> Thông tin chi tiết
+          <i class="bi bi-info-circle text-primary"></i> {{ '::Task:GeneralInfo' | abpLocalization }}
         </h5>
       </div>
       <div class="card-body p-4 fs-5">
         <div class="row g-4">
           <div class="col-md-4 d-flex justify-content-between align-items-center border-end-md">
             <div>
-              <span class="text-muted d-block fs-6 mb-1">Người thực hiện</span>
-              <span class="fw-semibold text-dark">{{ taskDetail?.assigneeName || taskDetail?.assignedToUser || 'Chưa phân công' }}</span>
+              <span class="text-muted d-block fs-6 mb-1">{{ '::Task:Assignee' | abpLocalization }}</span>
+              <span class="fw-semibold text-dark">{{ taskDetail?.assigneeName || taskDetail?.assignedToUser || ('::Task:Unassigned' | abpLocalization) }}</span>
             </div>
           </div>
           <div class="col-md-4 d-flex justify-content-between align-items-center border-end-md">
             <div>
-              <span class="text-muted d-block fs-6 mb-1">Hạn chót</span>
-              <span class="fw-semibold text-danger">{{ taskDetail?.dueDate ? (taskDetail?.dueDate | date:'dd/MM/yyyy HH:mm') : 'Không có' }}</span>
+              <span class="text-muted d-block fs-6 mb-1">{{ '::Task:DueDate' | abpLocalization }}</span>
+              <span class="fw-semibold text-danger">{{ taskDetail?.dueDate ? (taskDetail?.dueDate | date:'dd/MM/yyyy HH:mm') : ('::General:None' | abpLocalization) }}</span>
             </div>
           </div>
           <div class="col-md-4 d-flex justify-content-between align-items-center">
             <div>
-              <span class="text-muted d-block fs-6 mb-1">Độ ưu tiên</span>
-              <span class="badge bg-info-subtle text-info border px-3.5 py-1.5 rounded-pill fs-6">{{ taskDetail?.priority || 'Bình thường' }}</span>
+              <span class="text-muted d-block fs-6 mb-1">{{ '::Task:Priority' | abpLocalization }}</span>
+              <span class="badge bg-info-subtle text-info border px-3.5 py-1.5 rounded-pill fs-6">{{ taskDetail?.priority || ('::Task:NormalPriority' | abpLocalization) }}</span>
             </div>
           </div>
         </div>
@@ -137,10 +137,10 @@
         <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white">
           <div class="card-body p-4">
             <h5 class="fw-bold text-uppercase text-secondary mb-3 tracking-wider fs-6">
-              <i class="bi bi-text-paragraph text-primary me-2"></i>Mô tả công việc
+              <i class="bi bi-text-paragraph text-primary me-2"></i>{{ '::Task:Description' | abpLocalization }}
             </h5>
             <p class="card-text text-dark fs-5 mb-0 lh-base" style="white-space: pre-line;">
-              {{ taskDetail?.description || 'Không có mô tả cho công việc này.' }}
+              {{ taskDetail?.description || ('::Task:NoDescription' | abpLocalization) }}
             </p>
           </div>
         </div>
@@ -149,42 +149,38 @@
         <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white overflow-hidden">
           <div class="card-header bg-white border-bottom px-4 py-3.5 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2 fs-5">
-              <i class="bi bi-file-earmark-check text-success"></i> Kết quả nộp báo cáo / Sản phẩm
+              <i class="bi bi-file-earmark-check text-success"></i> {{ '::Task:SubmissionResult' | abpLocalization }}
             </h5>
             <div class="d-flex gap-2" *ngIf="isAssignee">
-              <!-- Hiển thị nút Cập nhật và Xóa khi đã có ghi chú HOẶC có file đính kèm -->
               <ng-container *ngIf="taskDetail?.submissionNote || taskDetail?.note || (taskDetail?.submissionFiles && taskDetail?.submissionFiles?.length > 0)">
                 <button class="btn btn-sm btn-light text-primary border rounded-pill px-3.5 py-1.5 shadow-xs d-flex align-items-center gap-1.5 fs-6 fw-medium" (click)="openSubmitModal(true)">
-                  <i class="bi bi-pencil"></i> Cập nhật
+                  <i class="bi bi-pencil"></i> {{ '::General:Edit' | abpLocalization }}
                 </button>
                 <button class="btn btn-sm btn-light text-danger border rounded-pill px-3.5 py-1.5 shadow-xs d-flex align-items-center gap-1.5 fs-6 fw-medium" (click)="deleteSubmission()">
-                  <i class="bi bi-trash"></i> Xóa bài nộp
+                  <i class="bi bi-trash"></i> {{ '::Task:DeleteSubmission' | abpLocalization }}
                 </button>
               </ng-container>
 
-              <!-- Chỉ hiển thị nút Nộp bài mới khi hoàn toàn trống -->
-              <button class="btn btn-sm btn-primary rounded-pill px-4 py-1.5 shadow-xs d-flex align-items-center gap-1.5 fs-6 fw-medium" (click)="openSubmitModal(false)" *ngIf="!taskDetail?.submissionNote && !taskDetail?.note && (!taskDetail?.submissionFiles || taskDetail?.submissionFiles?.length === 0)">
-                <i class="bi bi-upload"></i> Nộp bài mới
+              <button class="btn btn-sm btn-primary rounded-pill px-4 py-2 shadow-xs d-flex align-items-center gap-2 fs-6 fw-medium" (click)="openSubmitModal(false)" *ngIf="!taskDetail?.submissionNote && !taskDetail?.note && (!taskDetail?.submissionFiles || taskDetail?.submissionFiles?.length === 0)">
+                   <i class="bi bi-upload fs-5"></i> {{ '::Task:NewSubmission' | abpLocalization }}
               </button>
             </div>
           </div>
           <div class="card-body p-4">
             <div *ngIf="!taskDetail?.submissionNote && !taskDetail?.note && (!taskDetail?.submissionFiles || taskDetail?.submissionFiles?.length === 0)" class="text-center py-4 text-muted fs-5">
               <i class="bi bi-inbox fs-1 text-muted opacity-50 d-block mb-2"></i>
-              <span>Chưa có kết quả báo cáo nào được nộp.</span>
+              <span>{{ '::Task:NoSubmissionYet' | abpLocalization }}</span>
             </div>
 
-            <!-- Ghi chú nộp bài -->
             <div *ngIf="taskDetail?.submissionNote || taskDetail?.note" class="mb-4">
-              <span class="fw-bold d-block mb-2 text-secondary fs-6">Ghi chú nộp bài:</span>
+              <span class="fw-bold d-block mb-2 text-secondary fs-6">{{ '::Task:SubmissionNote' | abpLocalization }}:</span>
               <div class="p-3.5 rounded-3 border bg-light-subtle text-dark lh-base fs-5">
                 {{ taskDetail?.submissionNote || taskDetail?.note }}
               </div>
             </div>
 
-            <!-- Tệp đính kèm -->
             <div *ngIf="taskDetail?.submissionFiles && taskDetail?.submissionFiles?.length">
-              <span class="fw-bold d-block mb-2 text-secondary fs-6">Tệp đính kèm:</span>
+              <span class="fw-bold d-block mb-2 text-secondary fs-6">{{ '::Task:Attachments' | abpLocalization }}:</span>
               <div class="d-flex flex-wrap gap-2">
                 <div *ngFor="let file of taskDetail?.submissionFiles" (click)="downloadFile(file)" class="badge bg-white text-dark border px-3 py-2.5 d-flex align-items-center gap-2 shadow-xs rounded-pill fs-6 fw-normal cursor-pointer" [title]="file.fileName || file.name" style="cursor: pointer;">
                   <i class="bi bi-file-earmark-text text-primary fs-5 flex-shrink-0"></i>
@@ -198,35 +194,43 @@
 
         <!-- TABS SECTION -->
         <div class="card shadow-sm border-0 rounded-4 bg-white overflow-hidden">
-          <div class="card-header bg-white border-bottom px-4 py-3">
+          <div class="card-header bg-white border-bottom px-4 py-3.5" style="border-color: #f1f5f9 !important;">
             <div class="d-flex flex-wrap align-items-center gap-2">
               
               <!-- Tab Bình luận -->
-              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'comments' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('comments')">
-                <i class="bi bi-chat-square-text"></i>
-                <span>Bình luận</span>
-                <span class="badge rounded-pill" [ngClass]="activeTab === 'comments' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="comments?.length">{{ comments.length }}</span>
+              <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
+                      [ngClass]="activeTab === 'comments' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
+                      [style.background-color]="activeTab === 'comments' ? null : '#f1f5f9'" 
+                      (click)="switchTab('comments')">
+                <i class="bi bi-chat-square-text"></i> {{ '::Task:TabComments' | abpLocalization }} 
+                <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="comments?.length">{{ comments.length }}</span>
               </button>
 
               <!-- Tab Công việc phụ -->
-              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'subtask' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('subtask')">
-                <i class="bi bi-list-task"></i>
-                <span>Công việc phụ</span>
-                <span class="badge rounded-pill" [ngClass]="activeTab === 'subtask' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="subTaskList?.length">{{ subTaskList.length }}</span>
+              <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
+                      [ngClass]="activeTab === 'subtask' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
+                      [style.background-color]="activeTab === 'subtask' ? null : '#f1f5f9'" 
+                      (click)="switchTab('subtask')">
+                <i class="bi bi-list-task"></i> {{ '::Task:TabSubTasks' | abpLocalization }} 
+                <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="subTaskList?.length">{{ subTaskList.length }}</span>
               </button>
 
               <!-- Tab Checklist -->
-              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'checklist' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('checklist')">
-                <i class="bi bi-check2-square"></i>
-                <span>Checklist</span>
-                <span class="badge rounded-pill" [ngClass]="activeTab === 'checklist' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="checklistItems?.length">{{ checklistItems.length }}</span>
+              <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
+                      [ngClass]="activeTab === 'checklist' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
+                      [style.background-color]="activeTab === 'checklist' ? null : '#f1f5f9'" 
+                      (click)="switchTab('checklist')">
+                <i class="bi bi-check2-square"></i> {{ '::Task:TabChecklist' | abpLocalization }} 
+                <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="checklistItems?.length">{{ checklistItems.length }}</span>
               </button>
 
               <!-- Tab Timeline -->
-              <button type="button" class="btn d-flex align-items-center gap-2 px-3.5 py-2 rounded-pill fs-5 shadow-xs" [ngClass]="activeTab === 'timeline' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border bg-light-subtle'" (click)="switchTab('timeline')">
-                <i class="bi bi-clock-history"></i>
-                <span>Timeline</span>
-                <span class="badge rounded-pill" [ngClass]="activeTab === 'timeline' ? 'bg-white text-primary' : 'bg-secondary text-white'" *ngIf="timelineLogs?.length">{{ timelineLogs.length }}</span>
+              <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
+                      [ngClass]="activeTab === 'timeline' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
+                      [style.background-color]="activeTab === 'timeline' ? null : '#f1f5f9'" 
+                      (click)="switchTab('timeline')">
+                <i class="bi bi-clock-history"></i> {{ '::Task:TabTimeline' | abpLocalization }} 
+                <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="timelineLogs?.length">{{ timelineLogs.length }}</span>
               </button>
 
             </div>
@@ -234,10 +238,10 @@
 
           <div class="card-body p-4">
             
-            <!-- TAB BÌNH LUẬN -->
+           <!-- TAB BÌNH LUẬN -->
             <div *ngIf="activeTab === 'comments'">
-              <div class="card border shadow-none bg-light rounded-4 p-3.5 mb-4">
-                <textarea class="form-control border-0 bg-white shadow-xs mb-3 p-3.5 rounded-3 fs-5" rows="3" [(ngModel)]="newCommentText" placeholder="Nhập bình luận của bạn..."></textarea>
+              <div class="card border-0 shadow-xs bg-light rounded-4 p-4 mb-4">
+                <textarea class="form-control border-0 bg-white shadow-xs mb-3 p-3.5 rounded-3 fs-5" rows="3" [(ngModel)]="newCommentText" [placeholder]="'::Task:CommentPlaceholder' | abpLocalization"></textarea>
                 
                 <div *ngIf="commentSelectedFiles?.length > 0" class="d-flex flex-wrap gap-2 mb-3">
                   <div *ngFor="let f of commentSelectedFiles; let i = index" class="badge bg-white text-dark border px-3 py-2 d-flex align-items-center gap-2 shadow-xs rounded-pill fs-6 fw-normal" [title]="f.name">
@@ -251,60 +255,60 @@
                   <div>
                     <input type="file" #commentFileInput (change)="onCommentFilesSelected($event)" style="display: none;" multiple />
                     <button type="button" class="btn btn-white bg-white border text-secondary btn-sm d-flex align-items-center gap-2 shadow-xs px-3.5 py-2 rounded-pill fs-6" (click)="commentFileInput.click()">
-                      <i class="bi bi-paperclip text-primary fs-5"></i> Đính kèm file
+                      <i class="bi bi-paperclip text-primary fs-5"></i> {{ '::Task:AttachFile' | abpLocalization }}
                     </button>
                   </div>
 
-                  <button class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-sm d-flex align-items-center gap-2 fs-6" [disabled]="(!newCommentText.trim() && commentSelectedFiles?.length === 0) || isSubmittingComment" (click)="sendComment()">
+                  <button class="btn btn-primary btn-sm px-4 py-2.5 rounded-pill shadow-sm d-flex align-items-center gap-2 fs-6 fw-semibold" [disabled]="(!newCommentText.trim() && commentSelectedFiles?.length === 0) || isSubmittingComment" (click)="sendComment()">
                     <span *ngIf="isSubmittingComment" class="spinner-border spinner-border-sm me-1"></span>
-                    <i class="bi bi-send-fill"></i> Gửi bình luận
+                    <i class="bi bi-send-fill"></i> {{ '::Task:SendComment' | abpLocalization }}
                   </button>
                 </div>
               </div>
 
               <div class="comment-list">
-                <p *ngIf="!comments || comments.length === 0" class="text-muted text-center py-4 mb-0 fs-5">Chưa có bình luận nào.</p>
+                <p *ngIf="!comments || comments.length === 0" class="text-muted text-center py-4 mb-0 fs-5">{{ '::Task:NoComments' | abpLocalization }}</p>
                 
-                <div *ngFor="let c of comments" class="p-3.5 mb-3 border-0 rounded-4 bg-light shadow-xs">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
+                <div *ngFor="let c of comments" class="card border-0 shadow-xs rounded-4 p-4 mb-3 bg-light">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="d-flex align-items-center gap-3">
-                      <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-xs flex-shrink-0" style="width: 42px; height: 42px; font-size: 1rem;">
+                      <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-xs flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.1rem;">
                         {{ (c.creatorName || 'U').charAt(0).toUpperCase() }}
                       </div>
                       <div>
-                        <h5 class="mb-0 fw-bold text-dark fs-5">{{ c.creatorName || 'Người dùng' }}</h5>
+                        <h6 class="mb-0 fw-bold text-dark fs-5">{{ c.creatorName || ('::Task:DefaultUser' | abpLocalization) }}</h6>
                         <small class="text-muted fs-6">{{ c.creationTime | date:'dd/MM/yyyy HH:mm' }}</small>
                       </div>
                     </div>
                     
-                    <div class="d-flex align-items-center gap-1" *ngIf="currentUserId && c.creatorId === currentUserId">
-                      <button class="btn btn-light btn-sm text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" type="button" (click)="startEditComment(c)" title="Sửa bình luận" style="width: 36px; height: 36px;">
-                        <i class="bi bi-pencil-square fs-5"></i>
-                      </button>
-                      <button class="btn btn-light btn-sm text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" type="button" (click)="deleteComment(c.id)" title="Xóa bình luận" style="width: 36px; height: 36px;">
-                        <i class="bi bi-trash fs-5"></i>
-                      </button>
-                    </div>
+                    <div class="d-flex align-items-center gap-2" *ngIf="currentUserId && c.creatorId === currentUserId">
+                      <button class="btn btn-white bg-white border-0 shadow-xs text-primary rounded-circle d-flex align-items-center justify-content-center" type="button" (click)="startEditComment(c)" [title]="'::General:Edit' | abpLocalization" style="width: 42px; height: 42px;">
+                       <i class="bi bi-pencil-square fs-4"></i>
+                     </button>
+                     <button class="btn btn-white bg-white border-0 shadow-xs text-danger rounded-circle d-flex align-items-center justify-content-center" type="button" (click)="deleteComment(c.id)" [title]="'::General:Delete' | abpLocalization" style="width: 42px; height: 42px;">
+                       <i class="bi bi-trash fs-4"></i>
+                     </button>
+                   </div>
                   </div>
 
                   <ng-container *ngIf="editingCommentId !== c.id; else editCommentTemplate">
-                    <p class="mb-2 text-secondary ps-5 ms-3 fs-5 lh-base" style="white-space: pre-line;">{{ c.text }}</p>
+                    <p class="mb-3 text-secondary fs-5 lh-base" style="white-space: pre-line;" *ngIf="c.text">{{ c.text }}</p>
                   </ng-container>
 
                   <ng-template #editCommentTemplate>
-                    <div class="my-2 ps-5 ms-3">
-                      <textarea class="form-control mb-2 rounded-3 bg-white fs-5 p-3" rows="2" [(ngModel)]="editingCommentText"></textarea>
+                    <div class="my-2">
+                      <textarea class="form-control mb-2 rounded-3 bg-white border-0 shadow-xs fs-5 p-3" rows="2" [(ngModel)]="editingCommentText"></textarea>
                       <div class="d-flex gap-2">
-                        <button class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-xs fs-6" (click)="saveEditComment(c.id)">Lưu</button>
-                        <button class="btn btn-light btn-sm px-4 py-2 rounded-pill fs-6" (click)="cancelEditComment()">Hủy</button>
+                        <button class="btn btn-primary btn-sm px-4 py-2 rounded-pill shadow-xs fs-6" (click)="saveEditComment(c.id)">{{ '::General:Save' | abpLocalization }}</button>
+                        <button class="btn btn-white bg-white border px-4 py-2 rounded-pill shadow-xs fs-6 text-secondary" (click)="cancelEditComment()">{{ '::General:Cancel' | abpLocalization }}</button>
                       </div>
                     </div>
                   </ng-template>
 
-                  <div *ngIf="c.attachments && c.attachments.length > 0" class="d-flex flex-wrap gap-2 mt-2 ps-5 ms-3">
+                  <div *ngIf="c.attachments && c.attachments.length > 0" class="d-flex flex-wrap gap-2 mt-2">
                     <div *ngFor="let att of c.attachments" (click)="downloadFile(att)" class="badge bg-white text-dark border px-3 py-2 d-flex align-items-center gap-2 rounded-pill shadow-xs fs-6 fw-normal cursor-pointer" [title]="att.fileName || att.name" style="cursor: pointer;">
                       <i class="bi bi-file-earmark-text text-primary fs-5 flex-shrink-0"></i>
-                      <span class="text-truncate" style="max-width: 220px; display: inline-block; vertical-align: middle;">{{ att.fileName || att.name }}</span>
+                      <span class="text-truncate" style="max-width: 250px; display: inline-block; vertical-align: middle;">{{ att.fileName || att.name }}</span>
                       <i class="bi bi-download text-muted ms-1 flex-shrink-0"></i>
                     </div>
                   </div>
@@ -315,17 +319,17 @@
             <!-- TAB CÔNG VIỆC PHỤ -->
             <div *ngIf="activeTab === 'subtask'">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h5 class="fw-bold mb-0 text-secondary fs-5">Danh sách công việc con</h5>
+                <h5 class="fw-bold mb-0 text-secondary fs-5">{{ '::Task:SubTaskListTitle' | abpLocalization }}</h5>
                 <button class="btn btn-sm btn-primary d-flex align-items-center gap-1 shadow-xs rounded-pill px-4 py-2 fs-6" (click)="openAddSubTaskModal()">
-                  <i class="bi bi-plus-lg fs-5"></i> Thêm công việc phụ
+                  <i class="bi bi-plus-lg fs-5"></i> {{ '::Task:AddSubTask' | abpLocalization }}
                 </button>
               </div>
 
               <div *ngIf="isAddSubTaskOpen" class="card card-body bg-light border-0 mb-3 shadow-xs rounded-3 p-3.5">
                 <div class="input-group">
-                  <input type="text" class="form-control rounded-start-pill ps-3.5 fs-5 py-2.5" [(ngModel)]="newSubTaskTitle" placeholder="Nhập tên công việc phụ mới..." (keyup.enter)="saveNewSubTask()" />
-                  <button class="btn btn-primary px-4 fs-6" type="button" (click)="saveNewSubTask()">Lưu</button>
-                  <button class="btn btn-outline-secondary rounded-end-pill px-4 fs-6" type="button" (click)="isAddSubTaskOpen = false">Hủy</button>
+                  <input type="text" class="form-control rounded-start-pill ps-3.5 fs-5 py-2.5" [(ngModel)]="newSubTaskTitle" [placeholder]="'::Task:SubTaskPlaceholder' | abpLocalization" (keyup.enter)="saveNewSubTask()" />
+                  <button class="btn btn-primary px-4 fs-6" type="button" (click)="saveNewSubTask()">{{ '::General:Save' | abpLocalization }}</button>
+                  <button class="btn btn-outline-secondary rounded-end-pill px-4 fs-6" type="button" (click)="isAddSubTaskOpen = false">{{ '::General:Cancel' | abpLocalization }}</button>
                 </div>
               </div>
 
@@ -337,9 +341,9 @@
                   </div>
                   <div class="d-flex align-items-center gap-3">
                     <span class="badge rounded-pill px-3.5 py-1.5 fs-6 fw-medium" [ngClass]="sub.completed ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle'">
-                      {{ sub.completed ? 'Hoàn thành' : 'Đang làm' }}
+                      {{ sub.completed ? ('::Task:Completed' | abpLocalization) : ('::Task:InProgress' | abpLocalization) }}
                     </span>
-                    <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteSubTask(i)" title="Xóa" style="width: 36px; height: 36px;"><i class="bi bi-trash fs-5"></i></button>
+                    <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteSubTask(i)" [title]="'::General:Delete' | abpLocalization" style="width: 36px; height: 36px;"><i class="bi bi-trash fs-5"></i></button>
                   </div>
                 </div>
               </div>
@@ -347,14 +351,19 @@
 
             <!-- TAB CHECKLIST -->
             <div *ngIf="activeTab === 'checklist'">
-              <div class="input-group mb-3 shadow-xs rounded-pill overflow-hidden border">
-                <input type="text" class="form-control border-0 px-4 py-3 fs-5" placeholder="Thêm mục kiểm tra mới..." [(ngModel)]="newChecklistTitle" (keyup.enter)="addChecklistItem()" />
-                <button class="btn btn-primary px-4 border-0 fs-6 fw-semibold" type="button" (click)="addChecklistItem()">Thêm</button>
+              <div class="input-group mb-4 shadow-xs rounded-pill overflow-hidden border bg-white align-items-center p-1">
+                <span class="input-group-text bg-transparent border-0 ps-3 text-primary">
+                  <i class="bi bi-check2-square fs-5"></i>
+                </span>
+                <input type="text" class="form-control border-0 px-2 py-2 fs-7 bg-transparent shadow-none" [(ngModel)]="newChecklistTitle" [placeholder]="'::Task:ChecklistPlaceholder' | abpLocalization" (keyup.enter)="addChecklistItem()" />
+                <button class="btn btn-primary px-4 py-1 rounded-pill shadow-sm d-flex align-items-center gap-1 fs-6 fw-semibold flex-shrink-0" type="button" (click)="addChecklistItem()">
+                  <i class="bi bi-plus-lg fs-6"></i> {{ '::Task:AddChecklist' | abpLocalization }}
+                </button>
               </div>
 
               <div *ngIf="!checklistItems || checklistItems.length === 0" class="text-center text-muted py-4 fs-5">
                 <i class="bi bi-check2-all fs-1 text-muted opacity-50 d-block mb-2"></i>
-                <small>Chưa có mục checklist nào.</small>
+                <small>{{ '::Task:NoChecklist' | abpLocalization }}</small>
               </div>
 
               <div class="vstack gap-2">
@@ -365,7 +374,7 @@
                       {{ item.title }}
                     </label>
                   </div>
-                  <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteChecklistItem(i)" title="Xóa mục" style="width: 36px; height: 36px;">
+                  <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteChecklistItem(i)" [title]="'::General:Delete' | abpLocalization" style="width: 36px; height: 36px;">
                     <i class="bi bi-trash fs-5"></i>
                   </button>
                 </div>
@@ -374,18 +383,15 @@
 
             <!-- TAB TIMELINE -->
             <div *ngIf="activeTab === 'timeline'">
-              
-              <!-- Trạng thái đang tải (Loading) -->
               <div *ngIf="isLoadingTimeline" class="text-center py-4">
                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                <span class="ms-2 text-muted fs-5">Đang tải lịch sử hoạt động...</span>
+                <span class="ms-2 text-muted fs-5">{{ '::Task:LoadingTimeline' | abpLocalization }}</span>
               </div>
 
               <div class="timeline ps-3 border-start ms-2 py-3 fs-5" *ngIf="!isLoadingTimeline">
-                
                 <div *ngIf="!timelineLogs || timelineLogs.length === 0" class="text-muted text-center py-4 fs-5">
                   <i class="bi bi-clock-history fs-1 text-muted opacity-50 d-block mb-2"></i>
-                  <span>Chưa có lịch sử hoạt động nào được ghi nhận.</span>
+                  <span>{{ '::Task:NoTimeline' | abpLocalization }}</span>
                 </div>
 
                 <div *ngFor="let log of timelineLogs" class="mb-4 position-relative ps-3">
@@ -395,7 +401,7 @@
                   
                   <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="fw-bold text-dark fs-6">
-                      <i class="bi bi-person-circle me-1 text-primary"></i> {{ log.creatorName || log.userName || 'Hệ thống' }}
+                      <i class="bi bi-person-circle me-1 text-primary"></i> {{ log.creatorName || log.userName || ('::Task:SystemUser' | abpLocalization) }}
                     </span>
                     <small class="text-muted fs-6">
                       {{ (log.creationTime || log.time || log.date) | date:'dd/MM/yyyy HH:mm' }}
@@ -403,10 +409,9 @@
                   </div>
                   
                   <p class="mb-0 text-dark lh-base" 
-                     [innerHTML]="log.action || log.content || log.description || log.message || log.text || 'Không có mô tả'">
+                     [innerHTML]="log.action || log.content || log.description || log.message || log.text || ('::Task:NoDescription' | abpLocalization)">
                   </p>
                 </div>
-
               </div>
             </div>
 
@@ -423,21 +428,21 @@
     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden fs-5">
       <div class="modal-header border-bottom px-4 py-3">
         <h4 class="modal-title fw-bold text-dark d-flex align-items-center gap-2 fs-4">
-          <i class="bi bi-upload text-primary"></i> {{ isEditSubmissionMode ? 'Cập nhật báo cáo công việc' : 'Nộp báo cáo công việc' }}
+          <i class="bi bi-upload text-primary"></i> {{ (isEditSubmissionMode ? '::Task:UpdateSubmissionTitle' : '::Task:SubmitReportTitle') | abpLocalization }}
         </h4>
         <button type="button" class="btn-close" (click)="closeSubmitModal()"></button>
       </div>
       <div class="modal-body p-4">
         <div class="mb-3">
-          <label class="form-label fw-semibold fs-6 text-secondary">Ghi chú / Nội dung báo cáo</label>
-          <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="submissionNote" placeholder="Mô tả kết quả công việc đã hoàn thành..."></textarea>
+          <label class="form-label fw-semibold fs-6 text-secondary">{{ '::Task:SubmissionNoteLabel' | abpLocalization }}</label>
+          <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="submissionNote" [placeholder]="'::Task:SubmissionNotePlaceholder' | abpLocalization"></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold fs-6 text-secondary">Tệp đính kèm (Hình ảnh, tài liệu)</label>
+          <label class="form-label fw-semibold fs-6 text-secondary">{{ '::Task:Attachments' | abpLocalization }}</label>
           <input type="file" #submitFileInput class="form-control rounded-3 p-2.5 fs-6" multiple (change)="onSubmissionFilesSelected($event)"/>
         </div>
         <div *ngIf="selectedSubmitFiles && selectedSubmitFiles.length > 0" class="mb-3">
-          <small class="text-muted d-block mb-2 fs-6">Các file đã chọn:</small>
+          <small class="text-muted d-block mb-2 fs-6">{{ '::Task:SelectedFiles' | abpLocalization }}:</small>
           <div class="d-flex flex-wrap gap-2">
             <span *ngFor="let f of selectedSubmitFiles" class="badge bg-light text-dark border p-2 rounded-pill shadow-xs fs-6 fw-normal" [title]="f.fileName">
               <span class="text-truncate" style="max-width: 200px; display: inline-block; vertical-align: middle;">{{ f.fileName }}</span>
@@ -446,10 +451,10 @@
         </div>
       </div>
       <div class="modal-footer border-top px-4 py-3 bg-light">
-        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeSubmitModal()">Hủy</button>
+        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeSubmitModal()">{{ '::General:Cancel' | abpLocalization }}</button>
         <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="isActionLoading" (click)="confirmSubmitForReview()">
           <span *ngIf="isActionLoading" class="spinner-border spinner-border-sm me-1"></span> 
-          {{ isEditSubmissionMode ? 'Lưu thay đổi' : 'Gửi duyệt' }}
+          {{ (isEditSubmissionMode ? '::General:Save' : '::Task:SendForReview') | abpLocalization }}
         </button>
       </div>
     </div>
@@ -463,19 +468,19 @@
     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden fs-5">
       <div class="modal-header border-bottom px-4 py-3">
         <h4 class="modal-title fw-bold text-danger d-flex align-items-center gap-2 fs-4">
-          <i class="bi bi-exclamation-triangle-fill"></i> Từ chối duyệt công việc
+          <i class="bi bi-exclamation-triangle-fill"></i> {{ '::Task:RejectModalTitle' | abpLocalization }}
         </h4>
         <button type="button" class="btn-close" (click)="closeRejectModal()"></button>
       </div>
       <div class="modal-body p-4">
         <div class="mb-3">
-          <label class="form-label fw-semibold fs-6 text-secondary">Lý do từ chối / Yêu cầu sửa đổi <span class="text-danger">*</span></label>
-          <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="rejectReason" placeholder="Nhập lý do chưa đạt yêu cầu..."></textarea>
+          <label class="form-label fw-semibold fs-6 text-secondary">{{ '::Task:RejectReasonLabel' | abpLocalization }} <span class="text-danger">*</span></label>
+          <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="rejectReason" [placeholder]="'::Task:RejectReasonPlaceholder' | abpLocalization"></textarea>
         </div>
       </div>
       <div class="modal-footer border-top px-4 py-3 bg-light">
-        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeRejectModal()">Hủy</button>
-        <button class="btn btn-danger rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="!rejectReason?.trim() || isActionLoading" (click)="confirmRejectTask()">Xác nhận từ chối</button>
+        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeRejectModal()">{{ '::General:Cancel' | abpLocalization }}</button>
+        <button class="btn btn-danger rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="!rejectReason?.trim() || isActionLoading" (click)="confirmRejectTask()">{{ '::Task:ConfirmReject' | abpLocalization }}</button>
       </div>
     </div>
   </div>

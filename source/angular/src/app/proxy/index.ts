@@ -10,4 +10,6 @@ import * as SysMasterLists from './sys-master-lists';
 import * as Tags from './tags';
 import * as TaskHistories from './task-histories';
 import * as Tasks from './tasks';
-export { Books, Categories, Dashboards, Departments, LocalizationManagement, Notifications, Projects, Reports, SysMasterLists, Tags, TaskHistories, Tasks };
+import * as Volo from './volo';
+export * from './custom-user-management.service';
+export { Books, Categories, Dashboards, Departments, LocalizationManagement, Notifications, Projects, Reports, SysMasterLists, Tags, TaskHistories, Tasks, Volo };

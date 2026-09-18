@@ -13,6 +13,8 @@ namespace TaskManagement.Projects
         public string Status { get; set; } = string.Empty;
         public Guid? DepartmentId { get; set; }
         public string DepartmentName { get; set; }
+        public Guid? CategoryId { get; set; }
+        public string? CategoryName { get; set; }
 
         public int MemberCount { get; set; }
         public int MilestoneCount { get; set; }
@@ -25,6 +27,7 @@ namespace TaskManagement.Projects
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public Guid? DepartmentId { get; set; }
+        public Guid? CategoryId { get; set; }
         public string Status { get; set; } = "Active";
     }
 
@@ -33,6 +36,7 @@ namespace TaskManagement.Projects
         public string? Filter { get; set; }
         public string? Status { get; set; }
         public Guid? DepartmentId { get; set; }
+        public Guid? CategoryId { get; set; }
     }
 
     public class MilestoneDto : EntityDto<Guid>
@@ -52,6 +56,7 @@ namespace TaskManagement.Projects
         public DateTime DueDate { get; set; }
         public MilestoneStatus Status { get; set; }
         public Guid? AssigneeUserId { get; set; }
+
     }
 
     public class ProjectMemberDto : EntityDto<Guid>

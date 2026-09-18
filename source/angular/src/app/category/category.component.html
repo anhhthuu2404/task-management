@@ -1,115 +1,114 @@
-<abp-page title="Quản lý Danh mục">
+<abp-page [title]="'::Menu:Categories' | abpLocalization">
   <abp-page-toolbar-container class="col">
     <div class="text-lg-end pt-2 pt-lg-0">
-      <!-- Chỉ hiển thị nút Thêm mới nếu user có quyền create -->
-      <button class="btn btn-primary" type="button" (click)="createCategory()" *ngIf="canCreate">
-        <i class="fa fa-plus me-1"></i> Thêm danh mục
+      <button class="btn btn-primary px-3 shadow-sm d-inline-flex align-items-center gap-1" type="button" (click)="createCategory()" *ngIf="canCreate">
+        <i class="fa fa-plus-circle"></i> <span>{{ '::Create' | abpLocalization }}</span>
       </button>
     </div>
   </abp-page-toolbar-container>
 
-  <div class="card">
+  <div class="card shadow-sm border-0">
     <div class="card-body">
       <!-- Search Form -->
-      <form [formGroup]="searchForm" (ngSubmit)="search()" class="mb-3">
-        <div class="row g-2">
+      <form [formGroup]="searchForm" (ngSubmit)="search()" class="mb-4">
+        <div class="row g-3 align-items-center">
           <div class="col-md-8">
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Tìm kiếm theo tên hoặc mô tả..."
-              formControlName="filter"
-            />
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0">
+                <i class="fa fa-search text-muted"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control border-start-0 ps-0"
+                [placeholder]="'::Search' | abpLocalization"
+                formControlName="filter"
+              />
+            </div>
           </div>
-          <div class="col-md-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
-              <i class="fa fa-search me-1"></i> Tìm kiếm
+          <div class="col-md-4 d-flex gap-2 justify-content-md-end">
+            <button type="submit" class="btn btn-primary px-4 d-inline-flex align-items-center gap-1 shadow-sm">
+              <span>{{ '::Search' | abpLocalization }}</span>
             </button>
-            <button type="button" class="btn btn-outline-secondary" (click)="reset()">
-              <i class="fa fa-refresh me-1"></i> Làm mới
+            <button type="button" class="btn btn-outline-secondary px-3 d-inline-flex align-items-center gap-1" (click)="reset()">
+              <i class="fa fa-refresh"></i> <span>{{ '::Cancel' | abpLocalization }}</span>
             </button>
           </div>
         </div>
       </form>
 
-      <!-- Data Table -->
+      <!-- Data Table (Đã lược bỏ cột Trạng thái) -->
       <ngx-datatable
         [rows]="category.items"
         [count]="category.totalCount"
         [list]="list"
         default
       >
-        <ngx-datatable-column name="Tên danh mục" prop="name"></ngx-datatable-column>
+        <ngx-datatable-column [name]="'::Name' | abpLocalization" prop="name">
+          <ng-template let-row="row" ngx-datatable-cell-template>
+            <span>{{ row?.name | abpLocalization }}</span>
+          </ng-template>
+        </ngx-datatable-column>
         
-        <ngx-datatable-column name="Mô tả" prop="description">
+        <ngx-datatable-column [name]="'::Description' | abpLocalization" prop="description">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <span>{{ row?.description || 'Chưa có mô tả' }}</span>
+            <span class="text-muted">{{ row?.description || '---' }}</span>
           </ng-template>
         </ngx-datatable-column>
 
-        <ngx-datatable-column name="Trạng thái" prop="isActive">
+        <!-- Cột Thao tác -->
+        <ngx-datatable-column [name]="'::Actions' | abpLocalization" [sortable]="false" *ngIf="canEdit || canDelete">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <span class="badge" [ngClass]="row?.isActive ? 'bg-success' : 'bg-secondary'">
-              {{ row?.isActive ? 'Hoạt động' : 'Khóa' }}
-            </span>
-          </ng-template>
-        </ngx-datatable-column>
-
-        <!-- Cột Thao tác chỉ hiển thị nếu user có ít nhất quyền Sửa hoặc Xóa -->
-        <ngx-datatable-column name="Thao tác" [sortable]="false" *ngIf="canEdit || canDelete">
-          <ng-template let-row="row" ngx-datatable-cell-template>
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="editCategory(row.id)" *ngIf="canEdit">
-              <i class="fa fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="deleteCategory(row.id)" *ngIf="canDelete">
-              <i class="fa fa-trash"></i>
-            </button>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary px-2 py-1" (click)="editCategory(row.id)" *ngIf="canEdit" [title]="'::Edit' | abpLocalization">
+                <i class="fa fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger px-2 py-1" (click)="deleteCategory(row.id)" *ngIf="canDelete" [title]="'::Delete' | abpLocalization">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
           </ng-template>
         </ngx-datatable-column>
       </ngx-datatable>
     </div>
   </div>
 
-  <!-- Create/Edit Modal (Chỉ cho phép mở khi có quyền) -->
+  <!-- Create/Edit Modal (Đã lược bỏ nút gạt isActive) -->
   <abp-modal [(visible)]="isModalOpen" *ngIf="canCreate || canEdit">
     <ng-template #abpHeader>
-      <h3>{{ selectedCategory?.id ? 'Cập nhật danh mục' : 'Thêm mới danh mục' }}</h3>
+      <h3 class="modal-title fs-5 fw-bold">
+        {{ selectedCategory?.id ? ('::Edit' | abpLocalization) : ('::Create' | abpLocalization) }}
+      </h3>
     </ng-template>
 
     <ng-template #abpBody>
       <form id="category-form" *ngIf="form" [formGroup]="form" (ngSubmit)="saveCategory()">
         <div class="mb-3">
-          <label class="form-label required">Tên danh mục</label>
-          <input type="text" class="form-control" formControlName="name" autofocus />
+          <label class="form-label required fw-semibold">{{ '::Name' | abpLocalization }}</label>
+          <input type="text" class="form-control" formControlName="name" autofocus [placeholder]="'::Name' | abpLocalization" />
           <div
-            class="text-danger mt-1"
+            class="text-danger small mt-1"
             *ngIf="form.get('name')?.invalid && (form.get('name')?.dirty || form.get('name')?.touched)"
           >
-            Vui lòng nhập tên danh mục.
+            {{ '::AreYouSure' | abpLocalization }}
           </div>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Mô tả</label>
+          <label class="form-label fw-semibold">{{ '::Description' | abpLocalization }}</label>
           <textarea
             class="form-control"
             formControlName="description"
             rows="3"
-            placeholder="Nhập mô tả chi tiết cho danh mục này..."
+            [placeholder]="'::Description' | abpLocalization"
           ></textarea>
-        </div>
-
-        <div class="form-check mb-3">
-          <input type="checkbox" class="form-check-input" id="isActive" formControlName="isActive" />
-          <label class="form-check-label" for="isActive">Hoạt động</label>
         </div>
       </form>
     </ng-template>
 
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" abpClose>Hủy</button>
-      <button form="category-form" type="submit" class="btn btn-primary" [disabled]="form?.invalid || isSaving">
-        <i class="fa fa-check me-1"></i> Lưu
+      <button type="button" class="btn btn-outline-secondary px-4" abpClose>{{ '::Cancel' | abpLocalization }}</button>
+      <button form="category-form" type="submit" class="btn btn-primary px-4 d-inline-flex align-items-center gap-1 shadow-sm" [disabled]="form?.invalid || isSaving">
+        <i class="fa fa-check"></i> <span>{{ '::Save' | abpLocalization }}</span>
       </button>
     </ng-template>
   </abp-modal>

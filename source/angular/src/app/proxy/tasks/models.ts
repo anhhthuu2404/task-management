@@ -3,6 +3,8 @@ import type { RecurrenceFrequency } from './recurrence-frequency.enum';
 import type { TaskPriority } from './task-priority.enum';
 import type { TaskItemStatus } from './task-item-status.enum';
 import type { TaskHistoryDto } from '../task-histories/models';
+import type { Entity } from '../volo/abp/domain/entities/models';
+import type { CreationAuditedEntity, FullAuditedAggregateRoot } from '../volo/abp/domain/entities/auditing/models';
 
 export interface ChecklistItemDto extends EntityDto<string> {
   taskId?: string;
@@ -27,6 +29,7 @@ export interface CreateTaskInputDto {
   title: string;
   description?: string;
   categoryId: string;
+  milestoneId?: string;
   departmentId?: string;
   assigneeId?: string;
   projectId?: string;
@@ -57,6 +60,7 @@ export interface GetTaskListInputDto extends PagedAndSortedResultRequestDto {
   projectId?: string;
   priority?: TaskPriority;
   status?: TaskItemStatus;
+  departmentIds?: string[];
   onlyMyTasks?: boolean;
 }
 
@@ -129,6 +133,7 @@ export interface TaskDto extends AuditedEntityDto<string> {
   isRecurring?: boolean;
   frequency?: RecurrenceFrequency;
   lastGeneratedDate?: string;
+  milestoneId?: string;
   projectName?: string;
   projectId?: string;
   departmentId?: string;
@@ -161,9 +166,50 @@ export interface UpdateTaskInputDto {
   status: number;
   dueDate?: string;
   departmentId?: string;
+  milestoneId?: string;
   attachments?: TaskAttachmentDto[];
   projectId?: string;
   isRecurring?: boolean;
   frequency?: RecurrenceFrequency;
   lastGeneratedDate?: string;
+}
+
+export interface TaskAttachment extends Entity<string> {
+  fileName?: string;
+  filePath?: string;
+  fileUrl?: string;
+  taskId?: string;
+  taskItemId?: string;
+}
+
+export interface TaskHistory extends CreationAuditedEntity<string> {
+  taskId?: string;
+  action?: string;
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
+export interface TaskItem extends FullAuditedAggregateRoot<string> {
+  title?: string;
+  description?: string;
+  departmentId?: string;
+  projectId?: string;
+  milestoneId?: string;
+  priority?: TaskPriority;
+  status?: TaskItemStatus;
+  dueDate?: string;
+  categoryId?: string;
+  assigneeId?: string;
+  fileName?: string;
+  fileUrl?: string;
+  progressPercent?: number;
+  position?: number;
+  startDate?: string;
+  assigneeName?: string;
+  isRecurring?: boolean;
+  frequency?: RecurrenceFrequency;
+  lastGeneratedDate?: string;
+  histories?: TaskHistory[];
+  attachments?: TaskAttachment[];
 }

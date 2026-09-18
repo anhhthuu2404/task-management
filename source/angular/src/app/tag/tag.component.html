@@ -1,105 +1,110 @@
-<abp-page [title]="'Danh sách Thẻ (Tags)'">
+<abp-page [title]="'::Tag:List' | abpLocalization">
   <!-- Form Tìm kiếm & Lọc -->
-  <abp-card>
-    <abp-card-body>
-      <form [formGroup]="searchForm" (keyup.enter)="search()" class="row mb-3">
-        <div class="col-md-4 mb-2">
-          <label class="form-label">Tìm từ khóa</label>
-          <input type="text" class="form-control" formControlName="keyword" placeholder="Nhập tên..." />
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <form [formGroup]="searchForm" (keyup.enter)="search()" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-bold text-dark small">{{ '::Search' | abpLocalization }}</label>
+          <input type="text" class="form-control rounded-3" formControlName="keyword" [placeholder]="'::Tag:SearchPlaceholder' | abpLocalization" style="height: 40px;" />
         </div>
-        <div class="col-md-4 mb-2">
-          <label class="form-label">Lọc theo danh mục</label>
-          <select class="form-select" formControlName="categoryId">
-            <option [ngValue]="null">-- Tất cả danh mục --</option>
+        <div class="col-md-4">
+          <label class="form-label fw-bold text-dark small">{{ '::Tag:FilterByCategory' | abpLocalization }}</label>
+          <select class="form-select rounded-3" formControlName="categoryId" style="height: 40px;">
+            <option [ngValue]="null">{{ '::Tag:AllCategories' | abpLocalization }}</option>
             <option *ngFor="let cat of categories" [ngValue]="cat.id">
               {{ cat.name }}
             </option>
           </select>
         </div>
-        <div class="col-md-4 mb-2 d-flex align-items-end">
-          <button type="button" class="btn btn-primary me-2" (click)="search()">
-            <i class="fa fa-search me-1"></i> Tìm kiếm
+        <div class="col-md-4 d-flex gap-2 justify-content-md-end">
+          <button type="button" class="btn btn-primary px-3 rounded-3 fw-semibold shadow-sm d-flex align-items-center justify-content-center flex-fill" (click)="search()" style="height: 40px;">
+            <i class="fa fa-search me-1"></i> {{ '::Search' | abpLocalization }}
           </button>
-          <button type="button" class="btn btn-secondary me-2" (click)="reset()">
-            <i class="fa fa-refresh me-1"></i> Làm mới
+          <button type="button" class="btn btn-outline-secondary px-3 rounded-3 fw-semibold d-flex align-items-center justify-content-center flex-fill" (click)="reset()" style="height: 40px;">
+            <i class="fa fa-refresh me-1"></i> {{ '::Cancel' | abpLocalization }}
           </button>
-          <button type="button" class="btn btn-success ms-auto" (click)="create()">
-            <i class="fa fa-plus me-1"></i> Thêm mới
+          <button type="button" class="btn btn-success px-3 rounded-3 fw-semibold shadow-sm d-flex align-items-center justify-content-center flex-fill" (click)="create()" style="height: 40px;">
+            <i class="fa fa-plus me-1"></i> {{ '::Create' | abpLocalization }}
           </button>
         </div>
       </form>
-    </abp-card-body>
-  </abp-card>
+    </div>
+  </div>
 
-  <!-- Bảng ngx-datatable dãn đều 100% -->
-  <abp-card>
-    <abp-card-body>
-      <ngx-datatable
-        [rows]="items.items"
-        [count]="items.totalCount"
-        [list]="list"
-        [loadingIndicator]="loading"
-        [columnMode]="'flex'"
-        default
-      >
-        <!-- Cột Thao tác: Cố định độ rộng -->
-        <ngx-datatable-column name="Thao tác" [sortable]="false" [flexGrow]="0" [minWidth]="120" [maxWidth]="120">
-          <ng-template let-row="row" ngx-datatable-cell-template>
-            <div class="btn-group btn-group-sm" role="group">
-              <button class="btn btn-primary" (click)="edit(row.id)" title="Sửa">
-                <i class="fa fa-pencil"></i>
+  <!-- Bảng dữ liệu dùng CSS Grid canh đều hoàn hảo -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="card-body p-0">
+      <!-- Header dùng Grid -->
+      <div class="d-grid py-3 px-4 fw-bold text-dark text-uppercase border-bottom" style="grid-template-columns: 160px 1fr 1fr; background-color: #e9ecef; font-size: 13px; letter-spacing: 0.5px;">
+        <div>{{ '::Actions' | abpLocalization }}</div>
+        <div>{{ '::TagName' | abpLocalization }}</div>
+        <div>{{ '::Category' | abpLocalization }}</div>
+      </div>
+
+      <!-- Danh sách dòng dữ liệu dùng Grid -->
+      <div class="list-group list-group-flush">
+        <div *ngFor="let row of items.items" class="d-grid align-items-center py-3 px-4 border-bottom list-group-item-action" style="grid-template-columns: 160px 1fr 1fr;">
+          <!-- Cột Thao tác -->
+          <div>
+            <div class="btn-group p-1 rounded-3" role="group" style="background-color: #f8f9fa; border: 1px solid #eef2f6;">
+              <button class="btn btn-link btn-sm text-primary text-decoration-none px-2 py-1" (click)="edit(row.id)" [title]="'::Edit' | abpLocalization">
+                <i class="fa fa-pencil fs-6"></i>
               </button>
-              <button class="btn btn-danger" (click)="delete(row.id)" title="Xóa">
-                <i class="fa fa-trash"></i>
+              <button class="btn btn-link btn-sm text-danger text-decoration-none px-2 py-1" (click)="delete(row.id)" [title]="'::Delete' | abpLocalization">
+                <i class="fa fa-trash fs-6"></i>
               </button>
             </div>
-          </ng-template>
-        </ngx-datatable-column>
-        
-        <!-- Cột Tên Thẻ: Dãn 50% không gian còn lại -->
-        <ngx-datatable-column name="Tên thẻ" prop="name" [sortable]="true" [flexGrow]="1">
-          <ng-template let-row="row" ngx-datatable-cell-template>
-            <span class="badge bg-primary text-white p-2">
+          </div>
+
+          <!-- Cột Tên thẻ -->
+          <div>
+            <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2">
               <i class="fa fa-tag me-1"></i> {{ row.name }}
             </span>
-          </ng-template>
-        </ngx-datatable-column>
+          </div>
 
-        <!-- Cột Danh Mục: Dãn 50% không gian còn lại -->
-        <ngx-datatable-column name="Danh mục" prop="categoryName" [sortable]="false" [flexGrow]="1">
-          <ng-template let-row="row" ngx-datatable-cell-template>
-            <span class="badge bg-secondary text-white p-2" *ngIf="getCategoryName(row)">
+          <!-- Cột Danh mục -->
+          <div>
+            <span class="badge bg-secondary-subtle text-secondary fw-semibold px-3 py-2" *ngIf="getCategoryName(row)">
               <i class="fa fa-folder me-1"></i> {{ getCategoryName(row) }}
             </span>
             <span class="text-muted small fst-italic" *ngIf="!getCategoryName(row)">
               Chưa gán danh mục
             </span>
-          </ng-template>
-        </ngx-datatable-column>
-      </ngx-datatable>
-    </abp-card-body>
-  </abp-card>
+          </div>
+        </div>
+
+        <!-- Trạng thái trống -->
+        <div *ngIf="!items.items || items.items.length === 0" class="text-center py-5 text-muted">
+          <i class="fa fa-folder-open-o fa-2x mb-2 d-block opacity-50"></i>
+          {{ '::Report:NoData' | abpLocalization }}
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal Thêm/Sửa Thẻ -->
   <abp-modal [(visible)]="isModalOpen" [options]="modalOptions">
     <ng-template #abpHeader>
-      <h3>{{ selected?.id ? 'Sửa Thẻ' : 'Thêm Thẻ Mới' }}</h3>
+      <h5 class="modal-title fw-bold text-dark">
+        {{ selected?.id ? ('::Edit' | abpLocalization) : ('::Create' | abpLocalization) }} {{ '::Task' | abpLocalization }}
+      </h5>
     </ng-template>
 
     <ng-template #abpBody>
       <form [formGroup]="form" (ngSubmit)="save()" id="tag-form">
         <div class="mb-3">
-          <label class="form-label">Tên thẻ <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" formControlName="name" placeholder="Nhập tên thẻ..." autofocus />
+          <label class="form-label fw-bold text-dark small">{{ '::TagName' | abpLocalization }} <span class="text-danger">*</span></label>
+          <input type="text" class="form-control rounded-3" formControlName="name" [placeholder]="'::Tag:SearchPlaceholder' | abpLocalization" autofocus style="height: 40px;" />
           <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="text-danger mt-1 small">
-            Vui lòng nhập tên thẻ hợp lệ (tối đa 64 ký tự).
+            {{ '::AreYouSure' | abpLocalization }}
           </div>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Thuộc danh mục</label>
-          <select class="form-select" formControlName="categoryId">
-            <option [ngValue]="null">-- Không chọn --</option>
+          <label class="form-label fw-bold text-dark small">{{ '::Category' | abpLocalization }}</label>
+          <select class="form-select rounded-3" formControlName="categoryId" style="height: 40px;">
+            <option [ngValue]="null">-- {{ '::Cancel' | abpLocalization }} --</option>
             <option *ngFor="let cat of categories" [value]="cat.id">
               {{ cat.name }}
             </option>
@@ -109,10 +114,12 @@
     </ng-template>
 
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" abpClose>Hủy</button>
-      <button type="submit" form="tag-form" class="btn btn-primary" [disabled]="isSaving || form?.invalid">
-        <i class="fa fa-save me-1"></i> Lưu
-      </button>
+      <div class="d-flex gap-2 w-100 justify-content-end">
+        <button type="button" class="btn btn-secondary px-4 rounded-3 fw-semibold btn-sm" abpClose style="height: 36px; min-width: 90px;">{{ '::Cancel' | abpLocalization }}</button>
+        <button type="submit" form="tag-form" class="btn btn-primary px-4 rounded-3 shadow-sm fw-semibold btn-sm d-flex align-items-center justify-content-center" [disabled]="isSaving || form?.invalid" style="height: 36px; min-width: 90px;">
+          <i class="fa fa-save me-1"></i> {{ '::Save' | abpLocalization }}
+        </button>
+      </div>
     </ng-template>
   </abp-modal>
 </abp-page>

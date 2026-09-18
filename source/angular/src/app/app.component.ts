@@ -1,8 +1,8 @@
 import { Component, OnInit, NgZone, inject } from '@angular/core';
 import { DynamicLayoutComponent } from '@abp/ng.core';
 import { LoaderBarComponent, ToasterService } from '@abp/ng.theme.shared';
+
 import { NotificationService } from './shared/services/notification.service';
-import { NavbarNotificationsComponent } from './shared/components/navbar-notifications.component';
 
 @Component({
   selector: 'app-root',
@@ -20,13 +20,18 @@ export class AppComponent implements OnInit {
   private lastProcessedCount = 0;
 
   ngOnInit() {
-    this.notificationService.notifications$.subscribe(notifications => {
-      const currentCount = notifications.length;
+    // Thêm kiểu dữ liệu (notifications: any[]) để tường minh hóa kiểu, tránh lỗi unknown
+    this.notificationService.notifications$.subscribe((notifications: any[]) => {
+      const currentCount = notifications ? notifications.length : 0;
       
       if (currentCount > this.lastProcessedCount && currentCount > 0) {
         const latest = notifications[0];
-        this.zone.run(() => {
-          this.toasterService.info(latest.message, 'Thông báo mới');
+        
+        // Kết hợp setTimeout và zone.run để triệt để khắc phục lỗi NG0100 của Toast
+        setTimeout(() => {
+          this.zone.run(() => {
+            this.toasterService.info(latest?.message || 'Bạn có thông báo mới', 'Thông báo mới');
+          });
         });
       }
       

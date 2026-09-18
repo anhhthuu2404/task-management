@@ -13,6 +13,7 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
     public string? Description { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? ProjectId { get; set; }
+    public Guid? MilestoneId { get; set; }
     public TaskPriority Priority { get; set; }
     public TaskItemStatus Status { get; set; }
     public DateTime? DueDate { get; set; }

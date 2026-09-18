@@ -43,21 +43,19 @@ public class TaskManagementDomainSharedModule : AbpModule
             options.FileSets.AddEmbedded<TaskManagementDomainSharedModule>();
         });
 
-        //Bước 1 — GIỮ Nguyên JSON trong Domain.Shared - Language Text
         Configure<AbpLocalizationOptions>(options =>
         {
             options.Resources
-                .Add<TaskManagementResource>("vi")
+                .Add<TaskManagementResource>()
                 .AddBaseTypes(typeof(AbpValidationResource))
                 .AddVirtualJson("/Localization/TaskManagement");
 
             options.DefaultResourceType = typeof(TaskManagementResource);
-            
-            options.Languages.Add(new LanguageInfo("vi", "vi", "Vietnamese")); 
-            options.Languages.Add(new LanguageInfo("en", "en", "English")); 
 
+            options.Languages.Add(new LanguageInfo("vi", "vi", "Vietnamese"));
+            options.Languages.Add(new LanguageInfo("en", "en", "English"));
         });
-        
+
         Configure<AbpExceptionLocalizationOptions>(options =>
         {
             options.MapCodeNamespace("TaskManagement", typeof(TaskManagementResource));

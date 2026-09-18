@@ -194,11 +194,24 @@ public partial class TaskManagementProjectToProjectDtoMapper : MapperBase<Projec
 {
     [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
     [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))] // Thêm dòng này để bỏ qua lỗi không tìm thấy trên Project source
     public override partial ProjectDto Map(Project source);
 
     [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
     [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))] // Thêm dòng này
     public override partial void Map(Project source, ProjectDto destination);
+}
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementProjectQueryResponseToProjectDtoMapper : MapperBase<TaskManagement.Provider.Response.ProjectQueryResponse, ProjectDto>
+{
+    [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    public override partial ProjectDto Map(TaskManagement.Provider.Response.ProjectQueryResponse source);
+
+    [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    public override partial void Map(TaskManagement.Provider.Response.ProjectQueryResponse source, ProjectDto destination);
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
@@ -212,9 +225,15 @@ public partial class TaskManagementCreateUpdateProjectDtoToProjectMapper : Mappe
 public partial class TaskManagementProjectMemberToProjectMemberDtoMapper : MapperBase<ProjectMember, ProjectMemberDto>
 {
     [MapperIgnoreTarget(nameof(ProjectMemberDto.UserName))]
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Name))]    // Thêm dòng này để bỏ qua Name
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Surname))] // Thêm dòng này để bỏ qua Surname
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Email))]   // Thêm dòng này để bỏ qua Email
     public override partial ProjectMemberDto Map(ProjectMember source);
 
     [MapperIgnoreTarget(nameof(ProjectMemberDto.UserName))]
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Name))]    // Thêm dòng này
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Surname))] // Thêm dòng này
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Email))]   // Thêm dòng này
     public override partial void Map(ProjectMember source, ProjectMemberDto destination);
 }
 #endregion

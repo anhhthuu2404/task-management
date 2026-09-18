@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { RestService } from '@abp/ng.core';
 import { ToasterService } from '@abp/ng.theme.shared';
+import { CoreModule } from '@abp/ng.core';
 
 export interface TaskAttachmentDto {
   fileName?: string;
@@ -13,7 +14,7 @@ export interface TaskAttachmentDto {
 @Component({
   selector: 'app-task-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, CoreModule],
   templateUrl: './task-form.component.html'
 })
 export class TaskFormComponent implements OnInit {
@@ -67,9 +68,9 @@ export class TaskFormComponent implements OnInit {
     this.form = this.fb.group({
       title: ['', [Validators.required, Validators.maxLength(256)]],
       description: [''],
-      categoryId: ['', Validators.required],
+      categoryId: [{ value: '', disabled: true }, Validators.required],
       projectId: [null, Validators.required],
-      departmentId: [null],
+      departmentId: [{ value: null, disabled: true }],
       milestoneId: [null],
       assigneeId: [null, Validators.required],
       dueDate: ['', Validators.required],
@@ -81,7 +82,6 @@ export class TaskFormComponent implements OnInit {
 
     this.form.get('dueDate')?.valueChanges.subscribe(dateValue => {
       const currentStatus = Number(this.form.get('status')?.value);
-      // Nếu có chọn ngày, và trạng thái hiện tại KHÁC "Đang làm" (1), KHÁC "Hoàn thành" (2) và KHÁC "Đã hủy" (3)
       if (dateValue && currentStatus !== 1 && currentStatus !== 2 && currentStatus !== 3) {
         this.form.patchValue({ status: 1 }, { emitEvent: false });
       }
@@ -93,11 +93,13 @@ export class TaskFormComponent implements OnInit {
       } else {
         this.filteredUsers = [...this.users];
         this.milestones = [];
+        this.form.patchValue({ departmentId: null, categoryId: '' }, { emitEvent: false });
+        this.cdr.detectChanges();
       }
     });
 
     this.form.get('milestoneId')?.valueChanges.subscribe(milestoneId => {
-      if (milestoneId) {
+      if (milestoneId && this.form.get('milestoneId')?.touched) {
         const selectedMilestone = this.milestones.find(m => (m.id === milestoneId || m.Id === milestoneId));
         if (selectedMilestone && (selectedMilestone.dueDate || selectedMilestone.DueDate)) {
           const dateStr = (selectedMilestone.dueDate || selectedMilestone.DueDate).split('T')[0];
@@ -111,12 +113,12 @@ export class TaskFormComponent implements OnInit {
     const today = new Date();
     this.minDate = today.toISOString().split('T')[0];
   }
-
+  
   loadLookups(): void {
-    // 1. Load danh mục từ endpoint chuẩn của module Categories
+    // 1. Load danh mục
     this.rest.request<any, any>({ method: 'GET', url: '/api/task-management/categories', params: { maxResultCount: 100 } }).subscribe({
       next: (res) => { 
-        this.categories = Array.isArray(res) ? res : (res?.items || []); 
+        this.categories = Array.isArray(res) ? res : (res?.items || res?.result || []); 
         this.cdr.detectChanges();
       }
     });
@@ -124,7 +126,7 @@ export class TaskFormComponent implements OnInit {
     // 2. Load dự án
     this.rest.request<any, any>({ method: 'GET', url: '/api/app/project', params: { maxResultCount: 100 } }).subscribe({
       next: (res) => { 
-        this.projects = Array.isArray(res) ? res : (res?.items || []); 
+        this.projects = Array.isArray(res) ? res : (res?.items || res?.result || []); 
         this.cdr.detectChanges();
       }
     });
@@ -132,17 +134,17 @@ export class TaskFormComponent implements OnInit {
     // 3. Load phòng ban
     this.rest.request<any, any>({ method: 'GET', url: '/api/app/department' }).subscribe({
       next: (res) => { 
-        const rawDepts = Array.isArray(res) ? res : (res?.items || []); 
-        this.departments = rawDepts.filter((d: any) => d.parentId || d.parentDepartmentId);
+        const rawDepts = Array.isArray(res) ? res : (res?.items || res?.result || []); 
+        this.departments = rawDepts.filter((d: any) => !d.parentId && !d.parentDepartmentId && !d.ParentId);
         this.cdr.detectChanges();
       },
       error: () => { this.departments = []; }
     });
 
-    // 4. Load người dùng hệ thống
+    // 4. Load toàn bộ người dùng ban đầu
     this.rest.request<any, any>({ method: 'GET', url: '/api/identity/users' }).subscribe({
       next: (res) => { 
-        this.users = Array.isArray(res) ? res : (res?.items || []); 
+        this.users = Array.isArray(res) ? res : (res?.items || res?.result || []); 
         this.filteredUsers = [...this.users];
         this.cdr.detectChanges();
       }
@@ -150,14 +152,78 @@ export class TaskFormComponent implements OnInit {
   }
 
   onProjectChange(projectId: string): void {
+    if (!projectId) {
+      this.milestones = [];
+      this.filteredUsers = [...this.users];
+      this.form.patchValue({ departmentId: null, categoryId: '' }, { emitEvent: false });
+      queueMicrotask(() => this.cdr.detectChanges());
+      return;
+    }
+
+    const selectedProject = this.projects.find(p => (p.id === projectId || p.Id === projectId));
+    if (selectedProject) {
+      const deptId = selectedProject.departmentId || selectedProject.DepartmentId || selectedProject.department?.id || selectedProject.Department?.Id;
+      const catId = selectedProject.categoryId || selectedProject.CategoryId || selectedProject.category?.id || selectedProject.Category?.Id;
+
+      this.form.patchValue({
+        departmentId: deptId || null,
+        categoryId: catId || ''
+      }, { emitEvent: false });
+    }
+
     this.rest.request<any, any>({ method: 'GET', url: `/api/app/project/milestones/${projectId}` }).subscribe({
       next: (res) => { 
-        this.milestones = Array.isArray(res) ? res : (res?.items || []); 
-        this.cdr.detectChanges();
+        const rawList = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        this.milestones = [...rawList];
+        queueMicrotask(() => this.cdr.detectChanges());
       },
-      error: () => { 
-        this.milestones = []; 
-        this.cdr.detectChanges();
+      error: () => {
+        this.rest.request<any, any>({ 
+          method: 'GET', 
+          url: `/api/app/milestone`, 
+          params: { projectId: projectId, maxResultCount: 100 } 
+        }).subscribe({
+          next: (res) => {
+            const rawList = Array.isArray(res) ? res : (res?.items || res?.result || []);
+            this.milestones = [...rawList];
+            queueMicrotask(() => this.cdr.detectChanges());
+          },
+          error: () => {
+            this.milestones = [];
+            queueMicrotask(() => this.cdr.detectChanges());
+          }
+        });
+      }
+    });
+
+    this.rest.request<any, any>({ method: 'GET', url: `/api/app/project/by-project/${projectId}/members` }).subscribe({
+      next: (res) => {
+        const projectMembers = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        
+        this.filteredUsers = projectMembers.map((m: any) => ({
+          id: m.userId || m.UserId,
+          userName: m.userName || m.UserName,
+          name: m.name || m.Name,
+          surname: m.surname || m.Surname,
+          email: m.email || m.Email,
+          role: m.role || m.Role
+        }));
+
+        if (this.filteredUsers.length === 0) {
+          this.filteredUsers = [...this.users];
+        }
+
+        const currentVal = this.form?.get('assigneeId')?.value;
+        if (currentVal) {
+          this.form?.get('assigneeId')?.setValue(currentVal, { emitEvent: false });
+        }
+
+        queueMicrotask(() => this.cdr.detectChanges());
+      },
+      error: (err) => {
+        console.error('Không thể tải danh sách thành viên dự án:', err);
+        this.filteredUsers = [...this.users];
+        queueMicrotask(() => this.cdr.detectChanges());
       }
     });
   }
@@ -167,32 +233,74 @@ export class TaskFormComponent implements OnInit {
     this.rest.request<any, any>({ method: 'GET', url: `/api/app/task/${id}` }).subscribe({
       next: (task) => {
         if (task) {
-          this.form.patchValue({
-            title: task.title,
-            description: task.description,
-            categoryId: task.categoryId,
-            projectId: task.projectId,
-            departmentId: task.departmentId,
-            milestoneId: task.milestoneId,
-            assigneeId: task.assigneeId,
-            dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-            priority: task.priority,
-            status: task.status,
-            isRecurring: task.isRecurring || false,
-            frequency: task.frequency || 0
-          });
-          if (task.projectId) {
-            this.onProjectChange(task.projectId);
+          const projId = task.projectId || task.ProjectId || task.project?.id || task.Project?.Id;
+          
+          if (projId) {
+            this.onProjectChange(projId);
+
+            this.rest.request<any, any>({ method: 'GET', url: `/api/app/project/milestones/${projId}` }).subscribe({
+              next: (res) => {
+                this.milestones = Array.isArray(res) ? res : (res?.items || res?.result || []);
+                this.patchAndDisableForm(task);
+              },
+              error: () => {
+                this.rest.request<any, any>({ 
+                  method: 'GET', 
+                  url: `/api/app/milestone`, 
+                  params: { projectId: projId, maxResultCount: 100 } 
+                }).subscribe({
+                  next: (res) => {
+                    this.milestones = Array.isArray(res) ? res : (res?.items || res?.result || []);
+                    this.patchAndDisableForm(task);
+                  },
+                  error: () => {
+                    this.milestones = [];
+                    this.patchAndDisableForm(task);
+                  }
+                });
+              }
+            });
+          } else {
+            this.patchAndDisableForm(task);
           }
         }
-        this.isLoading = false;
-        this.cdr.detectChanges();
       },
       error: () => {
         this.isLoading = false;
         this.toaster.error('Không thể tải thông tin công việc.');
         this.router.navigate(['/tasks']);
       }
+    });
+  }
+
+  private patchAndDisableForm(task: any): void {
+    const projId = task.projectId || task.ProjectId || task.project?.id || task.Project?.Id;
+    const catId = task.categoryId || task.CategoryId || task.category?.id || task.Category?.Id;
+    const deptId = task.departmentId || task.DepartmentId || task.department?.id || task.Department?.Id;
+
+    this.form.patchValue({
+      title: task.title || task.Title,
+      description: task.description || task.Description,
+      categoryId: catId || '',
+      projectId: projId || null,
+      departmentId: deptId || null,
+      milestoneId: task.milestoneId || task.MilestoneId,
+      assigneeId: task.assigneeId || task.AssigneeId,
+      dueDate: (task.dueDate || task.DueDate) ? (task.dueDate || task.DueDate).split('T')[0] : '',
+      priority: task.priority !== undefined ? task.priority : task.Priority,
+      status: task.status !== undefined ? task.status : task.Status,
+      isRecurring: task.isRecurring !== undefined ? task.isRecurring : task.IsRecurring || false,
+      frequency: task.frequency !== undefined ? task.frequency : task.Frequency || 0
+    }, { emitEvent: false });
+    
+    this.form.get('categoryId')?.disable({ emitEvent: false });
+    this.form.get('projectId')?.disable({ emitEvent: false });
+    this.form.get('departmentId')?.disable({ emitEvent: false });
+
+    this.isLoading = false;
+    
+    queueMicrotask(() => {
+      this.cdr.detectChanges();
     });
   }
 
@@ -223,7 +331,6 @@ export class TaskFormComponent implements OnInit {
 
     this.isSubmitting = true;
 
-    // Chuyển đổi các tệp đính kèm sang định dạng Base64
     const filePromises = this.selectedFiles.map(file => {
       return new Promise<TaskAttachmentDto>((resolve, reject) => {
         const reader = new FileReader();
@@ -240,7 +347,7 @@ export class TaskFormComponent implements OnInit {
 
     Promise.all(filePromises).then(attachments => {
       const requestBody = {
-        ...this.form.value,
+        ...this.form.getRawValue(),
         attachments: attachments
       };
 
@@ -259,7 +366,15 @@ export class TaskFormComponent implements OnInit {
         },
         error: (err) => {
           this.isSubmitting = false;
-          this.toaster.error(err?.error?.error?.message || 'Đã có lỗi xảy ra khi lưu công việc.');
+          const errorObj = err?.error?.error;
+          
+          if (errorObj?.validationErrors && errorObj.validationErrors.length > 0) {
+            const messages = errorObj.validationErrors.map((e: any) => e.message).join('\n');
+            this.toaster.error(messages, 'Lỗi dữ liệu đầu vào', { life: 5000 });
+          } else {
+            const serverMessage = errorObj?.message || 'Đã có lỗi xảy ra khi lưu công việc.';
+            this.toaster.error(serverMessage, 'Thông báo', { life: 5000 });
+          }
           this.cdr.detectChanges();
         }
       });

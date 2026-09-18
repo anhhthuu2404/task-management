@@ -32,7 +32,7 @@ public class TaskAppService : CrudAppService<
     UpdateTaskInputDto>, ITaskAppService
 {
     private readonly string[] _allowedExtensions = [".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx"];
-    private const int MaxFileSizeInBytes = 10 * 1024 * 1024; // 10MB
+    private const int MaxFileSizeInBytes = 10 * 1024 * 1024; // Giới hạn 10MB
 
     private readonly IDistributedEventBus _distributedEventBus;
     private readonly IRepository<IdentityUser, Guid> _userRepository;
@@ -74,19 +74,32 @@ public class TaskAppService : CrudAppService<
     protected override string? UpdatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Edit;
     protected override string? DeletePolicyName { get; set; } = TaskManagementPermissions.Tasks.Delete;
 
-    #region Category, Project & Status Lookup Fix
+    #region Entity Mapping Overrides
+    protected override async Task<TaskItem> MapToEntityAsync(CreateTaskInputDto input)
+    {
+        var entity = await base.MapToEntityAsync(input);
+        entity.MilestoneId = input.MilestoneId;
+        entity.ProjectId = input.ProjectId;
+        return entity;
+    }
+
+    protected override async Task MapToEntityAsync(UpdateTaskInputDto input, TaskItem entity)
+    {
+        await base.MapToEntityAsync(input, entity);
+        entity.MilestoneId = input.MilestoneId;
+        entity.ProjectId = input.ProjectId;
+    }
+    #endregion
+
+    #region Lookups
     [HttpGet("/api/app/task/category-lookup")]
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskLookupDto>> GetCategoryLookupAsync()
     {
         var list = new List<TaskLookupDto>
         {
-            new() {
-                Id = Guid.Empty,
-                DisplayName = "Tất cả danh mục"
-            }
+            new() { Id = Guid.Empty, DisplayName = "Tất cả danh mục" }
         };
-
         return await Task.FromResult(list);
     }
 
@@ -96,12 +109,8 @@ public class TaskAppService : CrudAppService<
     {
         var list = new List<TaskLookupDto>
         {
-            new() {
-                Id = Guid.Empty,
-                DisplayName = "Tất cả dự án"
-            }
+            new() { Id = Guid.Empty, DisplayName = "Tất cả dự án" }
         };
-
         return await Task.FromResult(list);
     }
 
@@ -118,7 +127,6 @@ public class TaskAppService : CrudAppService<
             new() { Id = GetStatusGuid(TaskItemStatus.Completed), DisplayName = "Hoàn thành" },
             new() { Id = GetStatusGuid(TaskItemStatus.Canceled), DisplayName = "Đã hủy" }
         };
-
         return await Task.FromResult(list);
     }
 
@@ -148,15 +156,10 @@ public class TaskAppService : CrudAppService<
             .WhereIf(input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty, x => x.CategoryId == input.CategoryId!.Value)
             .WhereIf(input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty, x => x.ProjectId == input.ProjectId!.Value)
             .WhereIf(input.AssigneeId.HasValue && input.AssigneeId.Value != Guid.Empty, x => x.AssigneeId == input.AssigneeId!.Value)
-
-            // Ưu tiên lọc theo danh sách phòng ban (bao gồm phòng ban cha và các phòng ban con) nếu có
             .WhereIf(input.DepartmentIds != null && input.DepartmentIds.Count > 0,
                 x => x.DepartmentId != null && input.DepartmentIds.Contains(x.DepartmentId.Value))
-
-            // Nếu không truyền DepartmentIds mà chỉ truyền một DepartmentId đơn lẻ
             .WhereIf((input.DepartmentIds == null || input.DepartmentIds.Count == 0) && input.DepartmentId.HasValue && input.DepartmentId.Value != Guid.Empty,
                 x => x.DepartmentId == input.DepartmentId!.Value)
-
             .WhereIf(input.Priority.HasValue, x => x.Priority == input.Priority!.Value)
             .WhereIf(input.Status.HasValue, x => x.Status == input.Status!.Value);
     }
@@ -198,8 +201,12 @@ public class TaskAppService : CrudAppService<
     {
         var taskQuery = await Repository.WithDetailsAsync(x => x.Histories);
         var entity = await AsyncExecuter.FirstOrDefaultAsync(taskQuery.Where(x => x.Id == id))
-            ?? await Repository.FindAsync(id)
-            ?? throw new UserFriendlyException($"Không tìm thấy công việc có ID: {id}");
+            ?? await Repository.FindAsync(id);
+
+        if (entity == null)
+        {
+            throw new UserFriendlyException("Công việc này đã bị xóa hoặc không còn tồn tại trong hệ thống.");
+        }
 
         var dto = ObjectMapper.Map<TaskItem, TaskDetailDto>(entity);
         dto.FileName = entity.FileName;
@@ -393,6 +400,22 @@ public class TaskAppService : CrudAppService<
     }
 
     [UnitOfWork]
+    public override async Task DeleteAsync(Guid id)
+    {
+        var task = await Repository.GetAsync(id);
+        if (task == null)
+        {
+            throw new UserFriendlyException("Không tìm thấy công việc cần xóa.");
+        }
+
+        var taskTitle = task.Title;
+        await LogActivityAsync(id, $"Đã xóa công việc: '{taskTitle}'");
+        await NotifyTaskStakeholdersAsync(task, $"Công việc '{taskTitle}' đã bị xóa khỏi hệ thống.");
+
+        await base.DeleteAsync(id);
+    }
+
+    [UnitOfWork]
     public override async Task<TaskDto> CreateAsync(CreateTaskInputDto input)
     {
         if (input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty && input.DueDate.HasValue)
@@ -423,7 +446,6 @@ public class TaskAppService : CrudAppService<
 
         await Repository.InsertAsync(entity, autoSave: true);
         await LogActivityAsync(entity.Id, $"Đã tạo công việc: '{entity.Title}' (Tiến độ: {entity.ProgressPercent}%)");
-
         await NotifyTaskStakeholdersAsync(entity, $"Công việc mới đã được tạo: '{entity.Title}'");
 
         return await MapToGetOutputDtoAsync(entity);
@@ -464,7 +486,6 @@ public class TaskAppService : CrudAppService<
         }
 
         await MapToEntityAsync(input, entity);
-
         entity.ProgressPercent = CalculateProgressByStatus(entity.Status, entity.ProgressPercent);
 
         await ProcessTaskAttachmentsAsync(input.Attachments, entity);
@@ -577,7 +598,7 @@ public class TaskAppService : CrudAppService<
         var urls = entity.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
         var names = !string.IsNullOrEmpty(entity.FileName)
             ? entity.FileName.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList()
-            : new List<string>();
+            : [];
 
         var index = urls.IndexOf(fileUrl);
         if (index >= 0)
@@ -769,7 +790,7 @@ public class TaskAppService : CrudAppService<
         await GenerateNextRecurringTaskIfNeededAsync(task);
 
         await LogActivityAsync(id, "Đã phê duyệt công việc (Đã hoàn thành)");
-        await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' đã được phê duyệt thành công hoàn thành.");
+        await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' đã được phê duyệt hoàn thành.");
 
         return await GetTaskDetailAsync(id);
     }
@@ -816,8 +837,7 @@ public class TaskAppService : CrudAppService<
     public async Task<SubTaskDto> CreateSubTaskAsync(Guid taskId, [FromBody] CreateUpdateSubTaskDto input)
     {
         var task = await Repository.GetAsync(taskId);
-        if (task == null)
-            throw new UserFriendlyException("Công việc gốc không tồn tại.");
+        if (task == null) throw new UserFriendlyException("Công việc gốc không tồn tại.");
 
         var subTask = new SubTask(GuidGenerator.Create())
         {
@@ -900,8 +920,7 @@ public class TaskAppService : CrudAppService<
     public async Task<ChecklistItemDto> CreateChecklistItemAsync(Guid taskId, [FromBody] CreateUpdateChecklistItemDto input)
     {
         var task = await Repository.GetAsync(taskId);
-        if (task == null)
-            throw new UserFriendlyException("Công việc gốc không tồn tại.");
+        if (task == null) throw new UserFriendlyException("Công việc gốc không tồn tại.");
 
         var item = new TaskChecklistItem(GuidGenerator.Create())
         {
@@ -1029,8 +1048,7 @@ public class TaskAppService : CrudAppService<
     public async Task<TaskCommentDto> CreateCommentAsync(Guid taskId, [FromBody] CreateTaskCommentDto input)
     {
         var task = await Repository.GetAsync(taskId);
-        if (task == null)
-            throw new UserFriendlyException("Công việc không tồn tại.");
+        if (task == null) throw new UserFriendlyException("Công việc không tồn tại.");
 
         if (string.IsNullOrWhiteSpace(input.Text) && (input.Attachments == null || input.Attachments.Count == 0))
             throw new UserFriendlyException("Nội dung bình luận hoặc tệp đính kèm không được để trống.");
@@ -1055,15 +1073,11 @@ public class TaskAppService : CrudAppService<
         await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' có bình luận mới.");
 
         var dto = ObjectMapper.Map<TaskComment, TaskCommentDto>(insertedComment);
-
         dto.Id = insertedComment.Id;
         dto.TaskId = taskId;
         dto.CreatorId = CurrentUser.Id;
         dto.CreationTime = insertedComment.CreationTime;
-
-        dto.CreatorName = !string.IsNullOrWhiteSpace(CurrentUser.Name)
-            ? CurrentUser.Name
-            : (CurrentUser.UserName ?? "Hệ thống");
+        dto.CreatorName = !string.IsNullOrWhiteSpace(CurrentUser.Name) ? CurrentUser.Name : (CurrentUser.UserName ?? "Hệ thống");
 
         if (insertedComment.Attachments != null && insertedComment.Attachments.Count > 0)
         {
@@ -1191,6 +1205,8 @@ public class TaskAppService : CrudAppService<
                 CategoryId = currentTask.CategoryId,
                 AssigneeId = currentTask.AssigneeId,
                 DepartmentId = currentTask.DepartmentId,
+                MilestoneId = currentTask.MilestoneId,
+                ProjectId = currentTask.ProjectId,
                 Priority = currentTask.Priority,
                 Status = TaskItemStatus.New,
                 ProgressPercent = 0,
@@ -1219,10 +1235,7 @@ public class TaskAppService : CrudAppService<
                 var project = await _projectRepository.FindAsync(entity.ProjectId.Value, cancellationToken: CancellationToken.None);
                 dto.ProjectName = project?.Name;
             }
-            catch (TaskCanceledException)
-            {
-                // Bỏ qua lỗi hủy request ngầm
-            }
+            catch (TaskCanceledException) { }
         }
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
@@ -1278,10 +1291,7 @@ public class TaskAppService : CrudAppService<
                 })];
             }
         }
-        catch (TaskCanceledException)
-        {
-            // Đảm bảo các truy vấn comment cũng được bảo vệ an toàn
-        }
+        catch (TaskCanceledException) { }
 
         return dto;
     }
@@ -1518,10 +1528,7 @@ public class TaskAppService : CrudAppService<
                 }
             }
         }
-        catch
-        {
-            // Bỏ qua lỗi ngầm
-        }
+        catch { }
 
         foreach (var userId in userIds.Distinct())
         {
@@ -1546,10 +1553,7 @@ public class TaskAppService : CrudAppService<
                     Message = message
                 });
             }
-            catch
-            {
-                // Xử lý bắt ngoại lệ ngầm
-            }
+            catch { }
         }
     }
     #endregion

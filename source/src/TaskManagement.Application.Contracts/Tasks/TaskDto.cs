@@ -21,6 +21,7 @@ public class TaskDto : AuditedEntityDto<Guid>
     public bool IsRecurring { get; set; } = false;
     public RecurrenceFrequency? Frequency { get; set; }
     public DateTime? LastGeneratedDate { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     public string? ProjectName { get; set; }
     public Guid? ProjectId { get; set; }

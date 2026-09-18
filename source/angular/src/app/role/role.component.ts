@@ -33,6 +33,7 @@ export class RoleComponent implements OnInit {
     this.loadRoles(); 
     this.loadAllUsers();
   }
+
   onPermissionChange(): void {
     this.permissions = [];
     this.permissionGroups.forEach((g: any) => {
@@ -199,7 +200,6 @@ export class RoleComponent implements OnInit {
       next: (res) => {
         const groups = res?.groups || res?.result?.groups || [];
         
-        // Duyệt sâu qua cả quyền gốc và quyền con (children) để giữ đúng trạng thái isGranted từ database
         this.permissionGroups = groups.map((group: any) => ({
           name: group.name,
           displayName: group.displayName || group.name,
@@ -222,7 +222,6 @@ export class RoleComponent implements OnInit {
           })
         }));
 
-        // Đồng bộ mảng phẳng để phục vụ việc gửi payload khi lưu
         this.permissions = [];
         this.permissionGroups.forEach((g: any) => {
           this.permissions.push(...g.permissions);
@@ -248,6 +247,7 @@ export class RoleComponent implements OnInit {
       error: (err) => alert(err.error?.error?.message || 'Không thể lưu phân quyền!')
     });
   }
+
   toggleGroupPermissions(group: any, event: any): void {
     const isChecked = event.target.checked;
     if (group && group.permissions) {
@@ -256,7 +256,6 @@ export class RoleComponent implements OnInit {
       });
     }
 
-    // Đồng bộ lại mảng phẳng permissions để khi lưu payload mang đúng dữ liệu mới
     this.permissions = [];
     this.permissionGroups.forEach((g: any) => {
       this.permissions.push(...g.permissions);

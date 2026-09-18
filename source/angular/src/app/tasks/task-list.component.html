@@ -2,38 +2,38 @@
   <!-- Header & Actions -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-      <h2 class="fw-bold mb-1">Quản lý Công việc (Task Management)</h2>
-      <p class="text-muted mb-0">Theo dõi tiến độ, phân công và cập nhật trạng thái công việc thời gian thực.</p>
+      <h4 class="fw-bold text-dark m-0 fs-3">{{ '::Task:ManagementTitle' | abpLocalization }}</h4>
+      <p class="text-muted m-0 mt-1" style="font-size: 13px;">{{ '::Task:ManagementSubtitle' | abpLocalization }}</p>
     </div>
 
     <div class="d-flex align-items-center gap-2">
       <!-- Dropdown Thông báo -->
       <div class="dropdown" ngbDropdown placement="bottom-end" display="dynamic">
-        <button class="btn btn-primary position-relative rounded-circle p-2 d-flex align-items-center justify-content-center" 
-                style="width: 40px; height: 40px;" 
+        <button class="btn btn-primary position-relative rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" 
+                style="width: 42px; height: 42px;" 
                 ngbDropdownToggle 
                 type="button" 
                 id="notificationDropdown"
-                title="Thông báo trực tuyến"
+                [title]="'::Task:Notifications' | abpLocalization"
                 (click)="onBellClick()">
-          <i class="bi bi-bell-fill"></i>
+          <i class="bi bi-bell-fill fs-5"></i>
           <span *ngIf="getUnreadCount() > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
             {{ getUnreadCount() }}
           </span>
         </button>
-        <div ngbDropdownMenu aria-labelledby="notificationDropdown" class="dropdown-menu p-0 shadow-lg border-0" style="width: 350px; max-height: 400px; overflow-y: auto; border-radius: 12px;">
+        <div ngbDropdownMenu aria-labelledby="notificationDropdown" class="dropdown-menu p-0 shadow-lg border-0 rounded-4 overflow-hidden" style="width: 360px; max-height: 420px;">
           
           <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
-            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.9rem;">Thông báo trực tuyến</h6>
-            <button *ngIf="notifications && notifications.length > 0" class="btn btn-sm btn-link text-decoration-none p-0 text-primary" style="font-size: 0.85rem;" (click)="clearNotifications()">Xóa tất cả</button>
+            <h6 class="mb-0 fw-bold text-dark fs-6">{{ '::Task:Notifications' | abpLocalization }}</h6>
+            <button *ngIf="notifications && notifications.length > 0" class="btn btn-sm btn-link text-decoration-none p-0 text-primary fw-medium" style="font-size: 0.85rem;" (click)="clearNotifications()">{{ '::Task:ClearAllNotifications' | abpLocalization }}</button>
           </div>
 
-          <div *ngIf="!notifications || notifications.length === 0" class="text-center text-muted py-4 small">
-            <i class="bi bi-bell-slash fs-4 d-block mb-1 text-black-50"></i>
-            Chưa có thông báo mới nào.
+          <div *ngIf="!notifications || notifications.length === 0" class="text-center text-muted py-5 small">
+            <i class="bi bi-bell-slash fs-2 d-block mb-2 text-black-50"></i>
+            {{ '::Task:NoNotifications' | abpLocalization }}
           </div>
 
-          <div class="notification-list">
+          <div class="notification-list overflow-y-auto" style="max-height: 350px;">
             <div *ngFor="let item of notifications" 
                  class="p-3 border-bottom position-relative d-flex justify-content-between align-items-start" 
                  [ngClass]="{'bg-white': item.isRead || item.read, 'bg-light': !(item.isRead || item.read)}"
@@ -44,14 +44,14 @@
               <span *ngIf="!(item.isRead || item.read)" class="position-absolute top-50 start-0 translate-middle-y bg-primary rounded-circle ms-2" style="width: 8px; height: 8px;"></span>
               
               <div [ngClass]="{'ms-3': !(item.isRead || item.read)}" class="flex-grow-1 pe-2">
-                <div class="fw-semibold text-dark mb-1" style="font-size: 0.9rem; line-height: 1.4;">{{ item.message || item.content || item.title || 'Thông báo hệ thống' }}</div>
+                <div class="fw-semibold text-dark mb-1" style="font-size: 0.9rem; line-height: 1.4;">{{ item.message || item.content || item.title || ('::Task:SystemNotification' | abpLocalization) }}</div>
                 <div class="text-muted" style="font-size: 0.75rem;">
-                  <i class="bi bi-clock me-1"></i>{{ (item.time || item.creationTime || item.date) ? ((item.time || item.creationTime || item.date) | date:'dd/MM/yyyy HH:mm:ss') : 'Vừa xong' }}
+                  <i class="bi bi-clock me-1"></i>{{ (item.time || item.creationTime || item.date) ? ((item.time || item.creationTime || item.date) | date:'dd/MM/yyyy HH:mm:ss') : ('::Task:JustNow' | abpLocalization) }}
                 </div>
               </div>
 
               <!-- Nút xóa riêng cho từng thông báo -->
-              <button class="btn btn-sm text-muted p-1 hover-danger" style="font-size: 0.85rem;" title="Xóa thông báo này" (click)="deleteNotification(item, $event)">
+              <button class="btn btn-sm text-muted p-1 hover-danger" style="font-size: 0.85rem;" [title]="'::Task:DeleteNotification' | abpLocalization" (click)="deleteNotification(item, $event)">
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -59,101 +59,101 @@
         </div>
       </div>
 
-      <!-- Nút Tạo công việc mới (Đã đổi sang đường dẫn phẳng) -->
-      <button *ngIf="canCreate" class="btn btn-primary d-flex align-items-center gap-1" routerLink="/tasks/create">
-        <i class="bi bi-plus-lg"></i> Tạo công việc mới
-      </button>
+      <!-- Nút Tạo công việc mới -->
+      <button *ngIf="canCreate" class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2.5 rounded-3 shadow-sm" routerLink="/tasks/create">
+        <i class="bi bi-plus-lg"></i> {{ '::Task:CreateNew' | abpLocalization }}
+     </button>
     </div>
   </div>
 
   <!-- Filters & View Switcher Bar -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
+  <div class="card border-0 shadow-sm mb-4 rounded-4">
+    <div class="card-body p-4">
       <div class="row g-3 align-items-center">
         <!-- Tìm kiếm -->
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-6 col-lg-4">
           <div class="input-group">
-            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" class="form-control border-start-0 ps-0" placeholder="Tìm kiếm công việc..." [(ngModel)]="filters.filter" (keyup.enter)="onSearch()">
+            <span class="input-group-text bg-white border-end-0 rounded-start-3"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-start-0 ps-0 rounded-end-3" [placeholder]="'::Task:SearchPlaceholder' | abpLocalization" [(ngModel)]="filters.filter" (keyup.enter)="onSearch()">
           </div>
         </div>
 
         <!-- Danh mục -->
-        <div class="col-12 col-md-2">
-         <select class="form-select" [(ngModel)]="filters.categoryId" (change)="onSearch()">
-            <option value="">-- Tất cả danh mục --</option>
+        <div class="col-12 col-md-6 col-lg-4">
+         <select class="form-select rounded-3" [(ngModel)]="filters.categoryId" (change)="onSearch()">
+            <option value="">{{ '::Task:AllCategories' | abpLocalization }}</option>
             <option *ngFor="let cat of categories" [value]="cat.id">
              {{ cat.name }}
-           </option>
+            </option>
          </select>
         </div>
 
         <!-- Dự án -->
-        <div class="col-12 col-md-2">
-          <select class="form-select" [(ngModel)]="filters.projectId" (change)="onSearch()">
-            <option value="">-- Tất cả dự án --</option>
+        <div class="col-12 col-md-6 col-lg-4">
+          <select class="form-select rounded-3" [(ngModel)]="filters.projectId" (change)="onSearch()">
+            <option value="">{{ '::Task:AllProjects' | abpLocalization }}</option>
             <option *ngFor="let proj of projects" [value]="proj.id || proj.value || proj.key">
-              {{ proj.name || proj.displayName || proj.title || proj.projectName || 'Không rõ tên' }}
+              {{ proj.name || proj.displayName || proj.title || proj.projectName || ('::General:Unknown' | abpLocalization) }}
             </option>
           </select>
         </div>
 
         <!-- Phòng ban -->
-        <div class="col-12 col-md-2">
-          <select class="form-select" [(ngModel)]="filters.departmentId" (change)="onSearch()">
-            <option value="">-- Tất cả phòng ban --</option>
+        <div class="col-12 col-md-6 col-lg-4">
+          <select class="form-select rounded-3" [(ngModel)]="filters.departmentId" (change)="onSearch()">
+            <option value="">{{ '::Task:AllDepartments' | abpLocalization }}</option>
             <option *ngFor="let dept of departments" [value]="dept.id || dept.value || dept.key">
-              {{ dept.name || dept.displayName || dept.title || 'Không rõ tên' }}
+              {{ dept.name || dept.displayName || dept.title || ('::General:Unknown' | abpLocalization) }}
             </option>
           </select>
         </div>
 
         <!-- Trạng thái -->
-        <div class="col-12 col-md-3">
-          <select class="form-select" [(ngModel)]="filters.status" (change)="onSearch()">
-            <option [ngValue]="null">-- Trạng thái --</option>
-            <option [ngValue]="0">Mới</option>
-            <option [ngValue]="1">Đang làm</option>
-            <option [ngValue]="2">Hoàn thành</option>
-            <option [ngValue]="3">Đã hủy</option>
-            <option [ngValue]="5">Quá hạn</option>
+        <div class="col-12 col-md-6 col-lg-4">
+          <select class="form-select rounded-3" [(ngModel)]="filters.status" (change)="onSearch()">
+            <option [ngValue]="null">{{ '::Task:Status' | abpLocalization }}</option>
+            <option [value]="0">{{ '::Enum:TaskStatus.0' | abpLocalization }}</option>
+            <option [value]="1">{{ '::Enum:TaskStatus.1' | abpLocalization }}</option>
+            <option [value]="2">{{ '::Enum:TaskStatus.2' | abpLocalization }}</option>
+            <option [value]="3">{{ '::Enum:TaskStatus.3' | abpLocalization }}</option>
+            <option [value]="5">{{ '::Enum:TaskStatus.5' | abpLocalization }}</option>
           </select>
         </div>
 
         <!-- Độ ưu tiên -->
-        <div class="col-12 col-md-3">
-          <select class="form-select" [(ngModel)]="filters.priority" (change)="onSearch()">
-            <option [ngValue]="null">-- Độ ưu tiên --</option>
-            <option [ngValue]="0">Thấp</option>
-            <option [ngValue]="1">Trung bình</option>
-            <option [ngValue]="2">Cao</option>
-            <option [ngValue]="3">Khẩn cấp</option>
+        <div class="col-12 col-md-6 col-lg-4">
+          <select class="form-select rounded-3" [(ngModel)]="filters.priority" (change)="onSearch()">
+            <option [ngValue]="null">{{ '::Task:Priority' | abpLocalization }}</option>
+            <option [value]="0">{{ '::Enum:TaskPriority.0' | abpLocalization }}</option>
+            <option [value]="1">{{ '::Enum:TaskPriority.1' | abpLocalization }}</option>
+            <option [value]="2">{{ '::Enum:TaskPriority.2' | abpLocalization }}</option>
+            <option [value]="3">{{ '::Enum:TaskPriority.3' | abpLocalization }}</option>
           </select>
         </div>
 
-        <!-- Hàng 2 cho nút lọc và nút của tôi -->
-        <div class="col-12 d-flex justify-content-end gap-2 pt-2 border-top mt-3">
-          <button class="btn btn-outline-secondary" [class.active]="filters.onlyMyTasks" (click)="toggleMyTasks()">
-            <i class="bi bi-person-check"></i> Việc của tôi
+        <!-- Hàng nút lọc và nút của tôi -->
+        <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top mt-2">
+          <button class="btn btn-outline-secondary rounded-pill px-3" [class.active]="filters.onlyMyTasks" (click)="toggleMyTasks()">
+            <i class="bi bi-person-check me-1"></i> {{ '::Task:MyTasks' | abpLocalization }}
           </button>
-          <button class="btn btn-primary px-4" (click)="onSearch()">Lọc kết quả</button>
+          <button class="btn btn-primary rounded-pill px-4" (click)="onSearch()">{{ '::General:Filter' | abpLocalization }}</button>
         </div>
       </div>
 
       <!-- View Switcher Tabs -->
       <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-        <div class="btn-group" role="group">
-          <button type="button" class="btn btn-outline-secondary" [class.active]="currentView === 'list'" (click)="currentView = 'list'">
-            <i class="bi bi-list-task"></i> Danh sách
+        <div class="btn-group rounded-pill overflow-hidden border" role="group">
+          <button type="button" class="btn btn-light px-3 py-2 border-0" [class.active]="currentView === 'list'" [class.bg-primary]="currentView === 'list'" [class.text-white]="currentView === 'list'" (click)="currentView = 'list'">
+            <i class="bi bi-list-task me-1"></i> {{ '::Task:ViewList' | abpLocalization }}
           </button>
-          <button type="button" class="btn btn-outline-secondary" [class.active]="currentView === 'kanban'" (click)="currentView = 'kanban'">
-            <i class="bi bi-kanban"></i> Kanban
+          <button type="button" class="btn btn-light px-3 py-2 border-0" [class.active]="currentView === 'kanban'" [class.bg-primary]="currentView === 'kanban'" [class.text-white]="currentView === 'kanban'" (click)="currentView = 'kanban'">
+            <i class="bi bi-kanban me-1"></i> Kanban
           </button>
-          <button type="button" class="btn btn-outline-secondary" [class.active]="currentView === 'calendar'" (click)="currentView = 'calendar'; generateCalendar()">
-            <i class="bi bi-calendar3"></i> Lịch
+          <button type="button" class="btn btn-light px-3 py-2 border-0" [class.active]="currentView === 'calendar'" [class.bg-primary]="currentView === 'calendar'" [class.text-white]="currentView === 'calendar'" (click)="currentView = 'calendar'; generateCalendar()">
+            <i class="bi bi-calendar3 me-1"></i> {{ '::Task:ViewCalendar' | abpLocalization }}
           </button>
         </div>
-        <div class="text-muted small">Tổng số: <strong>{{ totalCount }}</strong> công việc</div>
+        <div class="text-muted small">{{ '::Task:TotalCount' | abpLocalization }}: <strong>{{ totalCount }}</strong></div>
       </div>
     </div>
   </div>
@@ -161,7 +161,7 @@
   <!-- Loading Spinner -->
   <div *ngIf="isLoading" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Đang tải...</span>
+      <span class="visually-hidden">Loading...</span>
     </div>
   </div>
 
@@ -169,24 +169,24 @@
   <div *ngIf="!isLoading">
 
     <!-- 1. LIST VIEW -->
-    <div *ngIf="currentView === 'list'" class="card border-0 shadow-sm">
+    <div *ngIf="currentView === 'list'" class="card border-0 shadow-sm rounded-4 overflow-hidden">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
-              <th scope="col" class="ps-3" style="width: 26%;">Tiêu đề</th>
-              <th scope="col" style="width: 12%;">Trạng thái</th>
-              <th scope="col" style="width: 12%;">Độ ưu tiên</th>
-              <th scope="col" style="width: 14%;">Tiến độ</th>
-              <th scope="col" style="width: 14%;">Người thực hiện</th>
-              <th scope="col" style="width: 13%;">Hạn hoàn thành</th>
-              <th scope="col" class="text-end pe-3" style="width: 9%;">Thao tác</th>
+              <th scope="col" class="ps-4 py-3" style="width: 22%;">{{ '::Task:Title' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap text-center" style="width: 13%;">{{ '::Task:Status' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap text-center" style="width: 12%;">{{ '::Task:Priority' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap text-center" style="width: 14%;">{{ '::Task:Progress' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 15%;">{{ '::Task:Assignee' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap text-center" style="width: 14%;">{{ '::Task:DueDate' | abpLocalization }}</th>
+              <th scope="col" class="text-end pe-4 py-3 text-nowrap" style="width: 10%;">{{ '::General:Actions' | abpLocalization }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let task of taskList">
-              <td class="ps-3">
-                <!-- Đã đổi sang đường dẫn phẳng /tasks/detail -->
+              <!-- Tiêu đề (Căn trái) -->
+              <td class="ps-4">
                 <a [routerLink]="['/tasks/detail', task.id]" class="fw-semibold text-dark text-decoration-none cursor-pointer">
                   {{ task.title }}
                 </a>
@@ -194,119 +194,135 @@
                 <div class="text-muted small" *ngIf="task.departmentName">
                   <i class="bi bi-building me-1"></i>{{ task.departmentName }}
                 </div>
-                <div *ngIf="getFileList(task).length > 0" class="mt-1">
-                  <a *ngFor="let file of getFileList(task)" [href]="file.url" target="_blank" class="badge bg-light text-dark border me-1 text-decoration-none">
-                    <i class="bi bi-paperclip"></i> {{ file.name }}
+                <!-- File đính kèm đã được làm gọn -->
+                <div *ngIf="getFileList(task).length > 0" class="mt-1 d-flex flex-wrap gap-1">
+                  <a *ngFor="let file of getFileList(task)" 
+                     [href]="file.url" 
+                     target="_blank" 
+                     [title]="file.name"
+                     class="badge bg-light text-dark border text-decoration-none fw-normal d-inline-flex align-items-center"
+                     style="max-width: 200px;">
+                    <i class="bi bi-paperclip me-1 flex-shrink-0"></i>
+                    <span class="text-truncate">{{ file.name }}</span>
                   </a>
                 </div>
               </td>
-              <td>
-                <span class="badge" [ngClass]="getStatusBadge(task.status).cssClass">{{ getStatusBadge(task.status).text }}</span>
+
+              <!-- Trạng thái (Căn giữa) -->
+              <td class="text-center">
+                <span class="badge px-2.5 py-1.5" [ngClass]="getStatusBadge(task.status).cssClass">{{ getStatusBadge(task.status).text }}</span>
               </td>
-              <td>
-                <span class="badge" [ngClass]="getPriorityBadge(task.priority).cssClass">{{ getPriorityBadge(task.priority).text }}</span>
+
+              <!-- Độ ưu tiên (Căn giữa) -->
+              <td class="text-center">
+                <span class="badge px-2.5 py-1.5" [ngClass]="getPriorityBadge(task.priority).cssClass">{{ getPriorityBadge(task.priority).text }}</span>
               </td>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="progress flex-grow-1" style="height: 6px;">
-                    <div class="progress-bar" role="progressbar" [style.width.%]="task.progressPercent || 0" [aria-valuenow]="task.progressPercent" aria-valuemin="0" aria-valuemax="100"></div>
+
+              <!-- Tiến độ (Căn giữa) -->
+              <td class="text-center">
+                <div class="d-flex align-items-center justify-content-center gap-2">
+                  <div class="progress flex-grow-1 rounded-pill" style="height: 6px; max-width: 80px;">
+                    <div class="progress-bar rounded-pill" role="progressbar" [style.width.%]="task.progressPercent || 0" [aria-valuenow]="task.progressPercent" aria-valuemin="0" aria-valuemax="100"></div>
                   </div>
                   <span class="small text-muted text-nowrap">{{ task.progressPercent || 0 }}%</span>
                 </div>
               </td>
+
+              <!-- Người thực hiện (Căn trái) -->
               <td>
-                <select 
-                  class="form-select form-select-sm bg-light border-0 text-dark fw-medium px-2 py-1"
-                  style="width: 130px; font-size: 0.85rem;"
-                  [(ngModel)]="task.assigneeId" 
-                  (change)="updateTaskAssignee(task, task.assigneeId)">
-                  <option [ngValue]="null">-- Chưa phân công --</option>
-                  <option *ngFor="let u of users" [value]="u.id">
-                    {{ u.name || u.userName || 'Không rõ tên' }}
-                  </option>
-                </select>
-              </td>
-              <td>
+                     <select 
+                         class="form-select form-select-sm bg-light border-0 text-dark fw-medium px-2 py-1 rounded-2"
+                         style="width: 140px; font-size: 0.85rem;"
+                         [(ngModel)]="task.assigneeId" 
+                         (change)="updateTaskAssignee(task, task.assigneeId)">
+                         <option [ngValue]="null">{{ '::Task:Unassigned' | abpLocalization }}</option>
+                           <option *ngFor="let u of getUsersForProject(task.projectId)" [ngValue]="u.id || u.Id">
+                             {{ u.name || u.userName || u.displayName || u.DisplayName || ('::General:Unknown' | abpLocalization) }}
+                           </option>
+                        </select>
+                 </td>
+
+              <!-- Hạn hoàn thành (Căn giữa) -->
+              <td class="text-center">
                 <span class="small text-muted" *ngIf="task.dueDate">{{ task.dueDate | date:'dd/MM/yyyy' }}</span>
                 <span class="small text-muted" *ngIf="!task.dueDate">-</span>
               </td>
-              <td class="text-end pe-3">
+
+              <!-- Thao tác (Căn phải) -->
+              <td class="text-end pe-4">
                 <div class="btn-group" ngbDropdown container="body">
-                  <button class="btn btn-sm btn-light border" ngbDropdownToggle type="button"><i class="bi bi-three-dots-vertical"></i></button>
-                  <div ngbDropdownMenu class="dropdown-menu shadow">
-                    <!-- Đã đổi sang đường dẫn phẳng /tasks/detail và /tasks/edit -->
-                    <button class="dropdown-item" [routerLink]="['/tasks/detail', task.id]"><i class="bi bi-eye text-secondary me-2"></i> Xem chi tiết</button>
-                    <button class="dropdown-item" *ngIf="canEdit" [routerLink]="['/tasks/edit', task.id]"><i class="bi bi-pencil text-primary me-2"></i> Chỉnh sửa</button>
-                    <button class="dropdown-item" *ngIf="task.status !== 2" (click)="markAsCompleted(task)"><i class="bi bi-check-circle text-success me-2"></i> Đánh dấu hoàn thành</button>
-                    <div class="dropdown-divider" *ngIf="canDelete"></div>
-                    <button class="dropdown-item text-danger" *ngIf="canDelete" (click)="deleteTask(task.id)"><i class="bi bi-trash me-2"></i> Xóa công việc</button>
+                  <button class="btn btn-sm btn-light border rounded-circle p-1.5" ngbDropdownToggle type="button"><i class="bi bi-three-dots-vertical"></i></button>
+                  <div ngbDropdownMenu class="dropdown-menu shadow border-0 rounded-3 p-1">
+                    <button class="dropdown-item rounded-2 py-2" [routerLink]="['/tasks/detail', task.id]"><i class="bi bi-eye text-secondary me-2"></i> {{ '::General:View' | abpLocalization }}</button>
+                    <button class="dropdown-item rounded-2 py-2" *ngIf="canEdit" [routerLink]="['/tasks/edit', task.id]"><i class="bi bi-pencil text-primary me-2"></i> {{ '::General:Edit' | abpLocalization }}</button>
+                    <button class="dropdown-item rounded-2 py-2" *ngIf="task.status !== 2" (click)="markAsCompleted(task)"><i class="bi bi-check-circle text-success me-2"></i> {{ '::Task:MarkComplete' | abpLocalization }}</button>
+                    <div class="dropdown-divider my-1" *ngIf="canDelete"></div>
+                    <button class="dropdown-item rounded-2 py-2 text-danger" *ngIf="canDelete" (click)="deleteTask(task.id)"><i class="bi bi-trash me-2"></i> {{ '::General:Delete' | abpLocalization }}</button>
                   </div>
                 </div>
               </td>
             </tr>
             <tr *ngIf="taskList.length === 0">
-              <td colspan="7" class="text-center py-4 text-muted">Không tìm thấy công việc nào.</td>
+              <td colspan="7" class="text-center py-5 text-muted">{{ '::Task:NoData' | abpLocalization }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <!-- Phân trang -->
-      <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3" *ngIf="totalCount > filters.maxResultCount">
-        <div class="text-muted small">Hiển thị trang {{ page }}</div>
+      <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 px-4 border-top" *ngIf="totalCount > filters.maxResultCount">
+        <div class="text-muted small">{{ '::General:PaginationInfo' | abpLocalization }} {{ page }}</div>
         <ngb-pagination [(page)]="page" [pageSize]="filters.maxResultCount" [collectionSize]="totalCount" (pageChange)="onPageChange($event)" [maxSize]="5" [rotate]="true" [boundaryLinks]="true"></ngb-pagination>
       </div>
     </div>
 
     <!-- 2. KANBAN VIEW -->
     <div *ngIf="currentView === 'kanban'" cdkDropListGroup class="row g-3 overflow-auto flex-nowrap pb-3">
-      <div *ngFor="let col of kanbanColumns" class="col-12 col-md-4 col-xl-2 flex-shrink-0" style="min-width: 280px;">
-        <div class="card border-0 shadow-sm h-100 bg-light">
-          <div class="card-header bg-white border-bottom border-2 py-3" [ngClass]="col.headerClass">
-            <h6 class="mb-0 fw-bold d-flex justify-content-between align-items-center">
-              <span>{{ col.title }}</span>
-              <span class="badge bg-secondary rounded-pill">{{ getTasksByStatus(col.status).length }}</span>
-            </h6>
+      <div *ngFor="let col of kanbanColumns" class="col-12 col-md-4 col-xl-2 flex-shrink-0" style="min-width: 290px;">
+        <div class="card border-0 shadow-sm h-100 bg-light rounded-4">
+          <div class="card-header bg-white border-bottom-0 py-3 rounded-top-4" [ngClass]="col.headerClass">
+           <h6 class="mb-0 fw-bold d-flex justify-content-between align-items-center fs-6">
+             <span>{{ col.title | abpLocalization }}</span>
+             <span class="badge bg-secondary rounded-pill">{{ getTasksByStatus(col.status).length }}</span>
+           </h6>
           </div>
           <div class="card-body p-2 d-flex flex-column gap-2" cdkDropList [cdkDropListData]="getTasksByStatus(col.status)" (cdkDropListDropped)="onTaskDrop($event, col.status)" style="min-height: 400px; max-height: 65vh; overflow-y: auto;">
-            <div *ngFor="let task of getTasksByStatus(col.status)" cdkDrag class="card border-0 shadow-sm p-3 bg-white" style="cursor: grab;">
+            <div *ngFor="let task of getTasksByStatus(col.status)" cdkDrag class="card border-0 shadow-xs p-3 bg-white rounded-3" style="cursor: grab;">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <span class="badge" [ngClass]="getPriorityBadge(task.priority).cssClass">{{ getPriorityBadge(task.priority).text }}</span>
                 <div class="dropdown" ngbDropdown container="body">
                   <button class="btn btn-sm btn-link text-muted p-0" ngbDropdownToggle type="button"><i class="bi bi-three-dots"></i></button>
-                  <div ngbDropdownMenu class="dropdown-menu shadow">
-                    <!-- Đã đổi sang đường dẫn phẳng /tasks/detail và /tasks/edit -->
-                    <button class="dropdown-item" [routerLink]="['/tasks/detail', task.id]"><i class="bi bi-eye text-secondary me-2"></i> Xem chi tiết</button>
-                    <button class="dropdown-item" *ngIf="canEdit" [routerLink]="['/tasks/edit', task.id]"><i class="bi bi-pencil text-primary me-2"></i> Chỉnh sửa</button>
-                    <button class="dropdown-item" *ngIf="task.status !== 2" (click)="markAsCompleted(task)"><i class="bi bi-check-circle text-success me-2"></i> Hoàn thành</button>
-                    <div class="dropdown-divider" *ngIf="canDelete"></div>
-                    <button class="dropdown-item text-danger" *ngIf="canDelete" (click)="deleteTask(task.id)"><i class="bi bi-trash me-2"></i> Xóa</button>
+                  <div ngbDropdownMenu class="dropdown-menu shadow border-0 rounded-3 p-1">
+                    <button class="dropdown-item rounded-2 py-1.5" [routerLink]="['/tasks/detail', task.id]"><i class="bi bi-eye text-secondary me-2"></i> {{ '::General:View' | abpLocalization }}</button>
+                    <button class="dropdown-item rounded-2 py-1.5" *ngIf="canEdit" [routerLink]="['/tasks/edit', task.id]"><i class="bi bi-pencil text-primary me-2"></i> {{ '::General:Edit' | abpLocalization }}</button>
+                    <button class="dropdown-item rounded-2 py-1.5" *ngIf="task.status !== 2" (click)="markAsCompleted(task)"><i class="bi bi-check-circle text-success me-2"></i> {{ '::Task:Complete' | abpLocalization }}</button>
+                    <div class="dropdown-divider my-1" *ngIf="canDelete"></div>
+                    <button class="dropdown-item rounded-2 py-1.5 text-danger" *ngIf="canDelete" (click)="deleteTask(task.id)"><i class="bi bi-trash me-2"></i> {{ '::General:Delete' | abpLocalization }}</button>
                   </div>
                 </div>
               </div>
-              <!-- Đã đổi sang đường dẫn phẳng /tasks/detail -->
               <a [routerLink]="['/tasks/detail', task.id]" class="fw-semibold text-dark text-decoration-none mb-1 d-block">{{ task.title }}</a>
               <p class="text-muted small text-truncate mb-2" *ngIf="task.description">{{ task.description }}</p>
               
               <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top small text-muted">
-                <span><i class="bi bi-person"></i> {{ task.assigneeName || 'Chưa phân công' }}</span>
-                <span *ngIf="task.dueDate"><i class="bi bi-calendar"></i> {{ task.dueDate | date:'dd/MM' }}</span>
+                <span><i class="bi bi-person me-1"></i> {{ task.assigneeName || ('::Task:Unassigned' | abpLocalization) }}</span>
+                <span *ngIf="task.dueDate"><i class="bi bi-calendar me-1"></i> {{ task.dueDate | date:'dd/MM' }}</span>
               </div>
             </div>
-            <div *ngIf="getTasksByStatus(col.status).length === 0" class="text-center text-muted small py-4">Kéo thả công việc vào đây</div>
+            <div *ngIf="getTasksByStatus(col.status).length === 0" class="text-center text-muted small py-5">{{ '::Task:DropHere' | abpLocalization }}</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 3. CALENDAR VIEW -->
-    <div *ngIf="currentView === 'calendar'" class="card border-0 shadow-sm">
-      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold">{{ currentCalendarMonthName }} {{ currentCalendarYear }}</h5>
+    <div *ngIf="currentView === 'calendar'" class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+        <h5 class="mb-0 fw-bold fs-5">{{ currentCalendarMonthName }} {{ currentCalendarYear }}</h5>
         <div class="btn-group">
-          <button class="btn btn-outline-secondary btn-sm" (click)="prevMonth()"><i class="bi bi-chevron-left"></i> Tháng trước</button>
-          <button class="btn btn-outline-secondary btn-sm" (click)="goToCurrentMonth()">Hôm nay</button>
-          <button class="btn btn-outline-secondary btn-sm" (click)="nextMonth()">Tháng sau <i class="bi bi-chevron-right"></i></button>
+          <button class="btn btn-outline-secondary btn-sm px-3 rounded-start-pill" (click)="prevMonth()"><i class="bi bi-chevron-left"></i> {{ '::Task:PrevMonth' | abpLocalization }}</button>
+          <button class="btn btn-outline-secondary btn-sm px-3 border-start-0 border-end-0" (click)="goToCurrentMonth()">{{ '::Task:Today' | abpLocalization }}</button>
+          <button class="btn btn-outline-secondary btn-sm px-3 rounded-end-pill" (click)="nextMonth()">{{ '::Task:NextMonth' | abpLocalization }} <i class="bi bi-chevron-right"></i></button>
         </div>
       </div>
       <div class="card-body p-0">
@@ -314,26 +330,25 @@
           <table class="table table-bordered mb-0 text-center" style="table-layout: fixed;">
             <thead class="table-light">
               <tr>
-                <th class="py-2">Thứ Hai</th>
-                <th class="py-2">Thứ Ba</th>
-                <th class="py-2">Thứ Tư</th>
-                <th class="py-2">Thứ Năm</th>
-                <th class="py-2">Thứ Sáu</th>
-                <th class="py-2">Thứ Bảy</th>
-                <th class="py-2 text-danger">Chủ Nhật</th>
+                <th class="py-3">{{ '::Task:Mon' | abpLocalization }}</th>
+                <th class="py-3">{{ '::Task:Tue' | abpLocalization }}</th>
+                <th class="py-3">{{ '::Task:Wed' | abpLocalization }}</th>
+                <th class="py-3">{{ '::Task:Thu' | abpLocalization }}</th>
+                <th class="py-3">{{ '::Task:Fri' | abpLocalization }}</th>
+                <th class="py-3">{{ '::Task:Sat' | abpLocalization }}</th>
+                <th class="py-3 text-danger">{{ '::Task:Sun' | abpLocalization }}</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let week of calendarWeeks">
-                <td *ngFor="let day of week" class="align-top p-2" [class.bg-light]="!day.isCurrentMonth" [class.border-primary]="day.isToday" style="height: 120px; width: 14.28%;">
+                <td *ngFor="let day of week" class="align-top p-2" [class.bg-light]="!day.isCurrentMonth" [class.border-primary]="day.isToday" style="height: 130px; width: 14.28%;">
                   <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="badge rounded-pill" [class.bg-primary]="day.isToday" [class.text-dark]="!day.isToday" [class.fw-bold]="day.isToday">
+                    <span class="badge rounded-pill px-2" [class.bg-primary]="day.isToday" [class.text-dark]="!day.isToday" [class.fw-bold]="day.isToday">
                       {{ day.date | date:'d' }}
                     </span>
-                    <button *ngIf="canCreate" class="btn btn-xs btn-link text-muted p-0" (click)="createTaskOnDate(day.date)" title="Thêm công việc vào ngày này"><i class="bi bi-plus-circle"></i></button>
+                    <button *ngIf="canCreate" class="btn btn-xs btn-link text-muted p-0" (click)="createTaskOnDate(day.date)" [title]="'::Task:AddOnDate' | abpLocalization"><i class="bi bi-plus-circle fs-6"></i></button>
                   </div>
-                  <div class="overflow-y-auto" style="max-height: 85px;">
-                    <!-- Đã đổi sang đường dẫn phẳng /tasks/detail -->
+                  <div class="overflow-y-auto" style="max-height: 90px;">
                     <a *ngFor="let task of day.tasks" [routerLink]="['/tasks/detail', task.id]" class="d-block text-start p-1 mb-1 rounded bg-white border shadow-xs text-truncate small text-decoration-none" [title]="task.title">
                       <span class="badge p-1 me-1" [ngClass]="getPriorityBadge(task.priority).cssClass"></span>
                       <span class="text-dark">{{ task.title }}</span>

@@ -1,76 +1,116 @@
 <div class="container-fluid py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Báo Cáo Công Việc Chi Tiết</h2>
-    <button class="btn btn-success" (click)="exportToExcel()" [disabled]="reportData.length === 0">
-      <i class="fa fa-file-excel me-1"></i> Xuất Excel (CSV)
+  <!-- Header & Actions -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h4 class="fw-bold text-dark m-0 fs-3">{{ '::Report:DetailedTitle' | abpLocalization }}</h4>
+      <p class="text-muted m-0 mt-1" style="font-size: 13px;">{{ '::Report:DetailedSubtitle' | abpLocalization }}</p>
+    </div>
+    
+    <button class="btn btn-success d-flex align-items-center gap-1.5 px-4 py-2 rounded-pill shadow-sm" (click)="exportToExcel()" [disabled]="reportData.length === 0">
+      <i class="fa fa-file-excel me-1"></i> {{ '::Report:ExportExcel' | abpLocalization }}
     </button>
   </div>
 
-  <div class="card p-3 mb-4 shadow-sm border-0">
-    <div class="row g-3">
-      <div class="col-md-3">
-        <label class="form-label fw-bold">Phòng ban</label>
-        <select class="form-select" [(ngModel)]="filter.departmentId" (ngModelChange)="onDepartmentChange()">
-          <option [ngValue]="null">-- Tất cả phòng ban --</option>
-          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-bold">Nhân sự</label>
-        <select class="form-select" [(ngModel)]="filter.employeeId">
-          <option [ngValue]="null">-- Tất cả nhân sự --</option>
-          <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.userName || e.name }}</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-bold">Dự án</label>
-        <select class="form-select" [(ngModel)]="filter.projectId">
-          <option [ngValue]="null">-- Tất cả dự án --</option>
-          <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
-        </select>
-      </div>
-      <div class="col-md-3 d-flex align-items-end">
-        <button class="btn btn-primary w-100" (click)="onSearchReport()">
-          <i class="fa fa-search me-1"></i> Xem báo cáo
-        </button>
+  <!-- Filter Card -->
+  <div class="card border-0 shadow-sm mb-4 rounded-4">
+    <div class="card-body p-4">
+      <div class="row g-3 align-items-end">
+        <!-- Phòng ban -->
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold text-secondary small mb-1">{{ '::Task:Department' | abpLocalization }}</label>
+          <select class="form-select rounded-3" [(ngModel)]="filter.departmentId" (ngModelChange)="onDepartmentChange()">
+            <option [ngValue]="null">-- {{ '::Task:AllDepartments' | abpLocalization }} --</option>
+            <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+          </select>
+        </div>
+
+        <!-- Nhân sự -->
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold text-secondary small mb-1">{{ '::Task:Assignee' | abpLocalization }}</label>
+          <select class="form-select rounded-3" [(ngModel)]="filter.employeeId">
+            <option [ngValue]="null">-- {{ '::Task:AllEmployees' | abpLocalization }} --</option>
+            <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.userName || e.name }}</option>
+          </select>
+        </div>
+
+        <!-- Dự án -->
+        <div class="col-12 col-md-3">
+          <label class="form-label fw-semibold text-secondary small mb-1">{{ '::Task:Project' | abpLocalization }}</label>
+          <select class="form-select rounded-3" [(ngModel)]="filter.projectId">
+            <option [ngValue]="null">-- {{ '::Task:AllProjects' | abpLocalization }} --</option>
+            <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
+          </select>
+        </div>
+
+        <!-- Nút Xem báo cáo -->
+        <div class="col-12 col-md-3">
+          <button class="btn btn-primary w-100 rounded-pill py-2 shadow-sm d-flex align-items-center justify-content-center gap-2" (click)="onSearchReport()">
+            <i class="fa fa-search"></i> {{ '::Report:ViewReport' | abpLocalization }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="card shadow-sm border-0">
-    <div class="card-body">
+  <!-- Report Data Table Card -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-body p-0">
+      <!-- Loading Spinner -->
       <div *ngIf="isLoading" class="text-center py-5">
-        <div class="spinner-border text-primary"></div>
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
+
+      <!-- Table View -->
       <div class="table-responsive" *ngIf="!isLoading">
-        <table class="table table-striped table-hover align-middle">
-          <thead class="table-dark">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
             <tr>
-              <th>#</th>
-              <th>Tên công việc</th>
-              <th>Dự án</th>
-              <th>Người thực hiện</th>
-              <th>Trạng thái</th>
-              <th>Tiến độ</th>
-              <th>Hạn hoàn thành</th>
+              <th scope="col" class="ps-4 py-3" style="width: 5%;">#</th>
+              <th scope="col" class="py-3" style="width: 30%;">{{ '::Task:Title' | abpLocalization }}</th>
+              <th scope="col" class="py-3" style="width: 15%;">{{ '::Task:Project' | abpLocalization }}</th>
+              <th scope="col" class="py-3" style="width: 15%;">{{ '::Task:Assignee' | abpLocalization }}</th>
+              <th scope="col" class="py-3" style="width: 12%;">{{ '::Task:Status' | abpLocalization }}</th>
+              <th scope="col" class="py-3" style="width: 11%;">{{ '::Task:Progress' | abpLocalization }}</th>
+              <th scope="col" class="text-end pe-4 py-3" style="width: 12%;">{{ '::Task:DueDate' | abpLocalization }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of reportData; let i = index">
-              <td>{{ i + 1 }}</td>
-              <td>{{ item.title }}</td>
-              <td>{{ item.projectName || '---' }}</td>
-              <td>{{ item.assigneeName || '---' }}</td>
+              <td class="ps-4 text-muted fw-medium">{{ i + 1 }}</td>
               <td>
-                <span class="badge" [ngClass]="getStatusBadgeClass(item.status)">
+                <span class="fw-semibold text-dark">{{ item.title }}</span>
+              </td>
+              <td>
+                <span class="text-muted">{{ item.projectName || '---' }}</span>
+              </td>
+              <td>
+                <span class="text-dark fw-medium">{{ item.assigneeName || '---' }}</span>
+              </td>
+              <td>
+                <span class="badge px-2.5 py-1.5" [ngClass]="getStatusBadgeClass(item.status)">
                   {{ getStatusText(item.status) }}
                 </span>
               </td>
-              <td>{{ item.progressPercent }}%</td>
-              <td>{{ item.dueDate ? (item.dueDate | date:'dd/MM/yyyy') : '---' }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1 rounded-pill" style="height: 6px;">
+                    <div class="progress-bar rounded-pill" role="progressbar" [style.width.%]="item.progressPercent || 0" [aria-valuenow]="item.progressPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <span class="small text-muted text-nowrap">{{ item.progressPercent || 0 }}%</span>
+                </div>
+              </td>
+              <td class="text-end pe-4">
+                <span class="small text-muted" *ngIf="item.dueDate">{{ item.dueDate | date:'dd/MM/yyyy' }}</span>
+                <span class="small text-muted" *ngIf="!item.dueDate">-</span>
+              </td>
             </tr>
             <tr *ngIf="reportData.length === 0">
-              <td colspan="7" class="text-center text-muted py-4">Không có dữ liệu báo cáo phù hợp.</td>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="fa fa-folder-open fs-2 d-block mb-2 text-black-50"></i>
+                {{ '::Report:NoData' | abpLocalization }}
+              </td>
             </tr>
           </tbody>
         </table>

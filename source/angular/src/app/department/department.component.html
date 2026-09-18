@@ -1,48 +1,48 @@
-<abp-page title="Quản lý Phòng ban & Cơ cấu tổ chức">
-  <abp-page-toolbar-container class="col">
-    <button class="btn btn-primary" (click)="openCreateModal(null)">
-      <i class="fa fa-plus me-1"></i> Thêm phòng ban gốc
-    </button>
-  </abp-page-toolbar-container>
-
-  <div class="row">
+<abp-page [title]="'::Menu:Departments' | abpLocalization">
+  <div class="row g-3">
     <!-- Cột bên trái: Cây phòng ban -->
-    <div class="col-md-5">
-      <div class="card">
-        <div class="card-header bg-light fw-bold">
-          <i class="fa fa-sitemap me-2"></i>Sơ đồ Phòng ban
+    <div class="col-lg-5 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-light border-bottom py-3 px-3 d-flex align-items-center justify-content-between" style="background-color: #f8f9fa !important; min-height: 65px;">
+          <span class="fw-bold text-dark d-flex align-items-center m-0">
+            <i class="fa fa-sitemap text-primary me-2"></i> {{ '::Department:TreeTitle' | abpLocalization }}
+          </span>
+          <button class="btn btn-primary btn-sm px-3 py-2 shadow-sm d-inline-flex align-items-center gap-1 flex-shrink-0" (click)="openCreateModal(null)">
+            <i class="fa fa-plus"></i> <span>{{ '::Department:AddNewRoot' | abpLocalization }}</span>
+          </button>
         </div>
-        <div class="card-body p-2">
-          <ul class="list-group list-group-flush">
+        <div class="card-body p-3 overflow-auto" style="max-height: 650px;">
+          <ul class="list-group list-group-flush p-0 m-0">
             <ng-template #nodeTemplate let-nodes>
-              <li *ngFor="let node of nodes" class="list-group-item border-0 ps-3">
+              <li *ngFor="let node of nodes" class="list-group-item border-0 px-0 py-1 bg-transparent">
                 <div 
-                  class="d-flex justify-content-between align-items-center p-2 rounded cursor-pointer"
+                  class="d-flex justify-content-between align-items-center p-2 rounded-2 cursor-pointer transition-all shadow-sm"
                   [ngClass]="{
-                    'bg-primary-subtle text-primary border border-primary-subtle fw-semibold': selectedDepartment?.id === node.id, 
-                    'hover-bg': selectedDepartment?.id !== node.id
+                    'bg-primary-subtle text-primary border border-primary-subtle': selectedDepartment?.id === node.id, 
+                    'bg-white text-dark border border-light': selectedDepartment?.id !== node.id
                   }"
                   (click)="selectDepartment(node)"
                 >
-                  <span>
-                    <i class="fa fa-folder text-warning me-2"></i>
-                    <strong>[{{ node.code }}]</strong> {{ node.name }}
-                  </span>
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-sm text-success" title="Thêm con" (click)="$event.stopPropagation(); openCreateModal(node.id)">
+                  <div class="text-truncate pe-2">
+                    <i class="fa fa-folder me-2" [ngClass]="selectedDepartment?.id === node.id ? 'text-primary' : 'text-warning'"></i>
+                    <span class="opacity-75">[{{ node.code }}]</span> 
+                    <span class="ms-1 fw-bold">{{ node.name }}</span>
+                  </div>
+                  <div class="btn-group btn-group-sm flex-shrink-0">
+                    <button class="btn btn-sm text-success bg-white shadow-sm me-1 rounded" [title]="'::Department:AddSub' | abpLocalization" (click)="$event.stopPropagation(); openCreateModal(node.id)">
                       <i class="fa fa-plus-circle"></i>
                     </button>
-                    <button class="btn btn-sm text-primary" title="Sửa" (click)="$event.stopPropagation(); openEditModal(node)">
+                    <button class="btn btn-sm text-primary bg-white shadow-sm me-1 rounded" [title]="'::Edit' | abpLocalization" (click)="$event.stopPropagation(); openEditModal(node)">
                       <i class="fa fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm text-danger" title="Xóa" (click)="$event.stopPropagation(); deleteDepartment(node.id)">
+                    <button class="btn btn-sm text-danger bg-white shadow-sm rounded" [title]="'::Delete' | abpLocalization" (click)="$event.stopPropagation(); deleteDepartment(node.id)">
                       <i class="fa fa-trash"></i>
                     </button>
                   </div>
                 </div>
 
                 <!-- Đệ quy hiển thị các con -->
-                <ul *ngIf="node.children && node.children.length > 0" class="list-group list-group-flush ms-3 border-start">
+                <ul *ngIf="node.children && node.children.length > 0" class="list-group list-group-flush ms-3 ps-2 border-start mt-1 bg-transparent">
                   <ng-container *ngTemplateOutlet="nodeTemplate; context: { $implicit: node.children }"></ng-container>
                 </ul>
               </li>
@@ -55,66 +55,90 @@
     </div>
 
     <!-- Cột bên phải: Chi tiết & Danh sách nhân sự -->
-    <div class="col-md-7">
-      <div class="card" *ngIf="selectedDepartment; else noSelection">
-        <div class="card-header d-flex justify-content-between align-items-center bg-light">
-          <h5 class="mb-0">
-            <i class="fa fa-users me-2"></i>Thành viên: {{ selectedDepartment.name }}
-          </h5>
-          <button class="btn btn-sm btn-success" (click)="openAssignModal()">
-            <i class="fa fa-user-plus me-1"></i> Gán nhân sự
+    <div class="col-lg-7 col-md-6">
+      <div class="card border-0 shadow-sm h-100 d-flex flex-column" *ngIf="selectedDepartment; else noSelection">
+        <div class="card-header bg-light border-bottom py-3 px-3 d-flex align-items-center justify-content-between" style="background-color: #f8f9fa !important; min-height: 65px;">
+          <span class="fw-bold text-dark d-flex align-items-center text-truncate me-2 m-0">
+            <i class="fa fa-users text-primary me-2"></i>
+            <span class="fw-bold">{{ '::Department:MembersOf' | abpLocalization }}:</span> 
+            <span class="text-primary ms-1 fw-bold text-truncate">{{ selectedDepartment.name }}</span>
+          </span>
+          <button class="btn btn-success btn-sm px-3 py-2 shadow-sm d-inline-flex align-items-center gap-1 flex-shrink-0" (click)="openAssignModal()">
+            <i class="fa fa-user-plus"></i> <span>{{ '::Department:AssignUser' | abpLocalization }}</span>
           </button>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead>
+        
+        <div class="card-body p-0 flex-grow-1">
+          <div class="table-responsive m-0">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-uppercase fs-7 text-dark fw-bold">
                 <tr>
-                  <th>Tên đăng nhập</th>
-                  <th>Vai trò</th>
-                  <th class="text-end">Thao tác</th>
+                  <th class="ps-3 py-3">{{ '::Department:Username' | abpLocalization }}</th>
+                  <th class="py-3">{{ '::Department:Role' | abpLocalization }}</th>
+                  <th class="text-center pe-3 py-3" style="width: 160px;">{{ '::Actions' | abpLocalization }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let member of selectedDepartment.members">
-                  <td>
-                    <i class="fa fa-user circle me-2 text-secondary"></i>
-                    {{ member.userName }}
+                <!-- Sử dụng paginatedMembers để hiển thị theo trang -->
+                <tr *ngFor="let member of paginatedMembers">
+                  <td class="ps-3 py-3">
+                    <div class="d-flex align-items-center">
+                      <div class="rounded-circle bg-light-primary text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
+                        <i class="fa fa-user text-secondary"></i>
+                      </div>
+                      <span class="fw-bold text-dark">{{ member.userName }}</span>
+                    </div>
                   </td>
-                  <td>
-                    <span class="badge" [ngClass]="member.isManager ? 'bg-danger' : 'bg-info'">
-                      {{ member.isManager ? 'Trưởng phòng' : 'Thành viên' }}
+                  <td class="py-3">
+                    <span class="badge px-2 py-1" [ngClass]="member.isManager ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-info-subtle text-info border border-info-subtle'">
+                      {{ member.isManager ? ('::Department:Manager' | abpLocalization) : ('::Department:Member' | abpLocalization) }}
                     </span>
                   </td>
-                  <td class="text-end">
-                    <!-- Nút phân quyền Trưởng phòng (vương miện) -->
-                    <button 
-                      class="btn btn-sm me-1" 
-                      [ngClass]="member.isManager ? 'btn-warning' : 'btn-outline-secondary'"
-                      [title]="member.isManager ? 'Bỏ vai trò trưởng phòng' : 'Chỉ định làm trưởng phòng'"
-                      (click)="toggleManager(member)">
-                      <i class="fa fa-crown"></i>
-                    </button>
+                  <td class="text-center pe-3 py-3">
+                    <div class="d-flex justify-content-center align-items-center gap-1">
+                      <button 
+                        class="btn btn-sm px-2 py-1" 
+                        [ngClass]="member.isManager ? 'btn-warning text-white' : 'btn-outline-secondary'"
+                        [title]="member.isManager ? ('::Department:UnsetManager' | abpLocalization) : ('::Department:SetManager' | abpLocalization)"
+                        (click)="toggleManager(member)">
+                        <i class="fa fa-crown"></i>
+                      </button>
 
-                    <button class="btn btn-sm btn-outline-danger" (click)="removeUserFromDept(member.userId!)">
-                      <i class="fa fa-user-times"></i> Gỡ
-                    </button>
+                      <button class="btn btn-sm btn-outline-danger px-2 py-1 d-inline-flex align-items-center gap-1" (click)="removeUserFromDept(member.userId!)">
+                        <i class="fa fa-user-times"></i> <span>{{ '::Department:Remove' | abpLocalization }}</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr *ngIf="!selectedDepartment.members || selectedDepartment.members.length === 0">
-                  <td colspan="3" class="text-center text-muted py-3">Phòng ban chưa có thành viên nào.</td>
+                  <td colspan="3" class="text-center text-muted py-5">
+                    <i class="fa fa-info-circle fa-2x mb-2 d-block opacity-50"></i>
+                    {{ '::Department:NoMembers' | abpLocalization }}
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
+
+        <!-- Thanh phân trang Footer Card -->
+        <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center" *ngIf="selectedDepartment.members && selectedDepartment.members.length > pageSize">
+          <span class="text-muted fs-7">
+            Trang {{ page }} / {{ mathCeil(selectedDepartment.members.length / pageSize) }} (Tổng số: {{ selectedDepartment.members.length }} nhân sự)
+          </span>
+          <abp-pagination
+            [page]="page"
+            [listSize]="selectedDepartment.members.length"
+            (pageChange)="onPageChange($event)">
+          </abp-pagination>
+        </div>
       </div>
 
       <ng-template #noSelection>
-        <div class="card">
-          <div class="card-body text-center py-5 text-muted">
-            <i class="fa fa-info-circle fa-2x mb-2"></i>
-            <p>Vui lòng chọn phòng ban từ sơ đồ bên trái để xem và quản lý thành viên.</p>
+        <div class="card border-0 shadow-sm h-100 d-flex align-items-center justify-content-center bg-light-subtle">
+          <div class="card-body text-center py-5 text-muted my-auto">
+            <i class="fa fa-sitemap fa-3x mb-3 text-primary opacity-50"></i>
+            <p class="mb-0 px-4">{{ '::Department:SelectDepartmentHint' | abpLocalization }}</p>
           </div>
         </div>
       </ng-template>
@@ -124,51 +148,51 @@
   <!-- Modal Thêm/Sửa Phòng Ban -->
   <abp-modal [(visible)]="isModalOpen">
     <ng-template #abpHeader>
-      <h3>{{ isEditMode ? 'Cập nhật phòng ban' : 'Thêm mới phòng ban' }}</h3>
+      <h3>{{ (isEditMode ? '::Department:Edit' : '::Department:AddNew') | abpLocalization }}</h3>
     </ng-template>
     <ng-template #abpBody>
       <form (ngSubmit)="saveDepartment()">
         <div class="mb-3" *ngIf="parentDepartmentName">
-          <label class="form-label fw-bold">Phòng ban cha:</label>
+          <label class="form-label fw-bold">{{ '::Department:ParentDepartment' | abpLocalization }}:</label>
           <input type="text" class="form-control" [value]="parentDepartmentName" disabled />
         </div>
         <div class="mb-3">
-          <label class="form-label required">Mã phòng ban (Ánh xạ Role)</label>
+          <label class="form-label required">{{ '::Department:CodeMappingRole' | abpLocalization }}</label>
           <select class="form-select" [(ngModel)]="formData.code" name="code" required>
-            <option value="">-- Chọn vai trò hệ thống tương ứng --</option>
+            <option value="">-- {{ '::Department:SelectSystemRole' | abpLocalization }} --</option>
             <option *ngFor="let role of availableRoles" [value]="role.name">
               {{ role.name }}
             </option>
           </select>
-          <small class="text-muted">Hệ thống sẽ tự động gán vai trò này cho nhân sự khi vào phòng ban.</small>
+          <small class="text-muted">{{ '::Department:CodeMappingRoleHint' | abpLocalization }}</small>
         </div>
         <div class="mb-3">
-          <label class="form-label required">Tên phòng ban</label>
+          <label class="form-label required">{{ '::Department:Name' | abpLocalization }}</label>
           <input type="text" class="form-control" [(ngModel)]="formData.name" name="name" required />
         </div>
         <div class="mb-3">
-          <label class="form-label">Mô tả</label>
+          <label class="form-label">{{ '::Description' | abpLocalization }}</label>
           <textarea class="form-control" [(ngModel)]="formData.description" name="description" rows="3"></textarea>
         </div>
       </form>
     </ng-template>
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" (click)="closeModal()">Hủy</button>
-      <button type="button" class="btn btn-primary" (click)="saveDepartment()">Lưu</button>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()">{{ '::Cancel' | abpLocalization }}</button>
+      <button type="button" class="btn btn-primary" (click)="saveDepartment()">{{ '::Save' | abpLocalization }}</button>
     </ng-template>
   </abp-modal>
 
   <!-- Modal Gán Nhân Sự -->
   <abp-modal [(visible)]="isAssignModalOpen">
     <ng-template #abpHeader>
-      <h3>Gán nhân sự vào {{ selectedDepartment?.name }}</h3>
+      <h3>{{ '::Department:AssignUserTo' | abpLocalization }} {{ selectedDepartment?.name }}</h3>
     </ng-template>
     <ng-template #abpBody>
       <form (ngSubmit)="saveAssignUser()">
         <div class="mb-3">
-          <label class="form-label required">Chọn người dùng</label>
+          <label class="form-label required">{{ '::Department:SelectUser' | abpLocalization }}</label>
           <select class="form-select" [(ngModel)]="assignData.userId" name="userId" required>
-            <option value="">-- Chọn nhân sự --</option>
+            <option value="">-- {{ '::Department:SelectStaff' | abpLocalization }} --</option>
             <option *ngFor="let user of availableUsers" [value]="user.id">
               {{ user.userName }} ({{ user.email }})
             </option>
@@ -176,13 +200,13 @@
         </div>
         <div class="form-check mb-3">
           <input type="checkbox" class="form-check-input" id="isManager" [(ngModel)]="assignData.isManager" name="isManager" />
-          <label class="form-check-label" for="isManager">Gán làm Trưởng phòng</label>
+          <label class="form-check-label" for="isManager">{{ '::Department:AssignAsManager' | abpLocalization }}</label>
         </div>
       </form>
     </ng-template>
     <ng-template #abpFooter>
-      <button type="button" class="btn btn-secondary" (click)="closeAssignModal()">Hủy</button>
-      <button type="button" class="btn btn-primary" (click)="saveAssignUser()">Lưu</button>
+      <button type="button" class="btn btn-secondary" (click)="closeAssignModal()">{{ '::Cancel' | abpLocalization }}</button>
+      <button type="button" class="btn btn-primary" (click)="saveAssignUser()">{{ '::Save' | abpLocalization }}</button>
     </ng-template>
   </abp-modal>
 </abp-page>

@@ -1,7 +1,7 @@
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-white py-3">
     <h3 class="card-title fw-bold text-dark mb-0">
-      {{ isEditMode ? 'Cập nhật công việc' : 'Tạo mới công việc' }}
+      {{ (isEditMode ? '::Task:Update' : '::Task:New') | abpLocalization }}
     </h3>
   </div>
   <div class="card-body">
@@ -9,94 +9,96 @@
       
       <!-- Tiêu đề -->
       <div class="mb-3">
-        <label class="form-label required fw-semibold">Tiêu đề</label>
+        <label class="form-label required fw-bold">{{ '::Task:Title' | abpLocalization }}</label>
         <input 
           type="text" 
           class="form-control" 
           formControlName="title" 
           [class.is-invalid]="form.get('title')?.touched && form.get('title')?.invalid" 
-          placeholder="Nhập tiêu đề công việc..."
+          [placeholder]="'::Task:TitlePlaceholder' | abpLocalization"
         />
-        <div class="invalid-feedback">Tiêu đề không được để trống.</div>
+        <div class="invalid-feedback">{{ '::Task:TitleRequired' | abpLocalization }}</div>
       </div>
 
       <!-- Mô tả -->
       <div class="mb-3">
-        <label class="form-label fw-semibold">Mô tả</label>
-        <textarea class="form-control" rows="3" formControlName="description" placeholder="Nhập mô tả chi tiết..."></textarea>
+        <label class="form-label fw-bold">{{ '::Task:Description' | abpLocalization }}</label>
+        <textarea 
+          class="form-control" 
+          rows="1"
+          style="min-height: calc(1.5em + 0.75rem + 2px);" 
+          formControlName="description" 
+          [placeholder]="'::Task:DescriptionPlaceholder' | abpLocalization">
+        </textarea>
       </div>
 
       <div class="row">
-       <!-- Danh mục -->
+        <!-- Danh mục -->
         <div class="col-md-6 mb-3">
-          <label class="form-label required fw-semibold">Danh mục</label>
+          <label class="form-label required fw-bold">{{ '::Task:Category' | abpLocalization }}</label>
           <select 
             class="form-select" 
             formControlName="categoryId" 
             [class.is-invalid]="form.get('categoryId')?.touched && form.get('categoryId')?.invalid"
+            [attr.disabled]="isEditMode ? true : null"
+            style="opacity: 1; color: #212529; background-color: #e9ecef;"
           >
-            <option value="">-- Chọn danh mục --</option>
-            <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+            <option [ngValue]="''">-- {{ '::Task:SelectCategory' | abpLocalization }} --</option>
+            <option *ngFor="let cat of categories" [ngValue]="cat.id || cat.Id">{{ cat.name || cat.Name }}</option>
           </select>
-          <div class="invalid-feedback">Vوي lòng chọn danh mục.</div>
+          <div class="invalid-feedback">{{ '::Task:CategoryRequired' | abpLocalization }}</div>
         </div>
 
         <!-- Dự án -->
         <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label required fw-semibold">Thuộc dự án</label>
+          <label class="form-label required fw-bold">{{ '::Task:Project' | abpLocalization }}</label>
           <select 
             class="form-select" 
             formControlName="projectId"
             [class.is-invalid]="form.get('projectId')?.touched && form.get('projectId')?.invalid"
+            [attr.disabled]="isEditMode ? true : null"
+            style="opacity: 1; color: #212529; background-color: #e9ecef;"
           >
-            <option [ngValue]="null">-- Chọn dự án --</option>
-            <option *ngFor="let proj of projects" [value]="proj.id">{{ proj.name }}</option>
+            <option [ngValue]="null">-- {{ '::Task:SelectProject' | abpLocalization }} --</option>
+            <option *ngFor="let proj of projects" [ngValue]="proj.id || proj.Id">{{ proj.name || proj.Name }}</option>
           </select>
-          <div class="invalid-feedback">Vui lòng chọn dự án để tiếp tục phân chia công việc.</div>
+          <div class="invalid-feedback">{{ '::Task:ProjectRequired' | abpLocalization }}</div>
         </div>
       </div>
 
-      <!-- Phòng ban & Mốc tiến độ -->
-      <div class="row">
-        <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label fw-semibold">Phòng ban</label>
-          <select class="form-select" formControlName="departmentId">
-            <option [ngValue]="null">-- Chọn phòng ban --</option>
-            <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.name }}</option>
-          </select>
-        </div>
-
-        <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label fw-semibold">Mốc tiến độ</label>
-          <select class="form-select" formControlName="milestoneId">
-            <option [ngValue]="null">-- Chọn mốc tiến độ --</option>
-            <option *ngFor="let m of milestones" [value]="m.id || m.Id">
-              {{ m.title || m.Title }}
-            </option>
-          </select>
-          <small class="form-text text-muted">Chọn mốc tiến độ sẽ tự động cập nhật hạn hoàn thành.</small>
-        </div>
+      <!-- Phòng ban -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">{{ '::Task:Department' | abpLocalization }}</label>
+        <select 
+          class="form-select" 
+          formControlName="departmentId"
+          [attr.disabled]="isEditMode ? true : null"
+          style="opacity: 1; color: #212529; background-color: #e9ecef;"
+        >
+          <option [ngValue]="null">-- {{ '::Task:SelectDepartment' | abpLocalization }} --</option>
+          <option *ngFor="let dept of departments" [ngValue]="dept.id || dept.Id">{{ dept.name || dept.Name }}</option>
+        </select>
       </div>
 
       <!-- Người thực hiện & Hạn hoàn thành -->
       <div class="row">
         <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label required fw-semibold">Người thực hiện</label>
+          <label class="form-label required fw-bold">{{ '::Task:Assignee' | abpLocalization }}</label>
           <select 
             class="form-select" 
             formControlName="assigneeId"
             [class.is-invalid]="form.get('assigneeId')?.touched && form.get('assigneeId')?.invalid"
           >
-            <option [ngValue]="null">-- Chọn người thực hiện --</option>
-            <option *ngFor="let user of filteredUsers" [value]="user.id">
-              {{ user.name || user.userName }}
+            <option [ngValue]="null">-- {{ '::Task:SelectAssignee' | abpLocalization }} --</option>
+            <option *ngFor="let user of filteredUsers" [value]="user.id || user.Id">
+              {{ user.name || user.UserName || user.userName }}
             </option>
           </select>
-          <div class="invalid-feedback">Vui lòng chọn người thực hiện công việc.</div>
+          <div class="invalid-feedback">{{ '::Task:AssigneeRequired' | abpLocalization }}</div>
         </div>
 
         <div class="col-md-6 mb-3">
-          <label class="form-label required fw-semibold">Hạn hoàn thành</label>
+          <label class="form-label required fw-bold">{{ '::Task:DueDate' | abpLocalization }}</label>
           <input 
             type="date" 
             class="form-control" 
@@ -104,55 +106,57 @@
             [min]="minDate"
             [class.is-invalid]="form.get('dueDate')?.touched && form.get('dueDate')?.invalid"
           />
-          <div class="invalid-feedback">Vui lòng chọn hạn hoàn thành.</div>
+          <div class="invalid-feedback">{{ '::Task:DueDateRequired' | abpLocalization }}</div>
         </div>
       </div>
 
       <div class="row">
         <!-- Mức độ ưu tiên -->
         <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label required fw-semibold">Độ ưu tiên</label>
+          <label class="form-label required fw-bold">{{ '::Task:Priority' | abpLocalization }}</label>
           <select class="form-select" formControlName="priority">
-            <option [value]="0">Thấp</option>
-            <option [value]="1">Trung bình</option>
-            <option [value]="2">Cao</option>
-            <option [value]="3">Khẩn cấp</option>
+            <option [value]="0">{{ '::Enum:TaskPriority.0' | abpLocalization }}</option>
+            <option [value]="1">{{ '::Enum:TaskPriority.1' | abpLocalization }}</option>
+            <option [value]="2">{{ '::Enum:TaskPriority.2' | abpLocalization }}</option>
+            <option [value]="3">{{ '::Enum:TaskPriority.3' | abpLocalization }}</option>
           </select>
         </div>
 
         <!-- Trạng thái -->
         <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label required fw-semibold">Trạng thái</label>
+          <label class="form-label required fw-bold">{{ '::Task:Status' | abpLocalization }}</label>
           <select class="form-select" formControlName="status">
-            <option [value]="0">Mới</option>
-            <option [value]="1">Đang làm</option>
-            <option [value]="2">Hoàn thành</option>
-            <option [value]="3">Đã hủy</option>
+            <option [value]="0">{{ '::Enum:TaskStatus.0' | abpLocalization }}</option>
+            <option [value]="1">{{ '::Enum:TaskStatus.1' | abpLocalization }}</option>
+            <option [value]="2">{{ '::Enum:TaskStatus.2' | abpLocalization }}</option>
+            <option [value]="3">{{ '::Enum:TaskStatus.3' | abpLocalization }}</option>
           </select>
         </div>
       </div>
 
       <!-- Cấu hình lặp lại công việc -->
-      <div class="p-3 mb-3 bg-light rounded border">
-        <div class="form-check mb-2">
-          <input type="checkbox" class="form-check-input" id="isRecurring" formControlName="isRecurring">
-          <label class="form-check-label fw-semibold" for="isRecurring">Tự động lặp lại công việc định kỳ</label>
-        </div>
+      <div class="mb-3">
+        <div class="px-3 py-2 bg-light rounded-3 border-0 shadow-xs">
+          <div class="form-check d-flex align-items-center mb-0">
+            <input type="checkbox" class="form-check-input cursor-pointer" id="isRecurring" formControlName="isRecurring" style="width: 1.25em; height: 1.25em;">
+            <label class="form-check-label fw-bold cursor-pointer fs-6 text-dark ms-2 mb-0" for="isRecurring">{{ '::Task:IsRecurring' | abpLocalization }}</label>
+          </div>
 
-        <!-- Dropdown chọn tần suất -->
-        <div class="mt-2" *ngIf="form.get('isRecurring')?.value">
-          <label class="form-label fw-semibold small">Tần suất lặp lại</label>
-          <select class="form-select form-select-sm" formControlName="frequency">
-            <option [value]="0">Hàng ngày (Daily)</option>
-            <option [value]="1">Hàng tuần (Weekly)</option>
-            <option [value]="2">Hàng tháng (Monthly)</option>
-          </select>
+          <!-- Dropdown chọn tần suất -->
+          <div *ngIf="form.get('isRecurring')?.value" class="mt-2 pt-2 border-top">
+            <label class="form-label fw-bold text-dark mb-1">{{ '::Task:Frequency' | abpLocalization }}</label>
+            <select class="form-select py-2 px-3 fs-6 rounded-2 bg-white" formControlName="frequency">
+              <option [value]="0">{{ '::Enum:RecurrenceFrequency.0' | abpLocalization }}</option>
+              <option [value]="1">{{ '::Enum:RecurrenceFrequency.1' | abpLocalization }}</option>
+              <option [value]="2">{{ '::Enum:RecurrenceFrequency.2' | abpLocalization }}</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <!-- Tệp đính kèm Multi-Upload -->
       <div class="mb-3">
-        <label class="form-label fw-semibold">Tệp đính kèm</label>
+        <label class="form-label fw-bold">{{ '::Task:Attachments' | abpLocalization }}</label>
         <input 
           type="file" 
           multiple 
@@ -161,12 +165,7 @@
           [disabled]="isSubmitting"
           accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.xlsx" 
         />
-        <small class="form-text text-muted">Hỗ trợ: PDF, DOCX, PNG, JPG, XLSX (Tối đa 10MB/file).</small>
-
-        <!-- Progress Bar -->
-        <div class="progress mt-2" *ngIf="uploadProgress > 0 && uploadProgress < 100" style="height: 6px;">
-          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" [style.width.%]="uploadProgress"></div>
-        </div>
+        <small class="form-text text-muted">{{ '::Task:AttachmentHelp' | abpLocalization }}</small>
 
         <!-- Danh sách file đã chọn -->
         <ul class="list-group mt-2" *ngIf="selectedFiles.length > 0">
@@ -175,8 +174,8 @@
               <i class="fa fa-paperclip text-secondary me-1"></i> {{ file.name }} 
               <small class="text-muted">({{ (file.size / 1024 / 1024).toFixed(2) }} MB)</small>
             </span>
-            <button type="button" class="btn btn-sm btn-outline-danger border-0" (click)="removeFile(i)" [disabled]="isSubmitting" title="Xóa file">
-              <i class="fa fa-times"></i> Xóa
+            <button type="button" class="btn btn-sm btn-outline-danger border-0" (click)="removeFile(i)" [disabled]="isSubmitting" [title]="'::General:Delete' | abpLocalization">
+              <i class="fa fa-times"></i> {{ '::General:Delete' | abpLocalization }}
             </button>
           </li>
         </ul>
@@ -184,10 +183,12 @@
 
       <!-- Action Buttons -->
       <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-        <button type="button" class="btn btn-outline-secondary px-4" (click)="onCancel()" [disabled]="isSubmitting">Hủy</button>
+        <button type="button" class="btn btn-outline-secondary px-4" (click)="onCancel()" [disabled]="isSubmitting">
+          {{ '::General:Cancel' | abpLocalization }}
+        </button>
         <button type="submit" class="btn btn-primary px-4" [disabled]="isSubmitting">
           <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status"></span>
-          Lưu công việc
+          {{ '::General:Save' | abpLocalization }}
         </button>
       </div>
 

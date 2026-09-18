@@ -6,8 +6,9 @@ import { RestService, PermissionService } from '@abp/ng.core';
 import { ToasterService } from '@abp/ng.theme.shared';
 import { NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { DragDropModule, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
-import { NotificationService, NotificationItem } from '../shared/services/notification.service';
+import { NotificationService, NotificationItem } from 'src/app/shared/services/notification.service';
 import { Subscription } from 'rxjs';
+import { CoreModule } from '@abp/ng.core';
 
 export interface TaskDto {
   id: string;
@@ -17,8 +18,9 @@ export interface TaskDto {
   projectName?: string;
   assigneeId?: string;
   assigneeName?: string;
-  departmentId?: string;    // <-- BỔ SUNG: ID phòng ban
-  departmentName?: string;  // <-- BỔ SUNG: Tên phòng ban
+  assigneeUserName?: string;
+  departmentId?: string;    // ID phòng ban
+  departmentName?: string;  // Tên phòng ban
   priority: number;
   status: number;
   progressPercent: number;
@@ -37,6 +39,7 @@ export interface TaskDto {
     CommonModule,
     FormsModule,
     RouterModule,
+    CoreModule,
     NgbPaginationModule,
     NgbDropdownModule,
     DragDropModule
@@ -55,6 +58,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   private notificationSub?: Subscription;
   private previousNotificationCount = 0;
+
+  // Biến Set dùng để chặn các request trùng lặp cho cùng 1 dự án đang chạy dở, tránh lỗi TaskCanceledException
+  private fetchingProjectIds = new Set<string>();
 
   readonly backendUrl = 'https://localhost:44399';
 
@@ -77,20 +83,20 @@ export class TaskListComponent implements OnInit, OnDestroy {
     return items.filter((n: any) => !n.isRead && !n.read).length;
   }
 
- // Khai báo các mảng Kanban rõ ràng, khởi tạo sẵn bằng mảng rỗng [] để tránh lỗi khởi tạo
-kanbanNewTasks: TaskDto[] = [];
-kanbanInProgressTasks: TaskDto[] = [];
-kanbanCompletedTasks: TaskDto[] = [];
-kanbanCancelledTasks: TaskDto[] = [];
-kanbanOverdueTasks: TaskDto[] = [];
+  // Khai báo các mảng Kanban rõ ràng, khởi tạo sẵn bằng mảng rỗng [] để tránh lỗi
+  kanbanNewTasks: TaskDto[] = [];
+  kanbanInProgressTasks: TaskDto[] = [];
+  kanbanCompletedTasks: TaskDto[] = [];
+  kanbanCancelledTasks: TaskDto[] = [];
+  kanbanOverdueTasks: TaskDto[] = [];
 
-kanbanColumns = [
-  { title: 'Mới', status: 0, headerClass: 'border-primary', data: this.kanbanNewTasks },
-  { title: 'Đang làm', status: 1, headerClass: 'border-info', data: this.kanbanInProgressTasks },
-  { title: 'Hoàn thành', status: 2, headerClass: 'border-success', data: this.kanbanCompletedTasks },
-  { title: 'Đã hủy', status: 3, headerClass: 'border-secondary', data: this.kanbanCancelledTasks },
-  { title: 'Quá hạn', status: 5, headerClass: 'border-danger', data: this.kanbanOverdueTasks }
-];
+  kanbanColumns = [
+    { title: 'Mới', status: 0, headerClass: 'border-primary', data: this.kanbanNewTasks },
+    { title: 'Đang làm', status: 1, headerClass: 'border-info', data: this.kanbanInProgressTasks },
+    { title: 'Hoàn thành', status: 2, headerClass: 'border-success', data: this.kanbanCompletedTasks },
+    { title: 'Đã hủy', status: 3, headerClass: 'border-secondary', data: this.kanbanCancelledTasks },
+    { title: 'Quá hạn', status: 5, headerClass: 'border-danger', data: this.kanbanOverdueTasks }
+  ];
 
   calendarDate: Date = new Date();
   calendarWeeks: any[][] = [];
@@ -102,7 +108,7 @@ kanbanColumns = [
     categoryId: '',
     assigneeId: '',
     projectId: '', 
-    departmentId: '', // <-- BỔ SUNG: Tham số lọc theo phòng ban
+    departmentId: '', 
     priority: null as number | null,
     status: null as number | null,
     onlyMyTasks: false,
@@ -114,8 +120,11 @@ kanbanColumns = [
   page = 1;
   categories: any[] = [];
   projects: any[] = [];
-  users: any[] = [];
-  departments: any[] = []; // <-- BỔ SUNG: Mảng lưu danh sách phòng ban
+  users: any[] = []; // Danh sách toàn bộ user dự phòng
+  departments: any[] = []; 
+
+  // Lưu danh sách user theo từng dự án để hiển thị đúng ở các dòng trong bảng: key là projectId, value là mảng user
+  projectUsersMap: { [projectId: string]: any[] } = {};
 
   readonly canCreate = this.permission.getGrantedPolicy('TaskManagement.Tasks.Create');
   readonly canEdit = this.permission.getGrantedPolicy('TaskManagement.Tasks.Edit');
@@ -128,19 +137,19 @@ kanbanColumns = [
       } else {
         this.filters.projectId = '';
       }
-    
+     
       this.fetchTasks();
     });
 
     this.loadCategories();
     this.loadProjects();
     this.loadUsers();
-    this.loadDepartments(); // <-- BỔ SUNG: Gọi load danh sách phòng ban khi khởi tạo
+    this.loadDepartments(); 
 
     this.notificationSub = this.notificationService.notifications$.subscribe(incoming => {
       this.zone.run(() => {
         const currentItems = incoming || [];
-        
+         
         if (currentItems.length > this.previousNotificationCount && this.previousNotificationCount !== 0) {
           const latest = currentItems[0];
           if (latest && latest.message) {
@@ -148,7 +157,7 @@ kanbanColumns = [
             this.fetchTasks();
           }
         }
-        
+         
         this.previousNotificationCount = currentItems.length;
         this.cdr.detectChanges();
       });
@@ -188,46 +197,52 @@ kanbanColumns = [
     this.cdr.detectChanges();
   }
 
+  onNotificationClick(item: any): void {
+    if (!item) return;
+    this.markAsRead(item);
 
-onNotificationClick(item: any): void {
-    if (!item) return;
-    this.markAsRead(item);
+    const messageLower = (item.message || '').toLowerCase();
+    const isDeletedTaskMessage = messageLower.includes('đã bị xóa') || 
+                                 messageLower.includes('đã xóa công việc') ||
+                                 messageLower.includes('không còn tồn tại');
 
-    const targetTaskId = item.taskId || item.referenceId;
-    if (targetTaskId) {
-      this.router.navigate(['/tasks/detail', targetTaskId]);
-    } else {
-      this.router.navigate(['/tasks']); 
-    }
-  }
+    if (isDeletedTaskMessage) {
+      return; 
+    }
+
+    const targetTaskId = item.taskId || item.referenceId;
+    if (targetTaskId) {
+      this.router.navigate(['/tasks/detail', targetTaskId]);
+    } else {
+      this.router.navigate(['/tasks']); 
+    }
+  }
 
   clearNotifications(): void {
     this.notificationService.clearNotifications();
     this.cdr.detectChanges();
   }
 
- loadCategories(): void {
-  this.rest.request<any, any>({
-    method: 'GET',
-    url: '/api/app/category', // Thay đổi đường dẫn này khớp với API quản lý danh mục của bạn
-    params: { maxResultCount: 100 }
-  }).subscribe({
-    next: (res: any) => { 
-      const raw = Array.isArray(res) ? res : (res?.items || res?.result || []);
-      
-      this.categories = raw.map((c: any) => ({
-        id: c.id || c.Id,
-        name: c.name || c.displayName
-      }));
-
-      this.cdr.detectChanges();
-    },
-    error: (err) => { 
-      console.error('Không tải được danh mục cho task list:', err);
-      this.categories = []; 
-    }
-  });
-}
+  loadCategories(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/category',
+      params: { maxResultCount: 100 }
+    }).subscribe({
+      next: (res: any) => { 
+        const raw = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        this.categories = raw.map((c: any) => ({
+          id: c.id || c.Id,
+          name: c.name || c.displayName
+        }));
+        this.cdr.detectChanges();
+      },
+      error: (err) => { 
+        console.error('Không tải được danh mục cho task list:', err);
+        this.categories = []; 
+      }
+    });
+  }
 
   loadProjects(): void {
     this.rest.request<any, any>({
@@ -248,170 +263,257 @@ onNotificationClick(item: any): void {
   loadUsers(): void {
     this.rest.request<any, any>({
       method: 'GET',
-      url: '/api/identity/users'
+      url: '/api/identity/users',
+      params: { maxResultCount: 1000 }
     }).subscribe({
       next: (res: any) => { 
         this.users = Array.isArray(res) ? res : (res?.items || res?.result || []); 
+        this.cdr.detectChanges(); 
       },
-      error: () => {}
+      error: () => {
+        this.users = [];
+      }
     });
   }
 
-  // --- BỔ SUNG HÀM TẢI DANH SÁCH PHÒNG BAN ---
-loadDepartments(): void {
-  this.rest.request<any, any>({
-    method: 'GET',
-    url: '/api/app/department'
-  }).subscribe({
-    next: (res: any) => {
-      const rawDepts = Array.isArray(res) ? res : (res?.items || res?.result || []);
-      
-      // Lưu trữ mảng thô độc lập để hàm fetchTasks() quét phòng ban con ngầm khi lọc dữ liệu
-      (this as any)._rawDepartments = rawDepts; 
-      
-      const normalizeId = (id: any) => (!id || id === '00000000-0000-0000-0000-000000000000') ? null : String(id);
+  getUsersForProject(projectId?: string): any[] {
+    if (!projectId) return this.users; 
+    
+    // Nếu chưa có cache cho dự án này, tạm thời gán bằng mảng user chung để UI render trước không bị trống
+    if (!this.projectUsersMap[projectId]) {
+      this.projectUsersMap[projectId] = [...this.users];
+    }
 
-      // CHỈ LỌC LẤY CÁC PHÒNG BAN NHÁNH CHÍNH (CẤP CHA CAO NHẤT: parentId = null hoặc trống)
-      this.departments = rawDepts.filter((d: any) => {
-        const pId = normalizeId(d.parentId || d.parentDepartmentId);
-        return pId === null;
-      }).map((d: any) => ({
-        ...d,
-        id: d.id || d.Id,
-        displayNameFormatted: d.name || d.displayName
-      }));
+    // Nếu dự án này ĐÃ CÓ một request đang chạy ngầm rồi thì thoát luôn, tránh gọi dồn dập gây lỗi hủy request
+    if (this.fetchingProjectIds.has(projectId)) {
+      return this.projectUsersMap[projectId];
+    }
 
-      // Fallback nếu dữ liệu API không chuẩn parentId nhưng có mảng
-      if (this.departments.length === 0 && rawDepts.length > 0) {
-        this.departments = rawDepts.map((d: any) => ({
-          ...d,
-          id: d.id || d.Id,
-          displayNameFormatted: d.name || d.displayName
-        }));
-      }
-      
-      this.cdr.detectChanges();
-    },
-    error: () => {
-      this.departments = [];
-      (this as any)._rawDepartments = [];
-    }
-  });
-}
+    this.fetchingProjectIds.add(projectId);
 
-// Hàm hỗ trợ sắp xếp và thụt lề tên phòng ban con trên Dropdown
-private buildDepartmentTreeForSelect(depts: any[], parentId: any = null, level: number = 0): any[] {
-    let result: any[] = [];
-    
-    const normalizeId = (id: any) => (!id || id === '00000000-0000-0000-0000-000000000000') ? null : String(id);
-    const targetParentId = normalizeId(parentId);
+    // Luôn gọi API ngầm để lấy danh sách thành viên mới nhất từ server (khớp với API GetMembersAsync ở Backend)
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: `/api/app/project/by-project/${projectId}/members`
+    }).subscribe({
+      next: (res) => {
+        this.fetchingProjectIds.delete(projectId);
 
-    const children = depts.filter((d: any) => {
-      const pId = normalizeId(d.parentId || d.parentDepartmentId);
-      return pId === targetParentId;
-    });
+        // Hứng linh hoạt cả dạng mảng thuần lẫn dạng bọc phân trang/ListResultDto của ABP (.items)
+        const projectMembers = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        const resolvedUsers: any[] = [];
 
-  children.forEach((child: any) => {
-    const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(level);
-    const prefix = level > 0 ? '⌞ ' : '';
-    result.push({
-      ...child,
-      displayNameFormatted: `${indent}${prefix}${child.name || child.displayName}`
-    });
-    // Gọi đệ quy lấy các cấp con tiếp theo
-    result.push(...this.buildDepartmentTreeForSelect(depts, child.id || child.Id, level + 1));
-  });
+        projectMembers.forEach((m: any) => {
+          // Vì API trả về ProjectMemberDto có sẵn Name, Surname, UserName nên ta ưu tiên map trực tiếp luôn cho chuẩn xác
+          if (m && (m.userId || m.UserId || m.id)) {
+            resolvedUsers.push({
+              id: m.userId || m.UserId || m.id || m.Id,
+              name: m.name || m.Name,
+              surname: m.surname || m.Surname,
+              userName: m.userName || m.UserName,
+              email: m.email || m.Email
+            });
+          } else {
+            // Trường hợp dữ liệu trả về theo kiểu cũ (có object user bên trong)
+            const uObj = m.user || m.User || m.member || m.Member;
+            if (uObj && (uObj.id || uObj.Id || uObj.userName)) {
+              resolvedUsers.push(uObj);
+            } else {
+              const uId = m.userId || m.UserId || m.id || m.Id;
+              const found = this.users.find((u: any) => (u.id || u.Id) === uId);
+              if (found) {
+                resolvedUsers.push(found);
+              }
+            }
+          }
+        });
 
-  // Nếu là lần gọi đầu tiên mà danh sách không có phân cấp cha con rõ ràng, trả về mảng gốc
-  return result.length > 0 ? result : depts;
-}
+        if (resolvedUsers.length > 0) {
+          // Ghi đè lại bằng danh sách thành viên chuẩn nhất từ server
+          this.projectUsersMap[projectId] = resolvedUsers;
+          // Tự động đồng bộ lại tên người thực hiện cho các task thuộc dự án này
+          this.updateTaskAssigneeNamesForProject(projectId);
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        this.fetchingProjectIds.delete(projectId);
+      }
+    });
+
+    // Trả về mảng hiện tại ngay lập tức để select box hiển thị mượt mà
+    return this.projectUsersMap[projectId];
+  }
+
+  updateTaskAssigneeNamesForProject(projectId: string): void {
+    const projectUsers = this.projectUsersMap[projectId] || [];
+    let isUpdated = false;
+
+    this.taskList.forEach(task => {
+      const pId = task.projectId || (task as any).ProjectId;
+      if (pId === projectId && task.assigneeId) {
+        const foundUser = projectUsers.find((u: any) => (u.id || u.Id) === task.assigneeId);
+        if (foundUser) {
+          const firstName = foundUser.name || foundUser.Name || '';
+          const lastName = foundUser.surname || foundUser.Surname || '';
+          const resolvedName = (firstName || lastName) ? `${firstName} ${lastName}`.trim() : (foundUser.userName || foundUser.displayName);
+          
+          if (resolvedName && resolvedName !== task.assigneeName) {
+            task.assigneeName = resolvedName;
+            isUpdated = true;
+          }
+        }
+      }
+    });
+
+    if (isUpdated) {
+      this.updateKanbanColumns();
+    }
+  }
+
+  loadDepartments(): void {
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/department'
+    }).subscribe({
+      next: (res: any) => {
+        const rawDepts = Array.isArray(res) ? res : (res?.items || res?.result || []);
+        (this as any)._rawDepartments = rawDepts; 
+        
+        const normalizeId = (id: any) => (!id || id === '00000000-0000-0000-0000-000000000000') ? null : String(id);
+
+        this.departments = rawDepts.filter((d: any) => {
+          const pId = normalizeId(d.parentId || d.parentDepartmentId);
+          return pId === null;
+        }).map((d: any) => ({
+          ...d,
+          id: d.id || d.Id,
+          displayNameFormatted: d.name || d.displayName
+        }));
+
+        if (this.departments.length === 0 && rawDepts.length > 0) {
+          this.departments = rawDepts.map((d: any) => ({
+            ...d,
+            id: d.id || d.Id,
+            displayNameFormatted: d.name || d.displayName
+          }));
+        }
+        
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.departments = [];
+        (this as any)._rawDepartments = [];
+      }
+    });
+  }
+
   fetchTasks(): void {
-    this.isLoading = true;
-    this.filters.skipCount = (this.page - 1) * this.filters.maxResultCount;
+    this.isLoading = true;
+    this.filters.skipCount = (this.page - 1) * this.filters.maxResultCount;
 
-    // Tạo bản sao bộ lọc để xử lý gộp ID phòng ban con nếu có chọn phòng ban
-    const requestFilters: any = { ...this.filters };
+    const requestFilters: any = { ...this.filters };
 
-    if (requestFilters.departmentId) {
-      const targetDeptIds = new Set<string>();
-      
-      const findSubDepartments = (parentId: string) => {
-        targetDeptIds.add(parentId);
-        // Quét toàn bộ phòng ban trong hệ thống để tìm các nhánh con trực thuộc
-        const allDepts = (this as any)._rawDepartments || this.departments || [];
-        const children = allDepts.filter((d: any) => 
-          (d.parentId === parentId || d.parentDepartmentId === parentId)
-        );
-        children.forEach((child: any) => {
-          const childId = child.id || child.Id;
-          if (childId) {
-            findSubDepartments(childId);
-          }
-        });
-      };
+    if (requestFilters.departmentId) {
+      const targetDeptIds = new Set<string>();
+       
+      const findSubDepartments = (parentId: string) => {
+        targetDeptIds.add(parentId);
+        const allDepts = (this as any)._rawDepartments || this.departments || [];
+        const children = allDepts.filter((d: any) => 
+          (d.parentId === parentId || d.parentDepartmentId === parentId)
+        );
+        children.forEach((child: any) => {
+          const childId = child.id || child.Id;
+          if (childId) {
+            findSubDepartments(childId);
+          }
+        });
+      };
 
-      // Gọi hàm đệ quy tìm từ phòng ban gốc được chọn
-      findSubDepartments(requestFilters.departmentId);
+      findSubDepartments(requestFilters.departmentId);
 
-      // Thay thế departmentId đơn lẻ bằng mảng departmentIds để gửi lên API backend
-      delete requestFilters.departmentId;
-      requestFilters.departmentIds = Array.from(targetDeptIds);
-    }
+      delete requestFilters.departmentId;
+      requestFilters.departmentIds = Array.from(targetDeptIds);
+    }
 
-    this.rest.request<any, any>({
-      method: 'GET',
-      url: '/api/app/task',
-      params: this.cleanParams(requestFilters)
-    }).subscribe({
-      next: (res: any) => {
-        const data = res as { items?: TaskDto[]; totalCount?: number };
-        const rawItems = data?.items || [];
-        this.taskList = rawItems;
+    this.rest.request<any, any>({
+      method: 'GET',
+      url: '/api/app/task',
+      params: this.cleanParams(requestFilters)
+    }).subscribe({
+      next: (res: any) => {
+        const data = res as { items?: TaskDto[]; totalCount?: number };
+        const rawItems = data?.items || [];
+        
+        this.taskList = rawItems.map((task: any) => {
+          const assigneeId = task.assigneeId || task.AssigneeId || task.assignedUserId || task.AssignedUserId;
+          let assigneeName = task.assigneeName || task.AssigneeName || task.assigneeUserName || task.AssigneeUserName || task.userName || task.UserName;
 
-        this.totalCount = data?.totalCount || 0;
-        this.isLoading = false;
+          if (assigneeId && (!assigneeName || assigneeName === 'Chưa phân công' || assigneeName.trim() === '')) {
+            const foundUser = this.users.find((u: any) => (u.id || u.Id) === assigneeId);
+            if (foundUser) {
+              assigneeName = foundUser.name || foundUser.userName || foundUser.displayName || foundUser.Surname || foundUser.Name;
+            }
+          }
 
-        this.updateKanbanColumns();
+          return {
+            ...task,
+            assigneeId: assigneeId,
+            assigneeName: assigneeName && assigneeName.trim() !== '' ? assigneeName : 'Chưa phân công'
+          };
+        });
 
-        if (this.currentView === 'calendar') {
-          this.generateCalendar();
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
- cleanParams(obj: any): any {
-  const params: any = {};
-  Object.keys(obj).forEach(key => {
-    if (obj[key] !== null && obj[key] !== undefined && obj[key] !== '' && !(Array.isArray(obj[key]) && obj[key].length === 0)) {
-      params[key] = obj[key];
-    }
-  });
-  return params;
-}
+        this.taskList.forEach(task => {
+          const pId = task.projectId || (task as any).ProjectId;
+          if (pId) {
+            this.getUsersForProject(pId);
+          }
+        });
 
-  
+        this.totalCount = data?.totalCount || 0;
+        this.isLoading = false;
 
-updateKanbanColumns(): void {
-  this.kanbanNewTasks.length = 0;
-  this.kanbanNewTasks.push(...this.taskList.filter(t => t.status === 0));
+        this.updateKanbanColumns();
 
-  this.kanbanInProgressTasks.length = 0;
-  this.kanbanInProgressTasks.push(...this.taskList.filter(t => t.status === 1));
+        if (this.currentView === 'calendar') {
+          this.generateCalendar();
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
-  this.kanbanCompletedTasks.length = 0;
-  this.kanbanCompletedTasks.push(...this.taskList.filter(t => t.status === 2));
+  cleanParams(obj: any): any {
+    const params: any = {};
+    Object.keys(obj).forEach(key => {
+      if (obj[key] !== null && obj[key] !== undefined && obj[key] !== '' && !(Array.isArray(obj[key]) && obj[key].length === 0)) {
+        params[key] = obj[key];
+      }
+    });
+    return params;
+  }
 
-  this.kanbanCancelledTasks.length = 0;
-  this.kanbanCancelledTasks.push(...this.taskList.filter(t => t.status === 3));
+  updateKanbanColumns(): void {
+    this.kanbanNewTasks.length = 0;
+    this.kanbanNewTasks.push(...this.taskList.filter(t => t.status === 0));
 
-  this.kanbanOverdueTasks.length = 0;
-  this.kanbanOverdueTasks.push(...this.taskList.filter(t => t.status === 5));
-}
+    this.kanbanInProgressTasks.length = 0;
+    this.kanbanInProgressTasks.push(...this.taskList.filter(t => t.status === 1));
+
+    this.kanbanCompletedTasks.length = 0;
+    this.kanbanCompletedTasks.push(...this.taskList.filter(t => t.status === 2));
+
+    this.kanbanCancelledTasks.length = 0;
+    this.kanbanCancelledTasks.push(...this.taskList.filter(t => t.status === 3));
+
+    this.kanbanOverdueTasks.length = 0;
+    this.kanbanOverdueTasks.push(...this.taskList.filter(t => t.status === 5));
+  }
 
   onSearch(): void {
     this.page = 1;
@@ -432,6 +534,7 @@ updateKanbanColumns(): void {
     this.page = newPage;
     this.fetchTasks();
   }
+
   updateTaskStatus(task: TaskDto, newStatus: number): void {
     const oldStatus = task.status;
     const oldProgress = task.progressPercent;
@@ -497,7 +600,7 @@ updateKanbanColumns(): void {
   generateCalendar(): void {
     const year = this.calendarDate.getFullYear();
     const month = this.calendarDate.getMonth();
-    
+     
     this.currentCalendarYear = year;
     const monthNames = [
       'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 
@@ -594,7 +697,7 @@ updateKanbanColumns(): void {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const formattedDate = `${year}-${month}-${day}`;
-    
+     
     const queryParams: any = { dueDate: formattedDate };
     if (this.filters.projectId) {
       queryParams.projectId = this.filters.projectId;
@@ -603,15 +706,14 @@ updateKanbanColumns(): void {
     this.router.navigate(['/tasks/create'], { queryParams });
   }
 
-  
-
   updateTaskAssignee(task: TaskDto, assigneeId: string | null): void {
-    const selectedUser = this.users.find(u => u.id === assigneeId);
+    const projectUsers = this.getUsersForProject(task.projectId);
+    const selectedUser = projectUsers.find(u => (u.id || u.Id) === assigneeId);
     const oldAssigneeId = task.assigneeId;
     const oldAssigneeName = task.assigneeName;
 
     task.assigneeId = assigneeId || undefined;
-    task.assigneeName = selectedUser ? (selectedUser.name || selectedUser.userName) : 'Chưa phân công';
+    task.assigneeName = selectedUser ? (selectedUser.name || selectedUser.userName || selectedUser.displayName || selectedUser.Surname) : 'Chưa phân công';
 
     const params: any = {};
     if (assigneeId) {
@@ -624,16 +726,23 @@ updateKanbanColumns(): void {
       params: params
     }).subscribe({
       next: (updatedTask: any) => {
-        if (updatedTask && updatedTask.assigneeName) {
-          task.assigneeName = updatedTask.assigneeName;
+        if (updatedTask) {
+          const serverName = updatedTask.assigneeName || updatedTask.AssigneeName;
+          if (serverName) {
+            task.assigneeName = serverName;
+          }
         }
+        this.updateKanbanColumns();
         if (this.currentView === 'calendar') {
           this.generateCalendar();
         }
+        this.cdr.detectChanges();
       },
       error: () => {
         task.assigneeId = oldAssigneeId;
         task.assigneeName = oldAssigneeName;
+        this.updateKanbanColumns();
+        this.cdr.detectChanges();
       }
     });
   }

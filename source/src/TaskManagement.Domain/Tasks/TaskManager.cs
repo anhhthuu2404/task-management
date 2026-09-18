@@ -6,7 +6,8 @@ using Volo.Abp.Domain.Services;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 using Volo.Abp.Linq;
-using Volo.Abp.EventBus.Local; // 1. Thêm namespace này cho Event Bus
+using Volo.Abp.EventBus.Local;
+using Volo.Abp.EventBus.Distributed;
 using TaskManagement.Notifications;
 
 namespace TaskManagement.Tasks
@@ -15,22 +16,26 @@ namespace TaskManagement.Tasks
     {
         private readonly IRepository<TaskItem, Guid> _taskRepository;
         private readonly IRepository<Notification, Guid> _notificationRepository;
-        private readonly ILocalEventBus _localEventBus; // 2. Thay IHubContext bằng ILocalEventBus
+        private readonly ILocalEventBus _localEventBus;
         private readonly IClock _clock;
         private readonly IAsyncQueryableExecuter _asyncExecuter;
+        private readonly IDistributedEventBus _distributedEventBus; // Thêm biến Distributed Event Bus
 
+        // Constructor duy nhất, nhận đầy đủ các dependency
         public TaskManager(
             IRepository<TaskItem, Guid> taskRepository,
             IRepository<Notification, Guid> notificationRepository,
-            ILocalEventBus localEventBus, // 3. Inject ILocalEventBus thay thế hubContext
+            ILocalEventBus localEventBus,
             IClock clock,
-            IAsyncQueryableExecuter asyncExecuter)
+            IAsyncQueryableExecuter asyncExecuter,
+            IDistributedEventBus distributedEventBus) // Inject IDistributedEventBus vào đây
         {
             _taskRepository = taskRepository;
             _notificationRepository = notificationRepository;
             _localEventBus = localEventBus;
             _clock = clock;
             _asyncExecuter = asyncExecuter;
+            _distributedEventBus = distributedEventBus;
         }
 
         // 1. Quét và cập nhật Task quá hạn tự động kèm sinh thông báo & bắn Event
@@ -50,15 +55,17 @@ namespace TaskManagement.Tasks
 
             foreach (var task in overdueTasks)
             {
-                // Cập nhật trạng thái sang Quá hạn
+                // Cập nhật trạng thái sang Quá hạn và ép lưu ngay lập tức (autoSave: true)
                 task.Status = TaskItemStatus.Overdue;
-                await _taskRepository.UpdateAsync(task);
+                await _taskRepository.UpdateAsync(task, autoSave: true);
 
                 // Nếu task không có người thực hiện thì bỏ qua việc gửi thông báo
                 if (!task.AssigneeId.HasValue) continue;
 
-                // Tránh tạo trùng thông báo nếu đã tồn tại thông báo cho Task này
-                var existingNotification = await _notificationRepository.FirstOrDefaultAsync(n => n.TaskId == task.Id);
+                // Tránh tạo trùng thông báo nếu đã tồn tại thông báo quá hạn cho Task này
+                var existingNotification = await _notificationRepository.FirstOrDefaultAsync(n =>
+                   n.TaskId == task.Id && n.Message.Contains("quá hạn"));
+
                 if (existingNotification != null) continue;
 
                 var message = $"Công việc \"{task.Title}\" của bạn đã bị quá hạn (Hạn chót: {task.DueDate.Value:dd/MM/yyyy})!";
@@ -69,16 +76,15 @@ namespace TaskManagement.Tasks
                     TaskId = task.Id,
                     IsRead = false
                 };
-                await _notificationRepository.InsertAsync(notification);
+                await _notificationRepository.InsertAsync(notification, autoSave: true);
 
-                // 4. Bắn Domain Event thay vì gọi trực tiếp SignalR Hub
-                await _localEventBus.PublishAsync(new TaskOverdueEto
+                // Bắn Distributed Event đúng loại TaskNotificationEto để Handler bắt và đẩy qua SignalR
+                await _distributedEventBus.PublishAsync(new TaskNotificationEto
                 {
+                    UserId = task.AssigneeId.Value,
                     TaskId = task.Id,
-                    AssigneeId = task.AssigneeId.Value,
-                    TaskTitle = task.Title,
-                    DueDate = task.DueDate.Value,
-                    Message = message
+                    Message = message,
+                    CreationTime = DateTime.UtcNow
                 });
             }
         }
@@ -135,10 +141,10 @@ namespace TaskManagement.Tasks
                         IsRecurring = false
                     };
 
-                    await _taskRepository.InsertAsync(newTask);
+                    await _taskRepository.InsertAsync(newTask, autoSave: true);
 
                     parentTask.LastGeneratedDate = now;
-                    await _taskRepository.UpdateAsync(parentTask);
+                    await _taskRepository.UpdateAsync(parentTask, autoSave: true);
                 }
             }
         }

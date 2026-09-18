@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router'; // Thêm Router để điều hướng
+import { Router } from '@angular/router';
 import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -58,7 +58,7 @@ import { NotificationService, NotificationItem } from '../services/notification.
 })
 export class NavbarNotificationsComponent implements OnInit, OnDestroy {
   private readonly notificationService = inject(NotificationService);
-  private readonly router = inject(Router); // Inject Router
+  private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
   
@@ -82,14 +82,26 @@ export class NavbarNotificationsComponent implements OnInit, OnDestroy {
     return this.notifications.filter(n => !n.isRead).length;
   }
 
-  // Xử lý khi click vào thông báo: đánh dấu đã đọc và điều hướng đến task tương ứng
+  // Xử lý khi click vào thông báo trực tuyến
   onNotificationClick(item: NotificationItem): void {
+    // 1. Đánh dấu thông báo này là đã đọc ngay lập tức
     if (item.id) {
       this.notificationService.markAsRead(item.id);
     }
 
+    // 2. Kiểm tra nếu là thông báo liên quan đến xóa task -> chặn đứng việc điều hướng gọi API chi tiết
+    const messageLower = (item.message || '').toLowerCase();
+    const isDeletedTaskMessage = messageLower.includes('đã bị xóa') || 
+                                 messageLower.includes('đã xóa công việc') ||
+                                 messageLower.includes('không còn tồn tại');
+
+    if (isDeletedTaskMessage) {
+      // Dừng lại tại chỗ, không thực hiện router.navigate xuống backend
+      return; 
+    }
+
+    // 3. Các thông báo thông thường khác thì điều hướng bình thường đến task tương ứng
     if (item.taskId) {
-      // Điều hướng về trang tasks và truyền taskId qua queryParams (bạn có thể thay đổi đường dẫn ['/tasks'] cho khớp route ứng dụng của bạn)
       this.router.navigate(['/tasks'], { queryParams: { taskId: item.taskId } });
     } else {
       this.router.navigate(['/tasks']);

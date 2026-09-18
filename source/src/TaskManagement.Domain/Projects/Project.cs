@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using TaskManagement.Categories;
 using Volo.Abp.Domain.Entities.Auditing;
 
 namespace TaskManagement.Projects
@@ -11,6 +12,8 @@ namespace TaskManagement.Projects
         public string? Description { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public Guid? CategoryId { get; set; }
+        public Category? Category { get; set; }
         public string Status { get; set; } = "Active";
         public Guid? AssigneeUserId { get; set; }
 

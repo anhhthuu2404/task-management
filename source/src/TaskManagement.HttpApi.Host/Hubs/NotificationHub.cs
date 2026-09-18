@@ -1,12 +1,14 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using System;
+using System.Threading.Tasks;
+using Volo.Abp.AspNetCore.SignalR;
 using Volo.Abp.Users;
+
 namespace TaskManagement.Hubs
 {
     [Authorize]
-    public class NotificationHub : Hub
+    public class NotificationHub : AbpHub
     {
         private readonly ICurrentUser _currentUser;
 
@@ -19,9 +21,11 @@ namespace TaskManagement.Hubs
         {
             await base.OnConnectedAsync();
 
-            if (_currentUser.Id.HasValue)
+            // ĐÃ SỬA: Dùng _currentUser thay vì CurrentUser để đúng với khai báo biến phía trên
+            var userId = _currentUser.Id?.ToString();
+            if (!string.IsNullOrEmpty(userId))
             {
-                var userId = _currentUser.Id.Value.ToString();
+                // Tự động add connection này vào group mang tên chính UserId đó
                 await Groups.AddToGroupAsync(Context.ConnectionId, userId);
             }
         }
@@ -43,12 +47,12 @@ namespace TaskManagement.Hubs
             {
                 var userId = _currentUser.Id.Value.ToString();
 
-                // Đóng gói đầy đủ thông tin bao gồm cả thời gian hiện tại
                 var notificationData = new
                 {
+                    id = Guid.NewGuid().ToString(),
                     message = message,
                     taskId = taskId,
-                    creationTime = DateTime.UtcNow // Hoặc DateTime.Now tùy theo cấu hình múi giờ của bạn
+                    creationTime = DateTime.UtcNow
                 };
 
                 await Clients.Group(userId).SendAsync("ReceiveNotification", notificationData);

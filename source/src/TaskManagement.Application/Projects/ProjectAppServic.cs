@@ -3,8 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using TaskManagement.Notifications; // Thêm namespace chứa Notification
+using TaskManagement.Notifications;
+using TaskManagement.Provider.Interface;
+using TaskManagement.Provider.Request;
 using TaskManagement.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -29,7 +32,7 @@ namespace TaskManagement.Projects
         private readonly IRepository<TaskItem, Guid> _taskRepository;
         private readonly IRepository<Notification, Guid> _notificationRepository;
         private readonly IDistributedEventBus _distributedEventBus;
-
+        private readonly IProjectProvider _projectProvider; // Provider sử dụng Stored Procedure & Dapper
 
         public ProjectAppService(
             IRepository<Project, Guid> repository,
@@ -38,7 +41,8 @@ namespace TaskManagement.Projects
             IRepository<IdentityUser, Guid> userRepository,
             IRepository<TaskItem, Guid> taskRepository,
             IRepository<Notification, Guid> notificationRepository,
-            IDistributedEventBus distributedEventBus) : base(repository)
+            IDistributedEventBus distributedEventBus,
+            IProjectProvider projectProvider) : base(repository)
         {
             _milestoneRepository = milestoneRepository;
             _memberRepository = memberRepository;
@@ -46,21 +50,30 @@ namespace TaskManagement.Projects
             _taskRepository = taskRepository;
             _notificationRepository = notificationRepository;
             _distributedEventBus = distributedEventBus;
+            _projectProvider = projectProvider;
         }
 
-        protected override async Task<IQueryable<Project>> CreateFilteredQueryAsync(ProjectListFilterDto input)
+        /// <summary>
+        /// Tối ưu hóa việc lấy danh sách Project bằng Stored Procedure thông qua Provider (Dapper)
+        /// </summary>
+        public override async Task<PagedResultDto<ProjectDto>> GetListAsync(ProjectListFilterDto input)
         {
-            var query = await base.CreateFilteredQueryAsync(input);
-
-            if (input == null)
+            var request = new ProjectGetListRequest
             {
-                return query;
-            }
+                Filter = input.Filter,
+                Status = input.Status,
+                DepartmentId = input.DepartmentId,
+                CategoryId = input.CategoryId,
+                SkipCount = input.SkipCount,
+                MaxResultCount = input.MaxResultCount
+            };
 
-            return query
-                .WhereIf(!string.IsNullOrWhiteSpace(input.Filter), x => x.Name.Contains(input.Filter!) || (x.Description != null && x.Description.Contains(input.Filter!)))
-                .WhereIf(!string.IsNullOrWhiteSpace(input.Status), x => x.Status == input.Status)
-                .WhereIf(input.DepartmentId.HasValue, x => x.DepartmentId == input.DepartmentId);
+            var data = await _projectProvider.GetListAsync(request);
+            var totalCount = data.FirstOrDefault()?.TotalCount ?? 0;
+
+            var dtos = ObjectMapper.Map<List<Provider.Response.ProjectQueryResponse>, List<ProjectDto>>(data);
+
+            return new PagedResultDto<ProjectDto>(totalCount, dtos);
         }
 
         [HttpGet("/api/app/project/milestones/{projectId}")]
@@ -70,6 +83,7 @@ namespace TaskManagement.Projects
             return ObjectMapper.Map<List<ProjectMilestone>, List<MilestoneDto>>(milestones);
         }
 
+        [HttpPost("/api/app/project/milestone/{projectId}")]
         public async Task<MilestoneDto> CreateMilestoneAsync(Guid projectId, CreateUpdateMilestoneDto input)
         {
             var milestone = new ProjectMilestone
@@ -84,10 +98,10 @@ namespace TaskManagement.Projects
 
             await _milestoneRepository.InsertAsync(milestone);
 
-            // Đồng bộ sang TaskItem
             var newTask = new TaskItem
             {
                 ProjectId = projectId,
+                MilestoneId = milestone.Id,
                 Title = input.Title,
                 Description = input.Description,
                 DueDate = input.DueDate,
@@ -111,7 +125,7 @@ namespace TaskManagement.Projects
 
                 await _notificationRepository.InsertAsync(notification);
 
-                // Phát sự kiện realtime kèm đầy đủ nội dung và mốc thời gian tạo
+                // Publish sự kiện realtime qua SignalR mà bạn đã cấu hình
                 await _distributedEventBus.PublishAsync(new TaskNotificationEto
                 {
                     UserId = input.AssigneeUserId.Value,
@@ -121,20 +135,17 @@ namespace TaskManagement.Projects
                 });
             }
 
-            // BỔ SUNG LẠI DÒNG RETURN NÀY ĐỂ TRÁNH LỖI BIÊN DỊCH
             return ObjectMapper.Map<ProjectMilestone, MilestoneDto>(milestone);
         }
+
+        [HttpDelete("/api/app/project/milestone/{milestoneId}")]
         public async Task DeleteMilestoneAsync(Guid milestoneId)
         {
             var milestone = await _milestoneRepository.GetAsync(milestoneId);
 
             if (milestone != null)
             {
-                var tasks = await _taskRepository.GetListAsync(t =>
-                    t.ProjectId == milestone.ProjectId &&
-                    t.Title == milestone.Title &&
-                    t.DueDate == milestone.DueDate
-                );
+                var tasks = await _taskRepository.GetListAsync(t => t.MilestoneId == milestoneId);
 
                 foreach (var task in tasks)
                 {
@@ -146,33 +157,41 @@ namespace TaskManagement.Projects
         }
 
         [HttpGet("/api/app/project/by-project/{projectId}/members")]
-        public async Task<ListResultDto<ProjectMemberDto>> GetMembersAsync(Guid projectId)
+        public async Task<ListResultDto<ProjectMemberDto>> GetMembersAsync(Guid projectId, CancellationToken cancellationToken = default)
         {
-            var members = await _memberRepository.GetListAsync(x => x.ProjectId == projectId);
-            var userIds = members.Select(x => x.UserId).ToList();
-
-            var userQuery = await _userRepository.GetQueryableAsync();
-            var users = await userQuery.Where(x => userIds.Contains(x.Id)).ToListAsync();
-
-            var resultList = members.Select(m =>
+            try
             {
-                var user = users.FirstOrDefault(u => u.Id == m.UserId);
-                return new ProjectMemberDto
-                {
-                    Id = m.Id,
-                    ProjectId = m.ProjectId,
-                    UserId = m.UserId,
-                    Role = m.Role,
-                    UserName = user?.UserName,
-                    Name = user?.Name,
-                    Surname = user?.Surname,
-                    Email = user?.Email
-                };
-            }).ToList();
+                var members = await _memberRepository.GetListAsync(x => x.ProjectId == projectId, cancellationToken: cancellationToken);
+                var userIds = members.Select(x => x.UserId).ToList();
 
-            return new ListResultDto<ProjectMemberDto>(resultList);
+                var userQuery = await _userRepository.GetQueryableAsync();
+                var users = await userQuery.Where(x => userIds.Contains(x.Id)).ToListAsync(cancellationToken);
+
+                var resultList = members.Select(m =>
+                {
+                    var user = users.FirstOrDefault(u => u.Id == m.UserId);
+                    return new ProjectMemberDto
+                    {
+                        Id = m.Id,
+                        ProjectId = m.ProjectId,
+                        UserId = m.UserId,
+                        Role = m.Role,
+                        UserName = user?.UserName,
+                        Name = user?.Name,
+                        Surname = user?.Surname,
+                        Email = user?.Email
+                    };
+                }).ToList();
+
+                return new ListResultDto<ProjectMemberDto>(resultList);
+            }
+            catch (OperationCanceledException)
+            {
+                return new ListResultDto<ProjectMemberDto>(new List<ProjectMemberDto>());
+            }
         }
 
+        [HttpPost("/api/app/project/member/{projectId}")]
         public async Task<ProjectMemberDto> AddMemberAsync(Guid projectId, AddProjectMemberDto input)
         {
             var member = new ProjectMember
@@ -186,9 +205,17 @@ namespace TaskManagement.Projects
             return ObjectMapper.Map<ProjectMember, ProjectMemberDto>(member);
         }
 
+        [HttpDelete("/api/app/project/member/{memberId}")]
         public async Task RemoveMemberAsync(Guid memberId)
         {
             await _memberRepository.DeleteAsync(memberId);
+        }
+
+        [HttpGet("/api/app/project/{projectId}/tasks")]
+        public async Task<List<TaskItem>> GetTasksByProjectAsync(Guid projectId)
+        {
+            var tasks = await _taskRepository.GetListAsync(t => t.ProjectId == projectId);
+            return tasks;
         }
     }
 }
