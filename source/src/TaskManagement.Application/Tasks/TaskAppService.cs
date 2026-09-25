@@ -14,12 +14,12 @@ using TaskManagement.TaskHistories;
 using TaskManagement.Tasks.Dtos;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Identity;
 using Volo.Abp.Uow;
-
 namespace TaskManagement.Tasks;
 
 [Authorize(TaskManagementPermissions.Tasks.Default)]
@@ -42,7 +42,9 @@ public class TaskAppService : CrudAppService<
     private readonly IRepository<TaskActivityLog, Guid> _activityLogRepository;
     private readonly IRepository<TaskComment, Guid> _commentRepository;
     private readonly IRepository<Project, Guid> _projectRepository;
+    private readonly IRepository<ProjectMilestone, Guid> _milestoneRepository;
     private readonly IRepository<Notification, Guid> _notificationRepository;
+    private readonly ITaskProvider _taskProvider;
 
     public TaskAppService(
         IRepository<TaskItem, Guid> repository,
@@ -54,7 +56,9 @@ public class TaskAppService : CrudAppService<
         IRepository<TaskComment, Guid> commentRepository,
         IRepository<Project, Guid> projectRepository,
         IRepository<Notification, Guid> notificationRepository,
-        IDistributedEventBus distributedEventBus)
+        IDistributedEventBus distributedEventBus,
+        IRepository<ProjectMilestone, Guid> milestoneRepository,
+        ITaskProvider taskProvider)
         : base(repository)
     {
         _userRepository = userRepository;
@@ -64,8 +68,10 @@ public class TaskAppService : CrudAppService<
         _activityLogRepository = activityLogRepository;
         _commentRepository = commentRepository;
         _projectRepository = projectRepository;
+        _milestoneRepository = milestoneRepository;
         _notificationRepository = notificationRepository;
         _distributedEventBus = distributedEventBus;
+        _taskProvider = taskProvider;
     }
 
     protected override string? GetPolicyName { get; set; } = TaskManagementPermissions.Tasks.Default;
@@ -73,6 +79,7 @@ public class TaskAppService : CrudAppService<
     protected override string? CreatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Create;
     protected override string? UpdatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Edit;
     protected override string? DeletePolicyName { get; set; } = TaskManagementPermissions.Tasks.Delete;
+   
 
     #region Entity Mapping Overrides
     protected override async Task<TaskItem> MapToEntityAsync(CreateTaskInputDto input)
@@ -137,7 +144,75 @@ public class TaskAppService : CrudAppService<
     }
     #endregion
 
-    #region Query & Sorting Filter
+    #region Query & Sorting Filter (Override GetListAsync using Dapper Provider)
+    public override async Task<PagedResultDto<TaskDto>> GetListAsync(GetTaskListInputDto input)
+    {
+        var currentUserId = CurrentUser.Id;
+
+        // Kiểm tra quyền Quản lý hoặc Admin
+        var isManagerOrAdmin = CurrentUser.IsInRole("Manager") ||
+                               CurrentUser.IsInRole("admin") ||
+                               CurrentUser.IsInRole("Admin");
+
+        // Xác định cờ OnlyMyTasks hoặc ép buộc lọc theo user hiện tại nếu không phải Admin/Manager
+        // và client không truyền tường minh AssigneeId hoặc OnlyMyTasks
+        bool effectiveOnlyMyTasks = input.OnlyMyTasks;
+        Guid? effectiveAssigneeId = input.AssigneeId;
+
+        if (!isManagerOrAdmin && !input.AssigneeId.HasValue && !input.OnlyMyTasks)
+        {
+            effectiveOnlyMyTasks = true;
+        }
+
+        // [QUAN TRỌNG] Chuẩn hóa ProjectId: Nếu là null hoặc Guid.Empty thì chuyển thành null để Provider xử lý đúng
+        Guid? effectiveProjectId = (input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty)
+            ? input.ProjectId
+            : null;
+
+        var request = new TaskManagement.Tasks.Request.TaskGetListRequest
+        {
+            Keyword = !string.IsNullOrWhiteSpace(input.Keyword) ? input.Keyword : input.Filter,
+            CategoryId = input.CategoryId,
+            ProjectId = effectiveProjectId, // Sử dụng biến đã được lọc chuẩn xác ở trên
+            AssigneeId = effectiveAssigneeId,
+            DepartmentId = input.DepartmentId,
+            DepartmentIds = input.DepartmentIds,
+            Priority = input.Priority.HasValue ? (int?)input.Priority.Value : null,
+            Status = input.Status.HasValue ? (int?)input.Status.Value : null,
+            OnlyMyTasks = effectiveOnlyMyTasks,
+            SkipCount = input.SkipCount,
+            MaxResultCount = input.MaxResultCount,
+            Sorting = input.Sorting
+        };
+
+        var (items, totalCount) = await _taskProvider.GetListAsync(request, currentUserId);
+
+        // Map thủ công từ TaskQueryResponse sang TaskDto để tránh lỗi cảnh báo AutoMapper thừa/thiếu thuộc tính
+        var dtos = items.Select(x => new TaskDto
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Description = x.Description,
+            Status = (TaskItemStatus)x.Status,
+            Priority = (TaskPriority)x.Priority,
+            ProgressPercent = x.ProgressPercent,
+            DueDate = x.DueDate,
+            ProjectId = x.ProjectId,
+            CategoryId = x.CategoryId,
+            AssigneeId = x.AssigneeId,
+            DepartmentId = x.DepartmentId,
+            CreationTime = x.CreationTime,
+            CreatorId = x.CreatorId,
+            FileName = x.FileName,
+            FileUrl = x.FileUrl
+        }).ToList();
+
+        // Bổ sung thông tin ProjectName và AssigneeName
+        await EnrichTaskDtosAsync(dtos);
+
+        return new PagedResultDto<TaskDto>(totalCount, dtos);
+    }
+
     protected override async Task<IQueryable<TaskItem>> CreateFilteredQueryAsync(GetTaskListInputDto input)
     {
         var query = await Repository.GetQueryableAsync();
@@ -402,7 +477,8 @@ public class TaskAppService : CrudAppService<
     [UnitOfWork]
     public override async Task DeleteAsync(Guid id)
     {
-        var task = await Repository.GetAsync(id);
+        // Dùng FindAsync để trả về null thay vì tự động bắn Exception
+        var task = await Repository.FindAsync(id);
         if (task == null)
         {
             throw new UserFriendlyException("Không tìm thấy công việc cần xóa.");
@@ -577,6 +653,15 @@ public class TaskAppService : CrudAppService<
         entity.UpdateAssignee(newAssigneeId, assigneeName);
 
         await Repository.UpdateAsync(entity, autoSave: true);
+        if (entity.MilestoneId.HasValue && entity.MilestoneId.Value != Guid.Empty)
+        {
+            var milestone = await _milestoneRepository.FindAsync(entity.MilestoneId.Value);
+            if (milestone != null)
+            {
+                milestone.AssigneeUserId = newAssigneeId; 
+                await _milestoneRepository.UpdateAsync(milestone, autoSave: true);
+            }
+        }
         await LogActivityAsync(id, $"Giao công việc cho: {assigneeName}");
         await NotifyTaskStakeholdersAsync(entity, $"Công việc '{entity.Title}' đã được phân công lại cho: {assigneeName}");
 
@@ -1180,6 +1265,42 @@ public class TaskAppService : CrudAppService<
         }
     }
 
+    private async Task EnrichTaskDtosAsync(List<TaskDto> dtos, CancellationToken cancellationToken = default)
+    {
+        if (dtos.Count == 0) return;
+
+        var projectIds = dtos.Where(x => x.ProjectId.HasValue && x.ProjectId.Value != Guid.Empty).Select(x => x.ProjectId!.Value).Distinct().ToList();
+        if (projectIds.Count > 0)
+        {
+            // Truyền cancellationToken vào đây
+            var projects = await _projectRepository.GetListAsync(x => projectIds.Contains(x.Id), cancellationToken: cancellationToken);
+            var projectDict = projects.ToDictionary(p => p.Id);
+            foreach (var dto in dtos)
+            {
+                if (dto.ProjectId.HasValue && projectDict.TryGetValue(dto.ProjectId.Value, out var proj))
+                {
+                    dto.ProjectName = proj.Name;
+                }
+            }
+        }
+
+        var assigneeIds = dtos.Where(x => x.AssigneeId.HasValue && x.AssigneeId.Value != Guid.Empty).Select(x => x.AssigneeId!.Value).Distinct().ToList();
+        if (assigneeIds.Count > 0)
+        {
+            // Bạn cũng nên truyền cancellationToken vào UserRepository để đồng bộ
+            var users = await _userRepository.GetListAsync(x => assigneeIds.Contains(x.Id), cancellationToken: cancellationToken);
+            var userDict = users.ToDictionary(u => u.Id);
+            foreach (var dto in dtos)
+            {
+                if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out var usr))
+                {
+                    dto.AssigneeName = !string.IsNullOrWhiteSpace(usr.Name) ? usr.Name : (usr.UserName ?? string.Empty);
+                    dto.AssigneeUserName = usr.UserName;
+                }
+            }
+        }
+    }
+
     private async Task GenerateNextRecurringTaskIfNeededAsync(TaskItem currentTask)
     {
         if (!currentTask.IsRecurring || !currentTask.DueDate.HasValue) return;
@@ -1299,65 +1420,7 @@ public class TaskAppService : CrudAppService<
     protected override async Task<List<TaskDto>> MapToGetListOutputDtosAsync(List<TaskItem> entities)
     {
         var dtos = await base.MapToGetListOutputDtosAsync(entities);
-        if (dtos.Count == 0) return [];
-
-        for (int i = 0; i < entities.Count; i++)
-        {
-            dtos[i].FileName = entities[i].FileName;
-            dtos[i].FileUrl = entities[i].FileUrl;
-        }
-
-        var projectIds = entities
-            .Where(x => x.ProjectId.HasValue && x.ProjectId.Value != Guid.Empty)
-            .Select(x => x.ProjectId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (projectIds.Count > 0)
-        {
-            try
-            {
-                var projectQuery = await _projectRepository.GetQueryableAsync();
-                var projects = await AsyncExecuter.ToListAsync(projectQuery.Where(x => projectIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
-                var projectDict = projects.ToDictionary(p => p.Id);
-
-                foreach (var dto in dtos)
-                {
-                    if (dto.ProjectId.HasValue && projectDict.TryGetValue(dto.ProjectId.Value, out var dictProject) && dictProject != null)
-                    {
-                        dto.ProjectName = dictProject.Name;
-                    }
-                }
-            }
-            catch (TaskCanceledException) { }
-        }
-
-        var assigneeIds = entities
-            .Where(x => x.AssigneeId.HasValue && x.AssigneeId.Value != Guid.Empty)
-            .Select(x => x.AssigneeId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (assigneeIds.Count > 0)
-        {
-            try
-            {
-                var queryable = await _userRepository.GetQueryableAsync();
-                var users = await AsyncExecuter.ToListAsync(queryable.Where(x => assigneeIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
-                var userDict = users.ToDictionary(u => u.Id);
-
-                foreach (var dto in dtos)
-                {
-                    if (dto.AssigneeId.HasValue && userDict.TryGetValue(dto.AssigneeId.Value, out var dictUser) && dictUser != null)
-                    {
-                        dto.AssigneeName = !string.IsNullOrWhiteSpace(dictUser.Name) ? dictUser.Name : (dictUser.UserName ?? string.Empty);
-                        dto.AssigneeUserName = dictUser.UserName;
-                    }
-                }
-            }
-            catch (TaskCanceledException) { }
-        }
-
+        await EnrichTaskDtosAsync(dtos);
         return dtos;
     }
 
@@ -1541,7 +1604,7 @@ public class TaskAppService : CrudAppService<
                     GuidGenerator.Create(),
                     userId,
                     message,
-                    task.Id
+                    task.Id.ToString()
                 );
 
                 await _notificationRepository.InsertAsync(notification, autoSave: true);

@@ -200,7 +200,7 @@
               <!-- Tab Bình luận -->
               <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
                       [ngClass]="activeTab === 'comments' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
-                      [style.background-color]="activeTab === 'comments' ? null : '#f1f5f9'" 
+                      [style.background-color]="activeTab === 'comments' ? null : '#f8f9fa'" 
                       (click)="switchTab('comments')">
                 <i class="bi bi-chat-square-text"></i> {{ '::Task:TabComments' | abpLocalization }} 
                 <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="comments?.length">{{ comments.length }}</span>
@@ -209,7 +209,7 @@
               <!-- Tab Công việc phụ -->
               <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
                       [ngClass]="activeTab === 'subtask' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
-                      [style.background-color]="activeTab === 'subtask' ? null : '#f1f5f9'" 
+                      [style.background-color]="activeTab === 'subtask' ? null : '#f8f9fa'" 
                       (click)="switchTab('subtask')">
                 <i class="bi bi-list-task"></i> {{ '::Task:TabSubTasks' | abpLocalization }} 
                 <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="subTaskList?.length">{{ subTaskList.length }}</span>
@@ -218,7 +218,7 @@
               <!-- Tab Checklist -->
               <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
                       [ngClass]="activeTab === 'checklist' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
-                      [style.background-color]="activeTab === 'checklist' ? null : '#f1f5f9'" 
+                      [style.background-color]="activeTab === 'checklist' ? null : '#f8f9fa'" 
                       (click)="switchTab('checklist')">
                 <i class="bi bi-check2-square"></i> {{ '::Task:TabChecklist' | abpLocalization }} 
                 <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="checklistItems?.length">{{ checklistItems.length }}</span>
@@ -227,7 +227,7 @@
               <!-- Tab Timeline -->
               <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 px-4 py-2.5 rounded-pill fw-semibold shadow-xs transition-all flex-fill fs-5" 
                       [ngClass]="activeTab === 'timeline' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0'" 
-                      [style.background-color]="activeTab === 'timeline' ? null : '#f1f5f9'" 
+                      [style.background-color]="activeTab === 'timeline' ? null : '#f8f9fa'" 
                       (click)="switchTab('timeline')">
                 <i class="bi bi-clock-history"></i> {{ '::Task:TabTimeline' | abpLocalization }} 
                 <span class="badge bg-white text-primary rounded-pill ms-1 fw-bold px-2 fs-6" *ngIf="timelineLogs?.length">{{ timelineLogs.length }}</span>
@@ -240,7 +240,7 @@
             
            <!-- TAB BÌNH LUẬN -->
             <div *ngIf="activeTab === 'comments'">
-              <div class="card border-0 shadow-xs bg-light rounded-4 p-4 mb-4">
+              <div class="card border-0 shadow-xs rounded-4 p-4 mb-4" style="background-color: #f8f9fa;">
                 <textarea class="form-control border-0 bg-white shadow-xs mb-3 p-3.5 rounded-3 fs-5" rows="3" [(ngModel)]="newCommentText" [placeholder]="'::Task:CommentPlaceholder' | abpLocalization"></textarea>
                 
                 <div *ngIf="commentSelectedFiles?.length > 0" class="d-flex flex-wrap gap-2 mb-3">
@@ -269,7 +269,7 @@
               <div class="comment-list">
                 <p *ngIf="!comments || comments.length === 0" class="text-muted text-center py-4 mb-0 fs-5">{{ '::Task:NoComments' | abpLocalization }}</p>
                 
-                <div *ngFor="let c of comments" class="card border-0 shadow-xs rounded-4 p-4 mb-3 bg-light">
+                <div *ngFor="let c of comments" class="card border-0 shadow-xs rounded-4 p-4 mb-3" style="background-color: #f8f9fa;">
                   <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="d-flex align-items-center gap-3">
                       <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-xs flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.1rem;">
@@ -325,7 +325,7 @@
                 </button>
               </div>
 
-              <div *ngIf="isAddSubTaskOpen" class="card card-body bg-light border-0 mb-3 shadow-xs rounded-3 p-3.5">
+              <div *ngIf="isAddSubTaskOpen" class="card card-body border-0 mb-3 shadow-xs rounded-3 p-3.5" style="background-color: #f8f9fa;">
                 <div class="input-group">
                   <input type="text" class="form-control rounded-start-pill ps-3.5 fs-5 py-2.5" [(ngModel)]="newSubTaskTitle" [placeholder]="'::Task:SubTaskPlaceholder' | abpLocalization" (keyup.enter)="saveNewSubTask()" />
                   <button class="btn btn-primary px-4 fs-6" type="button" (click)="saveNewSubTask()">{{ '::General:Save' | abpLocalization }}</button>
@@ -444,14 +444,14 @@
         <div *ngIf="selectedSubmitFiles && selectedSubmitFiles.length > 0" class="mb-3">
           <small class="text-muted d-block mb-2 fs-6">{{ '::Task:SelectedFiles' | abpLocalization }}:</small>
           <div class="d-flex flex-wrap gap-2">
-            <span *ngFor="let f of selectedSubmitFiles" class="badge bg-light text-dark border p-2 rounded-pill shadow-xs fs-6 fw-normal" [title]="f.fileName">
+            <span *ngFor="let f of selectedSubmitFiles" class="badge text-dark border p-2 rounded-pill shadow-xs fs-6 fw-normal" style="background-color: #f8f9fa;" [title]="f.fileName">
               <span class="text-truncate" style="max-width: 200px; display: inline-block; vertical-align: middle;">{{ f.fileName }}</span>
             </span>
           </div>
         </div>
       </div>
-      <div class="modal-footer border-top px-4 py-3 bg-light">
-        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeSubmitModal()">{{ '::General:Cancel' | abpLocalization }}</button>
+      <div class="modal-footer border-top px-4 py-3" style="background-color: #f8f9fa;">
+        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6 border" style="background-color: #ffffff;" (click)="closeSubmitModal()">{{ '::General:Cancel' | abpLocalization }}</button>
         <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="isActionLoading" (click)="confirmSubmitForReview()">
           <span *ngIf="isActionLoading" class="spinner-border spinner-border-sm me-1"></span> 
           {{ (isEditSubmissionMode ? '::General:Save' : '::Task:SendForReview') | abpLocalization }}
@@ -478,8 +478,8 @@
           <textarea class="form-control rounded-3 p-3.5 fs-5" rows="4" [(ngModel)]="rejectReason" [placeholder]="'::Task:RejectReasonPlaceholder' | abpLocalization"></textarea>
         </div>
       </div>
-      <div class="modal-footer border-top px-4 py-3 bg-light">
-        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6" (click)="closeRejectModal()">{{ '::General:Cancel' | abpLocalization }}</button>
+      <div class="modal-footer border-top px-4 py-3" style="background-color: #f8f9fa;">
+        <button class="btn btn-light rounded-pill px-4 py-2 shadow-xs fs-6 border" style="background-color: #ffffff;" (click)="closeRejectModal()">{{ '::General:Cancel' | abpLocalization }}</button>
         <button class="btn btn-danger rounded-pill px-4 py-2 shadow-sm fs-6" [disabled]="!rejectReason?.trim() || isActionLoading" (click)="confirmRejectTask()">{{ '::Task:ConfirmReject' | abpLocalization }}</button>
       </div>
     </div>

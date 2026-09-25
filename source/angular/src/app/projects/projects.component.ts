@@ -36,7 +36,7 @@ export class ProjectsComponent implements OnInit {
   selectedEditingProjectId: string | null = null;
   
   projectForm: FormGroup = this.fb.group({
-    name: ['', Validators.required],
+    name: ['', [Validators.required, Validators.maxLength(256)]],
     description: [''],
     departmentId: [null],
     categoryId: [null], // Quản lý danh mục dự án
@@ -46,7 +46,7 @@ export class ProjectsComponent implements OnInit {
   });
 
   milestoneForm: FormGroup = this.fb.group({
-    title: ['', Validators.required],
+    title: ['', [Validators.required, Validators.maxLength(256)]],
     description: [''],
     dueDate: ['', Validators.required],
     status: [0, Validators.required],
@@ -68,15 +68,16 @@ export class ProjectsComponent implements OnInit {
   }
 
   // Hàm lọc phòng ban con dựa theo phòng ban của dự án hiện tại cho phần "Thêm nhanh theo Phòng ban"
-  getChildDepartmentsForSelectedProject() {
+ getChildDepartmentsForSelectedProject() {
     const currentDeptId = this.selectedProject?.departmentId || (this.selectedProject as any)?.DepartmentId;
-    if (!currentDeptId) {
+    if (!currentDeptId || !this.departments) {
       return []; 
     }
     
+    // Lọc ra đúng phòng ban có ID trùng với departmentId của dự án (Phòng ban gốc/chính)
     return this.departments.filter(d => {
-      const pId = d.parentDepartmentId || d.ParentDepartmentId || d.parentId || d.ParentId;
-      return pId === currentDeptId;
+      const id = d.id || d.Id;
+      return id === currentDeptId;
     });
   }
 
@@ -129,7 +130,7 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
-  // Hàm đồng bộ danh sách người thực hiện cho mốc tiến độ/công việc giống task-list
+  // Hàm đồng bộ danh sách người thực hiện cho mốc tiến độ/công việc
   getUsersForProject(projectId?: string): any[] {
     if (this.members && this.members.length > 0) {
       return this.members.map(m => {
@@ -215,7 +216,10 @@ export class ProjectsComponent implements OnInit {
   }
 
   saveProject(): void {
-    if (this.projectForm.invalid) return;
+    if (this.projectForm.invalid) {
+      this.projectForm.markAllAsTouched();
+      return;
+    }
 
     const formValue = this.projectForm.value;
 
@@ -290,13 +294,11 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
-  // Tải danh sách cột mốc trước, sau đó tải tasks và lọc bỏ các task đã nằm trong cột mốc để tránh bị hiện 2 dòng trùng nhau
   loadProjectTasksAndMilestones(projectId: string): void {
     this.httpClient.get<any>(`/api/app/project/milestones/${projectId}`).subscribe({
       next: (milestoneRes: any) => {
         const milestoneData = Array.isArray(milestoneRes) ? milestoneRes : (milestoneRes?.items || milestoneRes?.result || []);
         
-        // 1. Map danh sách cột mốc ban đầu
         this.milestones = milestoneData.map((m: any) => {
           const milestoneId = m.id || m.Id;
           return {
@@ -310,12 +312,10 @@ export class ProjectsComponent implements OnInit {
           };
         });
 
-        // 2. Tải danh sách công việc (tasks) của dự án
         this.httpClient.get<any>(`/api/app/task?projectId=${projectId}&maxResultCount=100`).subscribe({
           next: (taskRes: any) => {
             const taskData = Array.isArray(taskRes) ? taskRes : (taskRes?.items || taskRes?.result || []);
             
-            // Lọc bỏ các task đã khớp với cột mốc để bảng chỉ hiện thị 1 dòng duy nhất là cột mốc
             this.projectTasks = taskData.filter((task: any) => {
               const tMilestoneId = task.milestoneId || task.MilestoneId;
               const taskTitle = (task.title || task.Title || '').trim().toLowerCase();
@@ -329,7 +329,6 @@ export class ProjectsComponent implements OnInit {
               return !isMatchedWithMilestone; 
             });
 
-            // 3. Đồng bộ thông tin mới nhất từ Task sang Cột mốc
             this.milestones = this.milestones.map((m: any) => {
               const milestoneId = m.id;
               const milestoneTitle = (m.title || '').trim().toLowerCase();
@@ -384,7 +383,10 @@ export class ProjectsComponent implements OnInit {
   }
 
   addMilestone(): void {
-    if (this.milestoneForm.invalid || !this.selectedProject?.id) return;
+    if (this.milestoneForm.invalid || !this.selectedProject?.id) {
+      this.milestoneForm.markAllAsTouched();
+      return;
+    }
     
     const formValue = this.milestoneForm.value;
     const formDateStr = formValue.dueDate;
@@ -395,7 +397,7 @@ export class ProjectsComponent implements OnInit {
       const projectStartDate = new Date(this.selectedProject.startDate);
       projectStartDate.setHours(0, 0, 0, 0);
       if (milestoneDate < projectStartDate) {
-        alert(`Ngày mốc tiến độ không được nhỏ hơn ngày bắt đầu của dự án!`);
+        alert('Ngày mốc tiến độ không được nhỏ hơn ngày bắt đầu của dự án!');
         return;
       }
     }
@@ -404,7 +406,7 @@ export class ProjectsComponent implements OnInit {
       const projectEndDate = new Date(this.selectedProject.endDate);
       projectEndDate.setHours(0, 0, 0, 0);
       if (milestoneDate > projectEndDate) {
-        alert(`Ngày mốc tiến độ không được lớn hơn ngày kết thúc của dự án!`);
+        alert('Ngày mốc tiến độ không được lớn hơn ngày kết thúc của dự án!');
         return;
       }
     }
@@ -441,7 +443,10 @@ export class ProjectsComponent implements OnInit {
   }
 
   addMember(): void {
-    if (this.memberForm.invalid || !this.selectedProject?.id) return;
+    if (this.memberForm.invalid || !this.selectedProject?.id) {
+      this.memberForm.markAllAsTouched();
+      return;
+    }
     
     const formVal = this.memberForm.value;
     const selectedUserId = formVal.userId;
@@ -486,54 +491,26 @@ export class ProjectsComponent implements OnInit {
       return;
     }
 
-    const rawDepts = this.departments || [];
-    const targetDeptIds = new Set<string>();
+    // Chỉ gọi API lấy nhân sự thuộc đúng phòng ban đang được chọn trong dropdown
+    this.httpClient.get<any>(`/api/app/department/${this.selectedDepartmentId}/users`).pipe(
+      catchError(() => of([]))
+    ).subscribe({
+      next: (res: any) => {
+        const users = Array.isArray(res) ? res : (res?.items || res?.result || []);
 
-    const findSubDepartments = (parentId: string) => {
-      targetDeptIds.add(parentId);
-      const children = rawDepts.filter((d: any) => {
-        const pId = d.parentDepartmentId || d.ParentDepartmentId || d.parentId || d.ParentId;
-        return pId === parentId;
-      });
-      children.forEach((child: any) => {
-        const childId = child.id || child.Id;
-        if (childId) findSubDepartments(childId);
-      });
-    };
-
-    findSubDepartments(this.selectedDepartmentId);
-
-    const requests = Array.from(targetDeptIds).map(deptId => 
-      this.httpClient.get<any>(`/api/app/department/${deptId}/users`).pipe(
-        catchError(() => of([]))
-      )
-    );
-
-    forkJoin(requests).subscribe({
-      next: (responses: any[]) => {
-        const allDeptUsers: any[] = [];
-        responses.forEach(res => {
-          const users = Array.isArray(res) ? res : (res?.items || res?.result || []);
-          allDeptUsers.push(...users);
-        });
-
-        const uniqueUsers = Array.from(
-          new Map(allDeptUsers.map((u: any) => [u.id || u.Id || u.userId, u])).values()
-        );
-
-        if (uniqueUsers.length === 0) {
-          alert('Phòng ban này và các nhánh con không có nhân sự nào.');
+        if (users.length === 0) {
+          alert('Phòng ban này không có nhân sự nào.');
           return;
         }
 
         const existingUserIds = this.members.map(m => m.userId || m.UserId);
-        const usersToAdd = uniqueUsers.filter((u: any) => {
+        const usersToAdd = users.filter((u: any) => {
           const uid = u.id || u.Id || u.userId;
           return !existingUserIds.includes(uid);
         });
 
         if (usersToAdd.length === 0) {
-          alert('Tất cả nhân sự trong phòng ban này và các nhánh con đã có trong dự án rồi!');
+          alert('Tất cả nhân sự trong phòng ban này đã có trong dự án rồi!');
           return;
         }
 
@@ -561,7 +538,6 @@ export class ProjectsComponent implements OnInit {
       error: (err: any) => console.error('Lỗi tải nhân sự theo phòng ban:', err)
     });
   }
-
   getUserName(userId: string): string {
     if (!userId || userId === '00000000-0000-0000-0000-000000000000') return 'Chưa phân công';
 

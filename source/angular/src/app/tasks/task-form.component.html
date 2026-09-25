@@ -43,8 +43,8 @@
             [attr.disabled]="isEditMode ? true : null"
             style="opacity: 1; color: #212529; background-color: #e9ecef;"
           >
-            <option [ngValue]="''">-- {{ '::Task:SelectCategory' | abpLocalization }} --</option>
-            <option *ngFor="let cat of categories" [ngValue]="cat.id || cat.Id">{{ cat.name || cat.Name }}</option>
+            <option [ngValue]="null">-- {{ '::Task:SelectCategory' | abpLocalization }} --</option>
+            <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name || cat.Name }}</option>
           </select>
           <div class="invalid-feedback">{{ '::Task:CategoryRequired' | abpLocalization }}</div>
         </div>
@@ -80,36 +80,35 @@
         </select>
       </div>
 
-      <!-- Người thực hiện & Hạn hoàn thành -->
-      <div class="row">
-        <div class="col-md-6 mb-3 position-relative">
-          <label class="form-label required fw-bold">{{ '::Task:Assignee' | abpLocalization }}</label>
-          <select 
-            class="form-select" 
-            formControlName="assigneeId"
-            [class.is-invalid]="form.get('assigneeId')?.touched && form.get('assigneeId')?.invalid"
-          >
-            <option [ngValue]="null">-- {{ '::Task:SelectAssignee' | abpLocalization }} --</option>
-            <option *ngFor="let user of filteredUsers" [value]="user.id || user.Id">
-              {{ user.name || user.UserName || user.userName }}
-            </option>
-          </select>
-          <div class="invalid-feedback">{{ '::Task:AssigneeRequired' | abpLocalization }}</div>
-        </div>
+     <!-- Người thực hiện & Hạn hoàn thành -->
+<div class="row">
+  <div class="col-md-6 mb-3 position-relative">
+    <label class="form-label required fw-bold">{{ '::Task:Assignee' | abpLocalization }}</label>
+    <select 
+      class="form-select" 
+      formControlName="assigneeId"
+      [class.is-invalid]="form.get('assigneeId')?.touched && form.get('assigneeId')?.invalid"
+    >
+      <option [ngValue]="null">-- {{ '::Task:SelectAssignee' | abpLocalization }} --</option>
+      <option *ngFor="let user of filteredUsers" [value]="getUserId(user)">
+        {{ getUserDisplayName(user) }}
+      </option>
+    </select>
+    <div class="invalid-feedback">{{ '::Task:AssigneeRequired' | abpLocalization }}</div>
+  </div>
 
-        <div class="col-md-6 mb-3">
-          <label class="form-label required fw-bold">{{ '::Task:DueDate' | abpLocalization }}</label>
-          <input 
-            type="date" 
-            class="form-control" 
-            formControlName="dueDate" 
-            [min]="minDate"
-            [class.is-invalid]="form.get('dueDate')?.touched && form.get('dueDate')?.invalid"
-          />
-          <div class="invalid-feedback">{{ '::Task:DueDateRequired' | abpLocalization }}</div>
-        </div>
-      </div>
-
+  <div class="col-md-6 mb-3">
+    <label class="form-label required fw-bold">{{ '::Task:DueDate' | abpLocalization }}</label>
+    <input 
+      type="date" 
+      class="form-control" 
+      formControlName="dueDate" 
+      [min]="minDate"
+      [class.is-invalid]="form.get('dueDate')?.touched && form.get('dueDate')?.invalid"
+    />
+    <div class="invalid-feedback">{{ '::Task:DueDateRequired' | abpLocalization }}</div>
+  </div>
+</div>
       <div class="row">
         <!-- Mức độ ưu tiên -->
         <div class="col-md-6 mb-3 position-relative">

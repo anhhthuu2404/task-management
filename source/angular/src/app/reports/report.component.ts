@@ -5,10 +5,11 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { CoreModule } from '@abp/ng.core';
+
 @Component({
   selector: 'app-report',
   standalone: true,
-  imports: [CommonModule, FormsModule , CoreModule],
+  imports: [CommonModule, FormsModule, CoreModule],
   templateUrl: './report.component.html'
 })
 export class ReportComponent implements OnInit {
@@ -88,91 +89,95 @@ export class ReportComponent implements OnInit {
   }
 
   getStatusText(status: any): string {
-    switch (status) {
-      case 1:
-      case 'ToDo':
-      case 'Chưa thực hiện':
-        return 'Chưa thực hiện';
-      case 2:
-      case 'InProgress':
-      case 'Đang làm':
-        return 'Đang làm';
-      case 3:
-      case 'Completed':
-      case 'Hoàn thành':
-        return 'Hoàn thành';
-      case 4:
-      case 'Pending':
-      case 'Tạm dừng':
-        return 'Tạm dừng';
-      case 5:
-      case 'Overdue':
-      case 'Quá hạn':
-        return 'Quá hạn';
+    // Ép kiểu sang số hoặc xử lý linh hoạt chuỗi/số từ Backend C# Enum
+    const statusNum = Number(status);
+    
+    switch (statusNum) {
+      case 0: return 'Chưa thực hiện';
+      case 1: return 'Đang thực hiện';
+      case 2: return 'Hoàn thành';
+      case 3: return 'Tạm dừng';
+      case 4: return 'Quá hạn';
+      
       default:
-        return status || '---';
+        // Dự phòng trường hợp API trả về dạng chuỗi trực tiếp
+        switch (String(status)) {
+          case 'ToDo': case 'Chưa thực hiện': return 'Chưa thực hiện';
+          case 'InProgress': case 'Đang làm': case 'Đang thực hiện': return 'Đang thực hiện';
+          case 'Completed': case 'Hoàn thành': return 'Hoàn thành';
+          case 'Pending': case 'Tạm dừng': return 'Tạm dừng';
+          case 'Overdue': case 'Quá hạn': return 'Quá hạn';
+          default: return status || '---';
+        }
     }
   }
 
   getStatusBadgeClass(status: any): string {
     const text = this.getStatusText(status);
     switch (text) {
-      case 'Hoàn thành': return 'bg-success';
-      case 'Đang làm': return 'bg-primary';
-      case 'Quá hạn': return 'bg-danger';
+      case 'Hoàn thành': return 'bg-success text-white';
+      case 'Đang thực hiện': case 'Đang làm': return 'bg-primary text-white';
+      case 'Quá hạn': return 'bg-danger text-white';
       case 'Tạm dừng': return 'bg-warning text-dark';
-      default: return 'bg-secondary';
+      case 'Chưa thực hiện': return 'bg-secondary text-white';
+      default: return 'bg-light text-dark';
     }
   }
 
-onSearchReport(): void {
-  this.isLoading = true;
-  
-  const cleanParams: Record<string, any> = {};
-  
-  // Xử lý gom nhóm phòng ban con nếu có chọn phòng ban
-  if (this.filter.departmentId) {
-    const rawDepts = this._rawDepartments || [];
-    const targetDeptIds = new Set<string>();
+  onSearchReport(): void {
+    this.isLoading = true;
     
-    const findSubDepartments = (parentId: string) => {
-      targetDeptIds.add(parentId);
-      const children = rawDepts.filter((d: any) => (d.parentId === parentId || d.parentDepartmentId === parentId));
-      children.forEach((child: any) => {
-        const childId = child.id || child.Id;
-        if (childId) findSubDepartments(childId);
-      });
-    };
-
-    findSubDepartments(this.filter.departmentId);
+    const cleanParams: Record<string, any> = {};
     
-    // Truyền danh sách departmentIds thay vì một departmentId đơn lẻ
-    cleanParams['departmentIds'] = Array.from(targetDeptIds);
-  }
+    // Xử lý gom nhóm phòng ban con nếu có chọn phòng ban
+    if (this.filter.departmentId) {
+      const rawDepts = this._rawDepartments || [];
+      const targetDeptIds = new Set<string>();
+      
+      const findSubDepartments = (parentId: string) => {
+        targetDeptIds.add(parentId);
+        const children = rawDepts.filter((d: any) => (d.parentId === parentId || d.parentDepartmentId === parentId));
+        children.forEach((child: any) => {
+          const childId = child.id || child.Id;
+          if (childId) findSubDepartments(childId);
+        });
+      };
 
-  // Đưa các bộ lọc còn lại vào params
-  Object.keys(this.filter).forEach(key => {
-    if (key === 'departmentId') return; // Bỏ qua departmentId đơn lẻ vì đã đổi thành departmentIds
-    const val = (this.filter as any)[key];
-    if (val !== null && val !== undefined && val !== '') {
-      cleanParams[key] = val;
+      findSubDepartments(this.filter.departmentId);
+      
+      // Truyền danh sách departmentIds thay vì một departmentId đơn lẻ
+      cleanParams['departmentIds'] = Array.from(targetDeptIds);
     }
-  });
 
-  this.httpClient.get<any>('/api/app/report/get-task-report', { params: cleanParams }).pipe(
-    catchError(() => of({ items: [] }))
-  ).subscribe((res: any) => {
-    this.reportData = Array.isArray(res) ? res : (res.items || res.result || []);
-    this.isLoading = false;
-  });
-}
+    // Đưa các bộ lọc còn lại vào params
+    Object.keys(this.filter).forEach(key => {
+      if (key === 'departmentId') return; // Bỏ qua departmentId đơn lẻ vì đã đổi thành departmentIds
+      const val = (this.filter as any)[key];
+      if (val !== null && val !== undefined && val !== '') {
+        cleanParams[key] = val;
+      }
+    });
+
+    this.httpClient.get<any>('/api/app/report/get-task-report', { params: cleanParams }).pipe(
+      catchError(() => of({ items: [] }))
+    ).subscribe((res: any) => {
+      const rawData = Array.isArray(res) ? res : (res.items || res.result || []);
+      
+      // Lọc chống lặp dòng và khai báo tường minh kiểu dữ liệu cho TypeScript
+      this.reportData = rawData.filter((item: any, index: number, self: any[]) => 
+        index === self.findIndex((t: any) => (t.id && t.id === item.id) || (t.title === item.title && t.assigneeName === item.assigneeName))
+      );
+
+      this.isLoading = false;
+    });
+  }
 
   exportToExcel(): void {
     if (this.reportData.length === 0) return;
     let csv = "\ufeffSTT,Tên Công Việc,Dự Án,Người Thực Hiện,Trạng Thái,Tiến Độ,Hạn Hoàn Thành\n";
     this.reportData.forEach((item, index) => {
       const statusText = this.getStatusText(item.status);
-      csv += `${index + 1},"${item.title}","${item.projectName || ''}","${item.assigneeName || ''}","${statusText}",${item.progressPercent}%,${item.dueDate ? item.dueDate.slice(0,10) : ''}\n`;
+      csv += `${index + 1},"${item.title}","${item.projectName || ''}","${item.assigneeName || ''}","${statusText}",${item.progressPercent || 0}%,${item.dueDate ? item.dueDate.slice(0,10) : ''}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');

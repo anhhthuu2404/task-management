@@ -1,3 +1,4 @@
+
 <abp-page [title]="'::Menu:Departments' | abpLocalization">
   <div class="row g-3">
     <!-- Cột bên trái: Cây phòng ban -->
@@ -63,7 +64,7 @@
             <span class="fw-bold">{{ '::Department:MembersOf' | abpLocalization }}:</span> 
             <span class="text-primary ms-1 fw-bold text-truncate">{{ selectedDepartment.name }}</span>
           </span>
-          <button class="btn btn-success btn-sm px-3 py-2 shadow-sm d-inline-flex align-items-center gap-1 flex-shrink-0" (click)="openAssignModal()">
+          <button class="btn btn-success btn-sm px-4 py-2 shadow-sm d-inline-flex align-items-center gap-1 flex-shrink-0" (click)="openAssignModal()">
             <i class="fa fa-user-plus"></i> <span>{{ '::Department:AssignUser' | abpLocalization }}</span>
           </button>
         </div>
@@ -71,7 +72,7 @@
         <div class="card-body p-0 flex-grow-1">
           <div class="table-responsive m-0">
             <table class="table table-hover align-middle mb-0">
-              <thead class="table-light text-uppercase fs-7 text-dark fw-bold">
+              <thead class="table-light text-uppercase fs-7 text-dark fw-bold" style="font-weight: 700 !important;">
                 <tr>
                   <th class="ps-3 py-3">{{ '::Department:Username' | abpLocalization }}</th>
                   <th class="py-3">{{ '::Department:Role' | abpLocalization }}</th>

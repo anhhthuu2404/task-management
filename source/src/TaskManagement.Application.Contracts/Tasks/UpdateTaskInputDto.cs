@@ -37,4 +37,8 @@ public class UpdateTaskInputDto
     public bool IsRecurring { get; set; } = false;
     public RecurrenceFrequency? Frequency { get; set; }
     public DateTime? LastGeneratedDate { get; set; }
+    public string? AssigneeName { get; set; }
+    public string? FileName { get; set; }
+    public string? FileUrl { get; set; }
+    public int ProgressPercent { get; set; }
 }

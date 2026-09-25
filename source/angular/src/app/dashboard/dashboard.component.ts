@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { BaseChartDirective } from 'ng2-charts';
-import { CoreModule } from '@abp/ng.core';
+import { CoreModule, LocalizationService } from '@abp/ng.core';
 import {
   Chart,
   DoughnutController,
@@ -70,7 +70,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   roleChartData: any = { labels: [], datasets: [] };
   projectChartData: any = { labels: [], datasets: [] };
 
-  // Cấu hình chung tùy chỉnh Tooltip & Legend chuyên nghiệp cho Chart.js
   chartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
@@ -97,14 +96,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private httpClient: HttpClient,
-    private dashboardService: DashboardService
+    private dashboardService: DashboardService,
+    private localizationService: LocalizationService // Inject LocalizationService để lấy ngôn ngữ hiện tại (vi/en)
   ) {}
 
- ngOnInit(): void {
-  setTimeout(() => {
-    this.loadDashboardData();
-  });
-}
+  ngOnInit(): void {
+    setTimeout(() => {
+      this.loadDashboardData();
+    });
+  }
 
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -126,7 +126,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     });
   }
 
-loadDashboardData(): void {
+  loadDashboardData(): void {
     requestAnimationFrame(() => {
       this.isToastVisible = true;
       this.cdr.markForCheck();
@@ -137,16 +137,46 @@ loadDashboardData(): void {
       }, 3000);
     });
 
+    const currentLang = this.localizationService.currentLang; // Lấy mã ngôn ngữ hiện tại ('vi' hoặc 'en')
+
     this.dashboardService.getStatistics().pipe(
       catchError(() => of(null))
     ).subscribe({
       next: (statsRes: any) => {
         this.stats = statsRes;
         const statusMap = statsRes?.tasksByStatus || {};
-        this.taskChartData = {
-          labels: Object.keys(statusMap),
-          datasets: [{ data: Object.values(statusMap), backgroundColor: ['#ffd166', '#4ea8de', '#52b788', '#ef476f'] }]
+        
+        const statusNameMapping: { [key: string]: string } = {
+          '0': currentLang === 'en' ? 'Pending' : 'Chờ xử lý',
+          '1': currentLang === 'en' ? 'In Progress' : 'Đang thực hiện',
+          '2': currentLang === 'en' ? 'Completed' : 'Đã hoàn thành',
+          '3': currentLang === 'en' ? 'Cancelled' : 'Đã hủy',
+          '5': currentLang === 'en' ? 'Overdue' : 'Quá hạn'
         };
+
+        const rawKeys = Object.keys(statusMap);
+        const mappedLabels = rawKeys.map(key => statusNameMapping[key] || `Status ${key}`);
+        const rawValues = Object.values(statusMap);
+
+        const statusColors = rawKeys.map(key => {
+          switch (key) {
+            case '0': return '#ffd166';
+            case '1': return '#4ea8de';
+            case '2': return '#52b788';
+            case '3': return '#ef476f';
+            case '5': return '#adb5bd';
+            default: return '#cccccc';
+          }
+        });
+
+        this.taskChartData = {
+          labels: mappedLabels,
+          datasets: [{ 
+            data: rawValues, 
+            backgroundColor: statusColors 
+          }]
+        };
+
         this.isLoading = false;
         this.cdr.markForCheck();
       },
@@ -155,6 +185,7 @@ loadDashboardData(): void {
         this.cdr.markForCheck();
       }
     });
+
     forkJoin({
       categories: this.httpClient.get<any>('/api/app/category?maxResultCount=100').pipe(catchError(() => of({ items: [] }))),
       tags: this.httpClient.get<any>('/api/app/tag?maxResultCount=100').pipe(catchError(() => of({ items: [] }))),
@@ -184,9 +215,8 @@ loadDashboardData(): void {
         const projects = extractArray(res.projects);
         const taskItems = extractArray(res.tasks);
 
-       this.totalTasks = taskItems.length;
+        this.totalTasks = taskItems.length;
         
-        // Sửa điều kiện nhận diện Hoàn thành (status === 2 hoặc progressPercent === 100)
         this.completedTasks = taskItems.filter((t: any) => {
           return t.status === 2 || t.progressPercent === 100 || t.isCompleted === true;
         }).length;
@@ -198,11 +228,8 @@ loadDashboardData(): void {
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
 
-        // Sửa điều kiện nhận diện Quá hạn (status === 5 hoặc quá hạn theo ngày)
         this.overdueTasks = taskItems.filter((t: any) => {
-          // Nếu status từ backend đã là 5 (Quá hạn) thì tính luôn
           if (t.status === 5) return true;
-
           const dateValue = t.dueDate || t.deadline || t.endTime;
           if (!dateValue) return false;
           
@@ -214,63 +241,72 @@ loadDashboardData(): void {
         }).length;
 
         this.completedOverdueChartData = {
-          labels: ['Công việc hoàn thành', 'Công việc quá hạn'],
+          labels: [
+            currentLang === 'en' ? 'Completed Tasks' : 'Công việc hoàn thành', 
+            currentLang === 'en' ? 'Overdue Tasks' : 'Công việc quá hạn'
+          ],
           datasets: [{
             data: [this.completedTasks, this.overdueTasks],
             backgroundColor: ['#ffafcc', '#ffadad']
           }]
         };
+
+        // Danh mục (Category)
         this.categoryChartData = {
-          labels: catItems.map((x: any) => x.name ?? ''),
+          labels: catItems.map((x: any) => (currentLang === 'en' && x.nameEn) ? x.nameEn : (x.name ?? '')),
           datasets: [{ 
             data: catItems.map((cat: any) => taskItems.filter((t: any) => 
               t.categoryId === cat.id || t.category?.id === cat.id
             ).length), 
-            label: 'Số lượng công việc', 
+            label: currentLang === 'en' ? 'Task Count' : 'Số lượng công việc', 
             backgroundColor: '#c5d3e8' 
           }]
         };
 
-        this.tagChartData = {
-          labels: tagItems.map((x: any) => x.name ?? ''),
-          datasets: [{ 
-            data: tagItems.map((tag: any) => taskItems.filter((t: any) => {
-              return t.tagId === tag.id || 
-                     (t.tagIds && Array.isArray(t.tagIds) && t.tagIds.includes(tag.id)) ||
-                     (t.tags && Array.isArray(t.tags) && t.tags.some((item: any) => (item.id || item) === tag.id));
-            }).length), 
-            label: 'Số lượng công việc', 
-            backgroundColor: '#b7efc5' 
-          }]
-        };
+      // Thẻ (Tag)
+          this.tagChartData = {
+               labels: tagItems.map((x: any) => (currentLang === 'en' && x.nameEn) ? x.nameEn : (x.name ?? '')),
+               datasets: [{ 
+               data: tagItems.map((tag: any) => taskItems.filter((t: any) => {
+      // So sánh trực tiếp categoryId của thẻ với categoryId của task
+                 return t.categoryId === tag.categoryId || t.category?.id === tag.categoryId;
+             }).length), 
+                label: currentLang === 'en' ? 'Task Count' : 'Số lượng danh mục', 
+                 backgroundColor: '#b7efc5' 
+              }]
+          };
 
+        // Dự án (Project)
         this.projectChartData = {
-          labels: projects.map((p: any) => p.name ?? ''),
+          labels: projects.map((p: any) => (currentLang === 'en' && p.nameEn) ? p.nameEn : (p.name ?? '')),
           datasets: [{ 
             data: projects.map((proj: any) => taskItems.filter((t: any) => 
               t.projectId === proj.id || t.project?.id === proj.id
             ).length), 
-            label: 'Số lượng công việc', 
+            label: currentLang === 'en' ? 'Task Count' : 'Số lượng công việc', 
             backgroundColor: '#b5e2fa' 
           }]
         };
 
+        // Phòng ban (Department)
         this.departmentChartData = {
           labels: allDepts.map((d: any) => {
             const parent = allDepts.find((p: any) => p.id === d.parentId);
-            const deptName = d.displayName || d.name || '';
-            return parent ? `${parent.name} > ${deptName}` : deptName;
+            const deptName = (currentLang === 'en' && d.nameEn) ? d.nameEn : (d.displayName || d.name || '');
+            const parentName = parent ? ((currentLang === 'en' && parent.nameEn) ? parent.nameEn : parent.name) : '';
+            return parent ? `${parentName} > ${deptName}` : deptName;
           }),
           datasets: [{ 
             data: allDepts.map((d: any) => {
               if (d.members && d.members.length > 0) return d.members.length;
               return users.filter((u: any) => u.departmentId === d.id).length;
             }), 
-            label: 'Số lượng nhân sự', 
+            label: currentLang === 'en' ? 'Personnel Count' : 'Số lượng nhân sự', 
             backgroundColor: '#fcf6bd' 
           }]
         };
 
+        // Người dùng (User)
         this.userChartData = {
           labels: users.map((u: any) => u.userName ?? u.name ?? ''),
           datasets: [{ 
@@ -289,14 +325,15 @@ loadDashboardData(): void {
                      (t.userName && t.userName.toLowerCase() === uName) ||
                      (t.userIds && Array.isArray(t.userIds) && (t.userIds.includes(uId) || t.userIds.includes(uName)));
             }).length), 
-            label: 'Công việc tham gia', 
+            label: currentLang === 'en' ? 'Participating Tasks' : 'Công việc tham gia', 
             backgroundColor: '#ffc8dd' 
           }]
         };
 
+        // Vai trò (Role)
         this.roleChartData = {
           labels: roles.map((r: any) => r.name ?? ''),
-          datasets: [{ data: roles.map(() => 1), label: 'Vai trò', backgroundColor: '#e2ece9' }]
+          datasets: [{ data: roles.map(() => 1), label: 'Role', backgroundColor: '#e2ece9' }]
         };
 
         this.cdr.markForCheck();

@@ -1,40 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
-using TaskManagement.Tasks;
-namespace TaskManagement.Tasks;
 
-public class TaskDto : AuditedEntityDto<Guid>
+namespace TaskManagement.Tasks
 {
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public TaskPriority Priority { get; set; }
-    public TaskItemStatus Status { get; set; }
-    public DateTime? DueDate { get; set; }
-    public Guid CategoryId { get; set; }
-    public Guid? AssigneeId { get; set; }
-    public string? AssigneeName { get; set; }
-    public string? AssigneeUserName { get; set; }
-    public string? FileName { get; set; }
-    public string? FileUrl { get; set; }
-    public int ProgressPercent { get; set; }
-    public bool IsRecurring { get; set; } = false;
-    public RecurrenceFrequency? Frequency { get; set; }
-    public DateTime? LastGeneratedDate { get; set; }
-    public Guid? MilestoneId { get; set; }
+    public class TaskDto : AuditedEntityDto<Guid>
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public TaskPriority Priority { get; set; }
+        public TaskItemStatus Status { get; set; }
+        public DateTime? DueDate { get; set; }
+        public Guid CategoryId { get; set; }
+        public Guid? AssigneeId { get; set; }
+        public string? AssigneeName { get; set; }
+        public string? AssigneeUserName { get; set; }
+        public string? FileName { get; set; }
+        public string? FileUrl { get; set; }
+        public int ProgressPercent { get; set; }
+        public bool IsRecurring { get; set; } = false;
+        public RecurrenceFrequency? Frequency { get; set; }
+        public DateTime? LastGeneratedDate { get; set; }
+        public Guid? MilestoneId { get; set; }
 
-    public string? ProjectName { get; set; }
-    public Guid? ProjectId { get; set; }
-    public Guid? DepartmentId { get; set; }
+        public string? ProjectName { get; set; }
+        public Guid? ProjectId { get; set; }
+        public Guid? DepartmentId { get; set; }
 
-    public string? SubmissionNote { get; set; }
-    public List<TaskFileDto> SubmissionFiles { get; set; } = new();
-  
-}
+        public string? SubmissionNote { get; set; }
+        public List<TaskFileDto> SubmissionFiles { get; set; } = [];
 
-public class TaskFileDto
-{
-    public string? FileName { get; set; }
-    public string? FileUrl { get; set; }
-    public string? FileContent { get; set; }
+        public string? DepartmentName { get; set; }
+        public string? MilestoneName { get; set; }
+    }
+
+    public class TaskFileDto
+    {
+        public string? FileName { get; set; }
+        public string? FileUrl { get; set; }
+        public string? FileContent { get; set; }
+    }
 }

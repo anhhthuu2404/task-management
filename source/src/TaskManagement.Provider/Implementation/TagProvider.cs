@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using TaskManagement.Provider.Interface;
+using TaskManagement.Tags;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
-using TaskManagement.Tags;
-using TaskManagement.Provider.Interface;
-using Volo.Abp;
 
 namespace TaskManagement.Provider.Implementation
 {
@@ -27,6 +28,11 @@ namespace TaskManagement.Provider.Implementation
 
             await using (var command = connection.CreateCommand())
             {
+                if (dbContext.Database.CurrentTransaction != null)
+                {
+                    command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
+                }
+
                 command.CommandText = "EXEC [dbo].[Sp_Tag_GetList] @Filter, @CategoryId, @SkipCount, @MaxResultCount, @Sorting";
                 command.Parameters.Add(new SqlParameter("@Filter", (object?)input.Filter ?? DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@CategoryId", input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty ? (object)input.CategoryId.Value : DBNull.Value));
@@ -68,6 +74,11 @@ namespace TaskManagement.Provider.Implementation
             TagDto? dto = null;
             await using (var command = connection.CreateCommand())
             {
+                if (dbContext.Database.CurrentTransaction != null)
+                {
+                    command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
+                }
+
                 command.CommandText = "EXEC [dbo].[Sp_Tag_GetById] @Id";
                 command.Parameters.Add(new SqlParameter("@Id", id));
 
@@ -96,13 +107,23 @@ namespace TaskManagement.Provider.Implementation
             if (connection.State != ConnectionState.Open) await connection.OpenAsync();
 
             await using var command = connection.CreateCommand();
-            command.CommandText = "EXEC [dbo].[Sp_Tag_Create] @Id, @Name, @ColorCode, @CategoryId, @CreationTime, @CreatorId";
+
+            if (dbContext.Database.CurrentTransaction != null)
+            {
+                command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
+            }
+
+            command.CommandText = "EXEC [dbo].[Sp_Tag_Create] @Id, @Name, @ColorCode, @CategoryId, @CreationTime, @CreatorId, @IsActive, @ExtraProperties, @ConcurrencyStamp";
+
             command.Parameters.Add(new SqlParameter("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id));
             command.Parameters.Add(new SqlParameter("@Name", input.Name));
             command.Parameters.Add(new SqlParameter("@ColorCode", (object?)input.ColorCode ?? DBNull.Value));
             command.Parameters.Add(new SqlParameter("@CategoryId", input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty ? (object)input.CategoryId.Value : DBNull.Value));
             command.Parameters.Add(new SqlParameter("@CreationTime", DateTime.UtcNow));
             command.Parameters.Add(new SqlParameter("@CreatorId", (object?)creatorId ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter("@IsActive", true));
+            command.Parameters.Add(new SqlParameter("@ExtraProperties", "{}"));
+            command.Parameters.Add(new SqlParameter("@ConcurrencyStamp", Guid.NewGuid().ToString("N")));
 
             await command.ExecuteNonQueryAsync();
         }
@@ -114,6 +135,12 @@ namespace TaskManagement.Provider.Implementation
             if (connection.State != ConnectionState.Open) await connection.OpenAsync();
 
             await using var command = connection.CreateCommand();
+
+            if (dbContext.Database.CurrentTransaction != null)
+            {
+                command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
+            }
+
             command.CommandText = "EXEC [dbo].[Sp_Tag_Update] @Id, @Name, @ColorCode, @CategoryId, @LastModificationTime, @LastModifierId";
             command.Parameters.Add(new SqlParameter("@Id", id));
             command.Parameters.Add(new SqlParameter("@Name", input.Name));
@@ -131,7 +158,13 @@ namespace TaskManagement.Provider.Implementation
             var connection = dbContext.Database.GetDbConnection();
             if (connection.State != ConnectionState.Open) await connection.OpenAsync();
 
-            await using var command = connection.CreateCommand();
+            using var command = connection.CreateCommand();
+
+            if (dbContext.Database.CurrentTransaction != null)
+            {
+                command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
+            }
+
             command.CommandText = "EXEC [dbo].[Sp_Tag_Delete] @Id, @DeleterId, @DeletionTime";
             command.Parameters.Add(new SqlParameter("@Id", id));
             command.Parameters.Add(new SqlParameter("@DeleterId", (object?)deleterId ?? DBNull.Value));

@@ -1,23 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using TaskManagement.TaskHistories;
 using System.ComponentModel.DataAnnotations;
+using TaskManagement.TaskHistories;
 
-namespace TaskManagement.Tasks;
-
-public class TaskDetailDto : TaskDto
+namespace TaskManagement.Tasks
 {
-    public List<SubTaskDto> SubTasks { get; set; } = [];
-    public List<ChecklistItemDto> ChecklistItems { get; set; } = [];
-    public List<TaskActivityLogDto> ActivityLogs { get; set; } = [];
-    public DateTime? SubmittedAt { get; set; }
-    public List<TaskManagement.TaskHistories.TaskHistoryDto> Histories { get; set; } = new();
+    public class TaskDetailDto : TaskDto
+    {
+        public List<SubTaskDto> SubTasks { get; set; } = [];
+        public List<ChecklistItemDto> ChecklistItems { get; set; } = [];
+        public List<TaskActivityLogDto> ActivityLogs { get; set; } = [];
+        public DateTime? SubmittedAt { get; set; }
+        public List<TaskHistoryDto> Histories { get; set; } = [];
+        public List<TaskCommentDto> Comments { get; set; } = [];
+        public TaskDto? Task { get; set; }
+        public List<TaskAttachmentDto> Attachments { get; set; } = [];
+    }
 
-    public List<TaskCommentDto> Comments { get; set; } = new List<TaskCommentDto>();
-}
-
-public class RejectTaskInputDto
-{
-    [Required(ErrorMessage = "Lý do từ chối không được để trống")]
-    public string Reason { get; set; } = string.Empty;
+    public class RejectTaskInputDto
+    {
+        [Required(ErrorMessage = "Lý do từ chối không được để trống")]
+        public string Reason { get; set; } = string.Empty;
+    }
 }

@@ -40,39 +40,39 @@ public class TaskManagementDataSeedContributor : IDataSeedContributor, ITransien
     {
         if (await _categoryRepository.GetCountAsync() > 0) return;
 
-        await _categoryRepository.InsertAsync(
-            new Category(_guidGenerator.Create(), "Phát triển phần mềm", "#007bff", false, null),
-            autoSave: true
-        );
-        await _categoryRepository.InsertAsync(
-            new Category(_guidGenerator.Create(), "Hành chính - Nhân sự", "#28a745", false, null),
-            autoSave: true
-        );
+        var cat1 = new Category(_guidGenerator.Create(), "Phát triển phần mềm", "#007bff");
+        cat1.NameEn = "Software Development";
+        await _categoryRepository.InsertAsync(cat1, autoSave: true);
+
+        var cat2 = new Category(_guidGenerator.Create(), "Hành chính - Nhân sự", "#28a745");
+        cat2.NameEn = "Administration - HR";
+        await _categoryRepository.InsertAsync(cat2, autoSave: true);
     }
 
     private async Task SeedDepartmentsAsync()
     {
         if (await _departmentRepository.GetCountAsync() > 0) return;
 
-        var devDept = await _departmentRepository.InsertAsync(
-            new Department(_guidGenerator.Create(), "DEV", "Khối Công Nghệ", null, null, null),
-            autoSave: true
-        );
+        var devDept = new Department(_guidGenerator.Create(), "DEV", "Khối Công Nghệ");
+        devDept.NameEn = "Technology Division";
+        devDept = await _departmentRepository.InsertAsync(devDept, autoSave: true);
 
-        await _departmentRepository.InsertAsync(
-            new Department(_guidGenerator.Create(), "FE", "Phòng Frontend", null, devDept.Id, null),
-            autoSave: true
-        );
+        var subDept = new Department(_guidGenerator.Create(), "FE", "Phòng Frontend");
+        subDept.NameEn = "Frontend Department";
+        subDept.ParentId = devDept.Id;
+        await _departmentRepository.InsertAsync(subDept, autoSave: true);
     }
 
     private async Task SeedTagsAsync()
     {
         if (await _tagRepository.GetCountAsync() > 0) return;
 
+        // Tag chỉ sử dụng các thuộc tính có sẵn (không gọi NameEn để tránh lỗi)
         await _tagRepository.InsertAsync(
             new Tag(_guidGenerator.Create(), "Ưu tiên cao"),
             autoSave: true
         );
+
         await _tagRepository.InsertAsync(
             new Tag(_guidGenerator.Create(), "Báo lỗi (Bug)"),
             autoSave: true

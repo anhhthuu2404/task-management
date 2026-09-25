@@ -1,110 +1,63 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Data;
+using System.Data.Common;
 using System.Threading.Tasks;
-using TaskManagement.Projects;
+using TaskManagement.EntityFrameworkCore;
 using TaskManagement.Reports.Dtos;
-using TaskManagement.Tasks;
 using Volo.Abp.Application.Services;
-using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
+using Volo.Abp.Data;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace TaskManagement.Reports
 {
     [Route("api/app/report")]
     public class ReportAppService : ApplicationService, IApplicationService
     {
-        private readonly IRepository<TaskItem, Guid> _taskRepository;
-        private readonly IRepository<Project, Guid> _projectRepository;
-        private readonly IRepository<IdentityUser, Guid> _userRepository;
+        private readonly IDbContextProvider<TaskManagementDbContext> _dbContextProvider;
 
-        public ReportAppService(
-            IRepository<TaskItem, Guid> taskRepository,
-            IRepository<Project, Guid> projectRepository,
-            IRepository<IdentityUser, Guid> userRepository)
+        public ReportAppService(IDbContextProvider<TaskManagementDbContext> dbContextProvider)
         {
-            _taskRepository = taskRepository;
-            _projectRepository = projectRepository;
-            _userRepository = userRepository;
+            _dbContextProvider = dbContextProvider;
         }
 
         [HttpGet("get-task-report")]
         public async Task<List<TaskReportItemDto>> GetTaskReportAsync([FromQuery] TaskReportQueryDto input)
         {
-            var tasks = await _taskRepository.GetListAsync();
-            var projects = await _projectRepository.GetListAsync();
-            var users = await _userRepository.GetListAsync();
+            var dbContext = await _dbContextProvider.GetDbContextAsync();
 
-            var projectDict = projects.ToDictionary(p => p.Id, p => p.Name);
-            var userDict = users.ToDictionary(u => u.Id, u => u.UserName);
+            // Sửa lại cách lấy connection bằng RelationalDatabaseFacadeExtensions
+            var connection = RelationalDatabaseFacadeExtensions.GetDbConnection(dbContext.Database);
 
-            var query = tasks.AsQueryable();
-
-            if (input.ProjectId.HasValue)
+            if (connection.State != ConnectionState.Open)
             {
-                query = query.Where(x => x.ProjectId == input.ProjectId.Value);
+                await connection.OpenAsync();
             }
 
-            if (input.EmployeeId.HasValue)
+            var parameters = new DynamicParameters();
+            parameters.Add("@ProjectId", input.ProjectId);
+            parameters.Add("@EmployeeId", input.EmployeeId);
+            parameters.Add("@FromDate", input.FromDate);
+            parameters.Add("@ToDate", input.ToDate);
+
+            Guid? departmentIdToQuery = input.DepartmentId;
+            if (!departmentIdToQuery.HasValue && input.DepartmentIds != null && input.DepartmentIds.Count > 0)
             {
-                query = query.Where(x => x.AssigneeId == input.EmployeeId.Value);
+                departmentIdToQuery = input.DepartmentIds[0];
             }
+            parameters.Add("@DepartmentId", departmentIdToQuery);
 
-            if (input.FromDate.HasValue)
-            {
-                query = query.Where(x => x.DueDate >= input.FromDate.Value);
-            }
+            var result = await connection.QueryAsync<TaskReportItemDto>(
+                "sp_GetTaskReport",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
 
-            if (input.ToDate.HasValue)
-            {
-                query = query.Where(x => x.DueDate <= input.ToDate.Value);
-            }
-
-            // XỬ LÝ LỌC THEO PHÒNG BAN (Ưu tiên lọc theo danh sách ID phòng ban gồm cả nhánh con, nếu không có thì lọc phòng ban đơn lẻ)
-            if (input.DepartmentIds != null && input.DepartmentIds.Any())
-            {
-                query = query.Where(x => x.DepartmentId.HasValue && input.DepartmentIds.Contains(x.DepartmentId.Value));
-            }
-            else if (input.DepartmentId.HasValue)
-            {
-                query = query.Where(x => x.DepartmentId == input.DepartmentId.Value);
-            }
-
-            var filteredTasks = query.ToList();
-
-            var result = filteredTasks.Select(task =>
-            {
-                string projectName = string.Empty;
-                if (task.ProjectId.HasValue && projectDict.TryGetValue(task.ProjectId.Value, out var projName))
-                {
-                    projectName = projName;
-                }
-
-                string assigneeName = task.AssigneeName ?? string.Empty;
-                if (task.AssigneeId.HasValue && userDict.TryGetValue(task.AssigneeId.Value, out var uName))
-                {
-                    assigneeName = uName;
-                }
-
-                return new TaskReportItemDto
-                {
-                    Id = task.Id,
-                    Title = task.Title ?? string.Empty,
-                    ProjectId = task.ProjectId,
-                    ProjectName = projectName,
-                    AssignedUserId = task.AssigneeId,
-                    AssigneeName = assigneeName,
-                    DepartmentId = task.DepartmentId,
-                    DepartmentName = string.Empty,
-                    Status = task.Status.ToString(),
-                    ProgressPercent = task.ProgressPercent,
-                    DueDate = task.DueDate
-                };
-            }).ToList();
-
-            return result;
+            return result.AsList();
         }
     }
 }

@@ -31,46 +31,44 @@
     </div>
   </div>
 
-  <!-- Bảng dữ liệu dùng CSS Grid canh đều hoàn hảo -->
+  <!-- Bảng hiển thị dữ liệu -->
   <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
     <div class="card-body p-0">
-      <!-- Header dùng Grid -->
-      <div class="d-grid py-3 px-4 fw-bold text-dark text-uppercase border-bottom" style="grid-template-columns: 160px 1fr 1fr; background-color: #e9ecef; font-size: 13px; letter-spacing: 0.5px;">
-        <div>{{ '::Actions' | abpLocalization }}</div>
-        <div>{{ '::TagName' | abpLocalization }}</div>
-        <div>{{ '::Category' | abpLocalization }}</div>
+      <div class="d-grid py-3 px-4 fw-bold text-dark text-uppercase border-bottom" style="grid-template-columns: 4fr 4fr 2fr; background-color: #e9ecef; font-size: 11px; letter-spacing: 0.5px;">
+        <div class="d-flex align-items-center">{{ '::TagName' | abpLocalization }}</div>
+        <div class="d-flex align-items-center">{{ '::Category' | abpLocalization }}</div>
+        <div class="d-flex align-items-center justify-content-end">{{ '::Actions' | abpLocalization }}</div>
       </div>
 
-      <!-- Danh sách dòng dữ liệu dùng Grid -->
       <div class="list-group list-group-flush">
-        <div *ngFor="let row of items.items" class="d-grid align-items-center py-3 px-4 border-bottom list-group-item-action" style="grid-template-columns: 160px 1fr 1fr;">
-          <!-- Cột Thao tác -->
-          <div>
-            <div class="btn-group p-1 rounded-3" role="group" style="background-color: #f8f9fa; border: 1px solid #eef2f6;">
-              <button class="btn btn-link btn-sm text-primary text-decoration-none px-2 py-1" (click)="edit(row.id)" [title]="'::Edit' | abpLocalization">
-                <i class="fa fa-pencil fs-6"></i>
-              </button>
-              <button class="btn btn-link btn-sm text-danger text-decoration-none px-2 py-1" (click)="delete(row.id)" [title]="'::Delete' | abpLocalization">
-                <i class="fa fa-trash fs-6"></i>
-              </button>
-            </div>
-          </div>
-
+        <div *ngFor="let row of items.items" class="d-grid py-3 px-4 border-bottom list-group-item-action" style="grid-template-columns: 4fr 4fr 2fr;">
           <!-- Cột Tên thẻ -->
-          <div>
-            <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2" style="font-size: 11.5px;">
               <i class="fa fa-tag me-1"></i> {{ row.name }}
             </span>
           </div>
 
           <!-- Cột Danh mục -->
-          <div>
-            <span class="badge bg-secondary-subtle text-secondary fw-semibold px-3 py-2" *ngIf="getCategoryName(row)">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-secondary-subtle text-secondary fw-semibold px-3 py-2" style="font-size: 11.5px;" *ngIf="getCategoryName(row)">
               <i class="fa fa-folder me-1"></i> {{ getCategoryName(row) }}
             </span>
             <span class="text-muted small fst-italic" *ngIf="!getCategoryName(row)">
               Chưa gán danh mục
             </span>
+          </div>
+
+          <!-- Cột Thao tác (Sửa / Xóa) -->
+          <div class="d-flex align-items-center justify-content-end">
+            <div class="btn-group p-1 rounded-3 d-inline-flex" role="group" style="background-color: #f8f9fa; border: 1px solid #eef2f6;">
+              <button type="button" class="btn btn-link btn-sm text-primary text-decoration-none px-2 py-1" (click)="edit(row.id)" [title]="'::Edit' | abpLocalization">
+                <i class="fa fa-pencil fs-6"></i>
+              </button>
+              <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none px-2 py-1" (click)="delete(row.id)" [title]="'::Delete' | abpLocalization">
+                <i class="fa fa-trash fs-6"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -83,11 +81,11 @@
     </div>
   </div>
 
-  <!-- Modal Thêm/Sửa Thẻ -->
+  <!-- Modal Thêm / Sửa Thẻ -->
   <abp-modal [(visible)]="isModalOpen" [options]="modalOptions">
     <ng-template #abpHeader>
       <h5 class="modal-title fw-bold text-dark">
-        {{ selected?.id ? ('::Edit' | abpLocalization) : ('::Create' | abpLocalization) }} {{ '::Task' | abpLocalization }}
+        {{ selected?.id ? ('::Edit' | abpLocalization) : ('::Create' | abpLocalization) }} {{ '::Tag' | abpLocalization }}
       </h5>
     </ng-template>
 

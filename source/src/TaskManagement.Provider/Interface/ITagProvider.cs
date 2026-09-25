@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using TaskManagement.Tags;
 
-namespace TaskManagement.Provider.Interface // Đã đổi thành số ít
+namespace TaskManagement.Provider.Interface 
 {
     public interface ITagProvider
     {

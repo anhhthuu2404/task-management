@@ -6,8 +6,8 @@
       <p class="text-muted m-0 mt-1" style="font-size: 13px;">{{ '::Report:DetailedSubtitle' | abpLocalization }}</p>
     </div>
     
-    <button class="btn btn-success d-flex align-items-center gap-1.5 px-4 py-2 rounded-pill shadow-sm" (click)="exportToExcel()" [disabled]="reportData.length === 0">
-      <i class="fa fa-file-excel me-1"></i> {{ '::Report:ExportExcel' | abpLocalization }}
+    <button class="btn btn-success d-flex align-items-center gap-2 px-4 py-2 rounded-pill shadow-sm fw-medium" (click)="exportToExcel()" [disabled]="reportData.length === 0">
+      <i class="fa fa-file-excel"></i> {{ '::Report:ExportExcel' | abpLocalization }}
     </button>
   </div>
 
@@ -18,7 +18,7 @@
         <!-- Phòng ban -->
         <div class="col-12 col-md-3">
           <label class="form-label fw-semibold text-secondary small mb-1">{{ '::Task:Department' | abpLocalization }}</label>
-          <select class="form-select rounded-3" [(ngModel)]="filter.departmentId" (ngModelChange)="onDepartmentChange()">
+          <select class="form-select rounded-3 border-light-subtle shadow-xs py-2" [(ngModel)]="filter.departmentId" (ngModelChange)="onDepartmentChange()">
             <option [ngValue]="null">-- {{ '::Task:AllDepartments' | abpLocalization }} --</option>
             <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
           </select>
@@ -27,7 +27,7 @@
         <!-- Nhân sự -->
         <div class="col-12 col-md-3">
           <label class="form-label fw-semibold text-secondary small mb-1">{{ '::Task:Assignee' | abpLocalization }}</label>
-          <select class="form-select rounded-3" [(ngModel)]="filter.employeeId">
+          <select class="form-select rounded-3 border-light-subtle shadow-xs py-2" [(ngModel)]="filter.employeeId">
             <option [ngValue]="null">-- {{ '::Task:AllEmployees' | abpLocalization }} --</option>
             <option *ngFor="let e of employees" [ngValue]="e.id">{{ e.userName || e.name }}</option>
           </select>
@@ -36,7 +36,7 @@
         <!-- Dự án -->
         <div class="col-12 col-md-3">
           <label class="form-label fw-semibold text-secondary small mb-1">{{ '::Task:Project' | abpLocalization }}</label>
-          <select class="form-select rounded-3" [(ngModel)]="filter.projectId">
+          <select class="form-select rounded-3 border-light-subtle shadow-xs py-2" [(ngModel)]="filter.projectId">
             <option [ngValue]="null">-- {{ '::Task:AllProjects' | abpLocalization }} --</option>
             <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
           </select>
@@ -44,7 +44,7 @@
 
         <!-- Nút Xem báo cáo -->
         <div class="col-12 col-md-3">
-          <button class="btn btn-primary w-100 rounded-pill py-2 shadow-sm d-flex align-items-center justify-content-center gap-2" (click)="onSearchReport()">
+          <button class="btn btn-primary w-100 rounded-pill py-2 shadow-sm d-flex align-items-center justify-content-center gap-2 fw-medium" (click)="onSearchReport()">
             <i class="fa fa-search"></i> {{ '::Report:ViewReport' | abpLocalization }}
           </button>
         </div>
@@ -64,48 +64,72 @@
 
       <!-- Table View -->
       <div class="table-responsive" *ngIf="!isLoading">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+        <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
+          <thead class="table-light text-uppercase fs-7 text-secondary">
             <tr>
-              <th scope="col" class="ps-4 py-3" style="width: 5%;">#</th>
-              <th scope="col" class="py-3" style="width: 30%;">{{ '::Task:Title' | abpLocalization }}</th>
-              <th scope="col" class="py-3" style="width: 15%;">{{ '::Task:Project' | abpLocalization }}</th>
-              <th scope="col" class="py-3" style="width: 15%;">{{ '::Task:Assignee' | abpLocalization }}</th>
-              <th scope="col" class="py-3" style="width: 12%;">{{ '::Task:Status' | abpLocalization }}</th>
-              <th scope="col" class="py-3" style="width: 11%;">{{ '::Task:Progress' | abpLocalization }}</th>
-              <th scope="col" class="text-end pe-4 py-3" style="width: 12%;">{{ '::Task:DueDate' | abpLocalization }}</th>
+              <th scope="col" class="ps-4 py-3 text-nowrap" style="width: 14.28%;">#</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Title' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Project' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Assignee' | abpLocalization }}</th>
+              <th scope="col" class="text-center py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Status' | abpLocalization }}</th>
+              <th scope="col" class="text-center py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Progress' | abpLocalization }}</th>
+              <th scope="col" class="text-end pe-4 py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:DueDate' | abpLocalization }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of reportData; let i = index">
-              <td class="ps-4 text-muted fw-medium">{{ i + 1 }}</td>
-              <td>
-                <span class="fw-semibold text-dark">{{ item.title }}</span>
+              <!-- STT -->
+              <td class="ps-4 text-muted fw-medium" style="width: 14.28%;">{{ i + 1 }}</td>
+              
+              <!-- Tiêu đề -->
+              <td style="width: 14.28%;">
+                <span class="fw-semibold text-dark text-truncate d-block">{{ item.title }}</span>
               </td>
-              <td>
-                <span class="text-muted">{{ item.projectName || '---' }}</span>
+              
+              <!-- Dự án -->
+              <td style="width: 14.28%;">
+                <span class="text-secondary small fw-medium text-truncate d-block">{{ item.projectName || '---' }}</span>
               </td>
-              <td>
-                <span class="text-dark fw-medium">{{ item.assigneeName || '---' }}</span>
+              
+              <!-- Người thực hiện -->
+              <td style="width: 14.28%;">
+                <span class="text-dark fw-medium small text-truncate d-block">{{ item.assigneeName || '---' }}</span>
               </td>
-              <td>
-                <span class="badge px-2.5 py-1.5" [ngClass]="getStatusBadgeClass(item.status)">
+              
+              <!-- Trạng thái -->
+              <td class="text-center" style="width: 14.28%;">
+                <span class="badge px-3 py-1.5 fw-medium rounded-pill text-nowrap" [ngClass]="getStatusBadgeClass(item.status)">
                   {{ getStatusText(item.status) }}
                 </span>
               </td>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="progress flex-grow-1 rounded-pill" style="height: 6px;">
-                    <div class="progress-bar rounded-pill" role="progressbar" [style.width.%]="item.progressPercent || 0" [aria-valuenow]="item.progressPercent" aria-valuemin="0" aria-valuemax="100"></div>
+              
+              <!-- Tiến độ -->
+              <td class="text-center" style="width: 14.28%;">
+                <div class="progress position-relative rounded-pill bg-light shadow-xs overflow-hidden mx-auto" style="height: 20px; width: 95px;">
+                  <div class="progress-bar rounded-pill bg-primary" 
+                       role="progressbar" 
+                       [style.width.%]="item.progressPercent || 0" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100">
                   </div>
-                  <span class="small text-muted text-nowrap">{{ item.progressPercent || 0 }}%</span>
+                  <span class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-nowrap" 
+                        style="font-size: 11px; color: #333; z-index: 2;">
+                    {{ item.progressPercent || 0 }}%
+                  </span>
                 </div>
               </td>
-              <td class="text-end pe-4">
-                <span class="small text-muted" *ngIf="item.dueDate">{{ item.dueDate | date:'dd/MM/yyyy' }}</span>
+              
+              <!-- Hạn hoàn thành -->
+              <td class="text-end pe-4 text-nowrap" style="width: 14.28%;">
+                <span class="small fw-medium text-secondary d-inline-flex align-items-center gap-1 justify-content-end" *ngIf="item.dueDate">
+                  <i class="bi bi-calendar-event text-primary"></i>
+                  <span>{{ item.dueDate | date:'dd/MM/yyyy' }}</span>
+                </span>
                 <span class="small text-muted" *ngIf="!item.dueDate">-</span>
               </td>
             </tr>
+
+            <!-- Empty State -->
             <tr *ngIf="reportData.length === 0">
               <td colspan="7" class="text-center py-5 text-muted">
                 <i class="fa fa-folder-open fs-2 d-block mb-2 text-black-50"></i>

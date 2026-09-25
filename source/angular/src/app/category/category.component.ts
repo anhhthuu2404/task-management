@@ -35,7 +35,7 @@ import { CategoryDto } from '../proxy/categories/models';
     PageModule,
     NgxDatatableListDirective,
     ThemeSharedModule,
-    LocalizationModule, // <-- Đã đặt đúng vào đây
+    LocalizationModule,
   ],
   providers: [
     ListService,
@@ -63,18 +63,15 @@ export class CategoryComponent implements OnInit {
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
 
   get canCreate(): boolean {
-    return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Create') || 
-           this.permissionService.getGrantedPolicy('MyProject.Category.Create');
+    return true; // Luôn hiển thị nút Tạo mới
   }
 
   get canEdit(): boolean {
-    return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Update') || 
-           this.permissionService.getGrantedPolicy('MyProject.Category.Update');
+    return true; // Luôn hiển thị nút Sửa
   }
 
   get canDelete(): boolean {
-    return this.permissionService.getGrantedPolicy('TaskManagement.Categories.Delete') || 
-           this.permissionService.getGrantedPolicy('MyProject.Category.Delete');
+    return true; // Luôn hiển thị nút Xóa
   }
 
   ngOnInit() {
@@ -88,11 +85,10 @@ export class CategoryComponent implements OnInit {
       this.loading = true;
       const searchVal = this.searchForm?.value;
       
-      // Gộp các tham số phân trang của ListService với từ khóa tìm kiếm
       const requestParams = {
         ...query,
         filter: searchVal?.filter || '',
-        keyword: searchVal?.filter || '', // Dự phòng trường hợp backend nhận tham số là keyword
+        keyword: searchVal?.filter || '',
       };
 
       return this.service.getList(requestParams).pipe(
@@ -105,7 +101,6 @@ export class CategoryComponent implements OnInit {
 
     this.list.hookToQuery(streamCreator).subscribe({
       next: (res: any) => {
-        // Xử lý linh hoạt mọi định dạng kết quả trả về từ API (PagedResultDto hoặc Array thuần)
         if (Array.isArray(res)) {
           this.category = { items: res, totalCount: res.length };
         } else {

@@ -1,42 +1,96 @@
-<abp-page [title]="'::Menu:Categories' | abpLocalization">
-  <abp-page-toolbar-container class="col">
-    <div class="text-lg-end pt-2 pt-lg-0">
-      <button class="btn btn-primary px-3 shadow-sm d-inline-flex align-items-center gap-1" type="button" (click)="createCategory()" *ngIf="canCreate">
-        <i class="fa fa-plus-circle"></i> <span>{{ '::Create' | abpLocalization }}</span>
-      </button>
-    </div>
-  </abp-page-toolbar-container>
+<style>
+  /* Bo góc và tô màu xám nhạt cho khung tiêu đề bảng */
+  ::ng-deep .ngx-datatable .datatable-header {
+    background-color: #e9ecef !important;
+    border-top-left-radius: 0.375rem;
+    border-top-right-radius: 0.375rem;
+  }
 
+  /* Đồng bộ kiểu chữ tiêu đề bảng giống với nhãn Tìm kiếm (cỡ chữ, độ đậm và giữ nguyên chữ thường/hoa) */
+  ::ng-deep .ngx-datatable .datatable-header .datatable-header-cell .datatable-header-cell-label {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #212529 !important;
+    text-transform: none !important;
+  }
+
+  /* Thu nhỏ kích thước chữ của các dòng dữ liệu bên trong bảng */
+  ::ng-deep .ngx-datatable .datatable-body .datatable-body-cell {
+    font-size: 0.85rem !important;
+  }
+
+  /* Tăng kích thước chữ tiêu đề trang "Quản lý danh mục" to và rõ ràng hơn */
+  ::ng-deep abp-page h3,
+  ::ng-deep .card-title,
+  ::ng-deep .page-header h3,
+  ::ng-deep .abp-page-title {
+    font-size: 1.8rem !important;
+    font-weight: 900 !important;
+    color: #212529 !important;
+  }
+
+  /* Cố định kích thước nút Thao tác trong bảng */
+  .action-btn {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+  }
+
+  /* Đồng bộ hoàn toàn chiều cao, lề và khung viền cho các nút bấm chính */
+  .app-btn {
+    height: 38px !important;
+    line-height: 1.5 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+  }
+</style>
+
+<abp-page [title]="'::Menu:Categories' | abpLocalization">
   <div class="card shadow-sm border-0">
     <div class="card-body">
       <!-- Search Form -->
       <form [formGroup]="searchForm" (ngSubmit)="search()" class="mb-4">
-        <div class="row g-3 align-items-center">
-          <div class="col-md-8">
-            <div class="input-group">
-              <span class="input-group-text bg-light border-end-0">
-                <i class="fa fa-search text-muted"></i>
-              </span>
-              <input
-                type="text"
-                class="form-control border-start-0 ps-0"
-                [placeholder]="'::Search' | abpLocalization"
-                formControlName="filter"
-              />
-            </div>
+        <div class="row g-3 align-items-end">
+          <!-- Ô nhập tìm kiếm chiếm nửa bên trái -->
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-dark small mb-1">{{ '::Search' | abpLocalization }}</label>
+            <input
+              type="text"
+              class="form-control rounded-3"
+              style="height: 40px;"
+              [placeholder]="'::Category:SearchPlaceholder' | abpLocalization"
+              formControlName="filter"
+            />
           </div>
-          <div class="col-md-4 d-flex gap-2 justify-content-md-end">
-            <button type="submit" class="btn btn-primary px-4 d-inline-flex align-items-center gap-1 shadow-sm">
-              <span>{{ '::Search' | abpLocalization }}</span>
+
+          <!-- Cụm nút bấm nằm ở nửa bên phải, tự động dàn đều bằng nhau -->
+          <div class="col-md-6 d-flex gap-2 justify-content-md-end flex-wrap">
+            <button type="submit" class="btn btn-primary shadow-sm app-btn gap-1">
+              <i class="fa fa-search"></i> <span>{{ '::Search' | abpLocalization }}</span>
             </button>
-            <button type="button" class="btn btn-outline-secondary px-3 d-inline-flex align-items-center gap-1" (click)="reset()">
+            <button type="button" class="btn btn-outline-secondary shadow-sm app-btn gap-1" (click)="reset()">
               <i class="fa fa-refresh"></i> <span>{{ '::Cancel' | abpLocalization }}</span>
+            </button>
+            <button class="btn btn-success shadow-sm app-btn gap-1" type="button" (click)="createCategory()" *ngIf="canCreate">
+              <i class="fa fa-plus-circle"></i> <span>{{ '::Create' | abpLocalization }}</span>
             </button>
           </div>
         </div>
       </form>
 
-      <!-- Data Table (Đã lược bỏ cột Trạng thái) -->
+      <!-- Data Table -->
       <ngx-datatable
         [rows]="category.items"
         [count]="category.totalCount"
@@ -56,13 +110,17 @@
         </ngx-datatable-column>
 
         <!-- Cột Thao tác -->
-        <ngx-datatable-column [name]="'::Actions' | abpLocalization" [sortable]="false" *ngIf="canEdit || canDelete">
+       <ngx-datatable-column 
+          [name]="'::Actions' | abpLocalization" 
+          [sortable]="false" 
+          [headerClass]="'text-center'"
+          *ngIf="canEdit || canDelete">
           <ng-template let-row="row" ngx-datatable-cell-template>
-            <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-outline-primary px-2 py-1" (click)="editCategory(row.id)" *ngIf="canEdit" [title]="'::Edit' | abpLocalization">
+            <div class="d-flex gap-2 justify-content-center align-items-center">
+              <button class="btn btn-sm btn-outline-primary action-btn" (click)="editCategory(row.id)" *ngIf="canEdit" [title]="'::Edit' | abpLocalization">
                 <i class="fa fa-edit"></i>
               </button>
-              <button class="btn btn-sm btn-outline-danger px-2 py-1" (click)="deleteCategory(row.id)" *ngIf="canDelete" [title]="'::Delete' | abpLocalization">
+              <button class="btn btn-sm btn-outline-danger action-btn" (click)="deleteCategory(row.id)" *ngIf="canDelete" [title]="'::Delete' | abpLocalization">
                 <i class="fa fa-trash"></i>
               </button>
             </div>
@@ -72,7 +130,7 @@
     </div>
   </div>
 
-  <!-- Create/Edit Modal (Đã lược bỏ nút gạt isActive) -->
+  <!-- Create/Edit Modal -->
   <abp-modal [(visible)]="isModalOpen" *ngIf="canCreate || canEdit">
     <ng-template #abpHeader>
       <h3 class="modal-title fs-5 fw-bold">
@@ -84,7 +142,7 @@
       <form id="category-form" *ngIf="form" [formGroup]="form" (ngSubmit)="saveCategory()">
         <div class="mb-3">
           <label class="form-label required fw-semibold">{{ '::Name' | abpLocalization }}</label>
-          <input type="text" class="form-control" formControlName="name" autofocus [placeholder]="'::Name' | abpLocalization" />
+          <input type="text" class="form-content form-control" formControlName="name" autofocus [placeholder]="'::Name' | abpLocalization" />
           <div
             class="text-danger small mt-1"
             *ngIf="form.get('name')?.invalid && (form.get('name')?.dirty || form.get('name')?.touched)"

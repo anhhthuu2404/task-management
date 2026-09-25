@@ -16,7 +16,7 @@ public class CategoryAppService :
         Category,
         CategoryDto,
         Guid,
-        PagedAndSortedResultRequestDto,
+        PagedAndSortedResultRequestDto, // Giữ nguyên để khớp với ICategoryAppService
         CreateUpdateCategoryDto>,
     ICategoryAppService
 {
@@ -43,7 +43,6 @@ public class CategoryAppService :
     {
         string? filter = null;
 
-        // Lấy trực tiếp từ query string trên URL an toàn qua IHttpContextAccessor
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext?.Request != null)
         {
@@ -56,7 +55,7 @@ public class CategoryAppService :
 
         var request = new CategoryGetListRequest
         {
-            Filter = filter, // Đồng bộ với property Filter trong CategoryGetListRequest
+            Filter = filter,
             SkipCount = input.SkipCount,
             MaxResultCount = input.MaxResultCount
         };

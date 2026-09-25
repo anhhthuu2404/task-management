@@ -111,6 +111,9 @@ namespace TaskManagement.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -137,6 +140,9 @@ namespace TaskManagement.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("NameEn")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -179,6 +185,9 @@ namespace TaskManagement.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -208,6 +217,9 @@ namespace TaskManagement.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("NameEn")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uniqueidentifier");
@@ -570,6 +582,9 @@ namespace TaskManagement.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("MessageEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("TaskId")
                         .HasColumnType("uniqueidentifier");
 
@@ -621,6 +636,9 @@ namespace TaskManagement.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -647,6 +665,9 @@ namespace TaskManagement.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NameEn")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
@@ -703,6 +724,9 @@ namespace TaskManagement.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
@@ -724,6 +748,9 @@ namespace TaskManagement.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("TitleEn")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -953,6 +980,9 @@ namespace TaskManagement.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("TitleEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TaskId");
@@ -1081,6 +1111,9 @@ namespace TaskManagement.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("TitleEn")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -1218,6 +1251,9 @@ namespace TaskManagement.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime2");
 
@@ -1280,6 +1316,9 @@ namespace TaskManagement.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("TitleEn")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

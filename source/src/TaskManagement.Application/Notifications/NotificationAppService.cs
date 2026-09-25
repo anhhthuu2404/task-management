@@ -2,58 +2,57 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TaskManagement.Provider.Interface;
+using TaskManagement.Provider.Response;
 using Volo.Abp.Application.Services;
-using Volo.Abp.Domain.Repositories;
 
-namespace TaskManagement.Notifications;
-
-public class NotificationAppService : ApplicationService, INotificationAppService
+namespace TaskManagement.Notifications
 {
-    private readonly IRepository<Notification, Guid> _notificationRepository;
-
-    public NotificationAppService(IRepository<Notification, Guid> notificationRepository)
+    public class NotificationAppService : ApplicationService, INotificationAppService
     {
-        _notificationRepository = notificationRepository;
-    }
+        private readonly INotificationProvider _notificationProvider;
 
-    public async Task<List<NotificationDto>> GetUserNotificationsAsync()
-    {
-        if (!CurrentUser.Id.HasValue) return [];
+        public NotificationAppService(INotificationProvider notificationProvider)
+        {
+            _notificationProvider = notificationProvider;
+        }
 
-        var userId = CurrentUser.Id.Value;
-        var notifications = await _notificationRepository.GetListAsync(x => x.UserId == userId);
+        public async Task<List<NotificationDto>> GetUserNotificationsAsync()
+        {
+            if (!CurrentUser.Id.HasValue) return [];
 
-        return [.. notifications
-            .OrderByDescending(x => x.CreationTime)
-            .Select(x => new NotificationDto
+            var userId = CurrentUser.Id.Value;
+            var notifications = await _notificationProvider.GetByUserIdAsync(userId);
+
+            return notifications.Select(x => new NotificationDto
             {
                 Id = x.Id,
                 Message = x.Message,
                 IsRead = x.IsRead,
                 CreationTime = x.CreationTime,
-                TaskId = x.TaskId 
-            })];
+                TaskId = x.TaskId
+            }).ToList();
+        }
 
-    }
-    public async Task CreateNotificationAsync(Guid targetReviewerId, Guid taskId, string message)
-    {
-        var notification = new Notification(
-            GuidGenerator.Create(),
-            targetReviewerId,
-            message,
-            taskId
-        );
-
-        await _notificationRepository.InsertAsync(notification, autoSave: true);
-    }
-
-    public async Task MarkAsReadAsync(Guid id)
-    {
-        var notification = await _notificationRepository.FindAsync(id);
-        if (notification != null)
+        public async Task CreateNotificationAsync(Guid targetReviewerId, Guid taskId, string message)
         {
-            notification.IsRead = true;
-            await _notificationRepository.UpdateAsync(notification, autoSave: true);
+            var notificationResponse = new NotificationQueryResponse
+            {
+                Id = GuidGenerator.Create(),
+                UserId = targetReviewerId,
+                Message = message,
+                IsRead = false,
+                CreationTime = Clock.Now,
+                CreatorId = CurrentUser.Id,
+                TaskId = taskId
+            };
+
+            await _notificationProvider.CreateAsync(notificationResponse);
+        }
+
+        public async Task MarkAsReadAsync(Guid id)
+        {
+            await _notificationProvider.MarkAsReadAsync(id);
         }
     }
 }

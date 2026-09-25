@@ -9,6 +9,7 @@ namespace TaskManagement.Tasks
         public Guid TaskId { get; set; }
         public string Title { get; set; } = string.Empty;
         public bool IsDone { get; set; }
+        public DateTime CreationTime { get; set; }
     }
 
     public class CreateUpdateChecklistItemDto
@@ -16,8 +17,10 @@ namespace TaskManagement.Tasks
         [Required]
         [StringLength(256)]
         public string Title { get; set; } = string.Empty;
+        public bool IsDone { get; set; }
     }
 
-    
-    public class CreateChecklistItemDto : CreateUpdateChecklistItemDto { }
+    public class CreateChecklistItemDto : CreateUpdateChecklistItemDto
+    {
+    }
 }

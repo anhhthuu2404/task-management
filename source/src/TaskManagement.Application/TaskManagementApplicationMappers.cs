@@ -1,6 +1,7 @@
 ﻿using Riok.Mapperly.Abstractions;
 using TaskManagement.Books;
 using TaskManagement.Categories;
+using TaskManagement.Dashboards;
 using TaskManagement.Departments;
 using TaskManagement.LocalizationManagement.Languages;
 using TaskManagement.LocalizationManagement.LanguageTexts;
@@ -11,6 +12,7 @@ using TaskManagement.Tags;
 using TaskManagement.TaskHistories;
 using TaskManagement.Tasks;
 using Volo.Abp.Mapperly;
+using TaskManagement.Reports.Dtos;
 
 namespace TaskManagement;
 
@@ -194,23 +196,46 @@ public partial class TaskManagementProjectToProjectDtoMapper : MapperBase<Projec
 {
     [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
     [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
-    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))] // Thêm dòng này để bỏ qua lỗi không tìm thấy trên Project source
+    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))]
     public override partial ProjectDto Map(Project source);
 
     [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
     [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
-    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))] // Thêm dòng này
+    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))]
     public override partial void Map(Project source, ProjectDto destination);
 }
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementProjectMemberResponseToProjectMemberDtoMapper : MapperBase<TaskManagement.Provider.Response.ProjectMemberResponse, ProjectMemberDto>
+{
+    public override partial ProjectMemberDto Map(TaskManagement.Provider.Response.ProjectMemberResponse source);
+    public override partial void Map(TaskManagement.Provider.Response.ProjectMemberResponse source, ProjectMemberDto destination);
+}
+
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
 public partial class TaskManagementProjectQueryResponseToProjectDtoMapper : MapperBase<TaskManagement.Provider.Response.ProjectQueryResponse, ProjectDto>
 {
     [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
     [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))]
+    [MapperIgnoreTarget(nameof(ProjectDto.IsDeleted))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DeleterId))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DeletionTime))]
+    [MapperIgnoreTarget(nameof(ProjectDto.LastModificationTime))]
+    [MapperIgnoreTarget(nameof(ProjectDto.LastModifierId))]
+    [MapperIgnoreTarget(nameof(ProjectDto.CreationTime))]
+    [MapperIgnoreTarget(nameof(ProjectDto.CreatorId))]
     public override partial ProjectDto Map(TaskManagement.Provider.Response.ProjectQueryResponse source);
 
     [MapperIgnoreTarget(nameof(ProjectDto.MemberCount))]
     [MapperIgnoreTarget(nameof(ProjectDto.MilestoneCount))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DepartmentName))]
+    [MapperIgnoreTarget(nameof(ProjectDto.IsDeleted))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DeleterId))]
+    [MapperIgnoreTarget(nameof(ProjectDto.DeletionTime))]
+    [MapperIgnoreTarget(nameof(ProjectDto.LastModificationTime))]
+    [MapperIgnoreTarget(nameof(ProjectDto.LastModifierId))]
+    [MapperIgnoreTarget(nameof(ProjectDto.CreationTime))]
+    [MapperIgnoreTarget(nameof(ProjectDto.CreatorId))]
     public override partial void Map(TaskManagement.Provider.Response.ProjectQueryResponse source, ProjectDto destination);
 }
 
@@ -225,15 +250,15 @@ public partial class TaskManagementCreateUpdateProjectDtoToProjectMapper : Mappe
 public partial class TaskManagementProjectMemberToProjectMemberDtoMapper : MapperBase<ProjectMember, ProjectMemberDto>
 {
     [MapperIgnoreTarget(nameof(ProjectMemberDto.UserName))]
-    [MapperIgnoreTarget(nameof(ProjectMemberDto.Name))]    // Thêm dòng này để bỏ qua Name
-    [MapperIgnoreTarget(nameof(ProjectMemberDto.Surname))] // Thêm dòng này để bỏ qua Surname
-    [MapperIgnoreTarget(nameof(ProjectMemberDto.Email))]   // Thêm dòng này để bỏ qua Email
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Name))]
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Surname))]
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Email))]
     public override partial ProjectMemberDto Map(ProjectMember source);
 
     [MapperIgnoreTarget(nameof(ProjectMemberDto.UserName))]
-    [MapperIgnoreTarget(nameof(ProjectMemberDto.Name))]    // Thêm dòng này
-    [MapperIgnoreTarget(nameof(ProjectMemberDto.Surname))] // Thêm dòng này
-    [MapperIgnoreTarget(nameof(ProjectMemberDto.Email))]   // Thêm dòng này
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Name))]
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Surname))]
+    [MapperIgnoreTarget(nameof(ProjectMemberDto.Email))]
     public override partial void Map(ProjectMember source, ProjectMemberDto destination);
 }
 #endregion
@@ -244,6 +269,12 @@ public partial class TaskManagementProjectMilestoneToMilestoneDtoMapper : Mapper
 {
     public override partial MilestoneDto Map(ProjectMilestone source);
     public override partial void Map(ProjectMilestone source, MilestoneDto destination);
+}
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementProjectMilestoneResponseToMilestoneDtoMapper : MapperBase<TaskManagement.Provider.Response.ProjectMilestoneResponse, MilestoneDto>
+{
+    public override partial MilestoneDto Map(TaskManagement.Provider.Response.ProjectMilestoneResponse source);
+    public override partial void Map(TaskManagement.Provider.Response.ProjectMilestoneResponse source, MilestoneDto destination);
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
@@ -260,6 +291,26 @@ public partial class TaskManagementTaskHistoryToTaskHistoryDtoMapper : MapperBas
 {
     public override partial TaskHistoryDto Map(TaskHistory source);
     public override partial void Map(TaskHistory source, TaskHistoryDto destination);
+}
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementTaskQueryResponseToTaskDtoMapper : MapperBase<TaskManagement.Tasks.Response.TaskQueryResponse, TaskDto>
+{
+    [MapperIgnoreTarget(nameof(TaskDto.AssigneeUserName))]
+    [MapperIgnoreTarget(nameof(TaskDto.LastGeneratedDate))]
+    [MapperIgnoreTarget(nameof(TaskDto.SubmissionNote))]
+    [MapperIgnoreTarget(nameof(TaskDto.SubmissionFiles))]
+    [MapperIgnoreTarget(nameof(TaskDto.LastModificationTime))]
+    [MapperIgnoreTarget(nameof(TaskDto.LastModifierId))]
+    public override partial TaskDto Map(TaskManagement.Tasks.Response.TaskQueryResponse source);
+
+    [MapperIgnoreTarget(nameof(TaskDto.AssigneeUserName))]
+    [MapperIgnoreTarget(nameof(TaskDto.LastGeneratedDate))]
+    [MapperIgnoreTarget(nameof(TaskDto.SubmissionNote))]
+    [MapperIgnoreTarget(nameof(TaskDto.SubmissionFiles))]
+    [MapperIgnoreTarget(nameof(TaskDto.LastModificationTime))]
+    [MapperIgnoreTarget(nameof(TaskDto.LastModifierId))]
+    public override partial void Map(TaskManagement.Tasks.Response.TaskQueryResponse source, TaskDto destination);
 }
 
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
@@ -424,5 +475,23 @@ public partial class TaskManagementTaskItemToTaskDetailDtoMapper : MapperBase<Ta
     [MapperIgnoreTarget(nameof(TaskDetailDto.ChecklistItems))]
     [MapperIgnoreTarget(nameof(TaskDetailDto.ActivityLogs))]
     public override partial void Map(TaskItem source, TaskDetailDto destination);
+}
+#endregion
+
+#region Dashboards
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementDashboardQueryResponseToDashboardStatisticsDtoMapper : MapperBase<TaskManagement.Provider.Response.DashboardQueryResponse, DashboardStatisticsDto>
+{
+    public override partial DashboardStatisticsDto Map(TaskManagement.Provider.Response.DashboardQueryResponse source);
+    public override partial void Map(TaskManagement.Provider.Response.DashboardQueryResponse source, DashboardStatisticsDto destination);
+}
+#endregion
+
+#region Reports
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+public partial class TaskManagementTaskReportQueryResponseToTaskReportItemDtoMapper : MapperBase<TaskManagement.Provider.Response.TaskReportQueryResponse, TaskReportItemDto>
+{
+    public override partial TaskReportItemDto Map(TaskManagement.Provider.Response.TaskReportQueryResponse source);
+    public override partial void Map(TaskManagement.Provider.Response.TaskReportQueryResponse source, TaskReportItemDto destination);
 }
 #endregion

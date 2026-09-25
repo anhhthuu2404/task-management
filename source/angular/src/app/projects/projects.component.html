@@ -167,16 +167,17 @@
                 <h5 class="fw-bold mb-0 text-dark">{{ '::Project:Members' | abpLocalization }}</h5>
               </div>
 
+              <!-- Thêm nhanh theo Phòng ban (Đã sửa dùng [(ngModel)] chuẩn xác) -->
               <div class="p-3 bg-light rounded-4 border-0 shadow-xs mb-3">
                 <label class="form-label fw-bold text-dark mb-2">{{ '::Project:AddByDepartment' | abpLocalization }}</label>
                 <div class="row g-2 align-items-center">
                   <div class="col-8">
-                   <select class="form-select rounded-3 bg-white border-secondary-subtle text-dark w-100" [value]="selectedDepartmentId || ''" (change)="selectedDepartmentId = $any($event.target).value" style="height: 40px; font-size: 13px;">
-                     <option value="" disabled>{{ '::Department:SelectDepartmentHint' | abpLocalization }}</option>
-                     <option *ngFor="let dept of getChildDepartmentsForSelectedProject()" [value]="dept.id || dept.Id">
-                       {{ dept.name || dept.Name }}
-                     </option>
-                   </select>
+                    <select class="form-select rounded-3 bg-white border-secondary-subtle text-dark w-100" [(ngModel)]="selectedDepartmentId" style="height: 40px; font-size: 13px;">
+                      <option value="" disabled>{{ '::Department:SelectDepartmentHint' | abpLocalization }}</option>
+                      <option *ngFor="let dept of getChildDepartmentsForSelectedProject()" [ngValue]="dept.id || dept.Id">
+                        {{ dept.name || dept.Name }}
+                      </option>
+                    </select>
                   </div>
                   <div class="col-4">
                     <button class="btn btn-outline-primary w-100 rounded-3 fw-semibold text-nowrap px-1 d-flex align-items-center justify-content-center" type="button" (click)="addAllMembersByDepartment()" style="height: 40px; font-size: 13px;">
@@ -192,7 +193,7 @@
                   <div class="mb-2">
                     <select class="form-select rounded-3 bg-white border-secondary-subtle text-dark" formControlName="userId" style="height: 40px; font-size: 13px;">
                       <option value="" disabled>{{ '::Project:SelectUser' | abpLocalization }}</option>
-                      <option *ngFor="let u of availableUsersList" [value]="u.id || u.Id">
+                      <option *ngFor="let u of availableUsersList" [ngValue]="u.id || u.Id">
                         {{ u.userName || u.UserName || u.name || u.Name }}
                       </option>
                     </select>

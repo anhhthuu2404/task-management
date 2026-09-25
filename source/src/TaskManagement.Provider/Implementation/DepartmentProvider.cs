@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using TaskManagement.Departments;
 using TaskManagement.EntityFrameworkCore;
 using Volo.Abp.Application.Dtos;
@@ -21,17 +22,35 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
         _dbContextProvider = dbContextProvider;
     }
 
-    public async Task<PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input)
+    private async Task<(TaskManagementDbContext DbContext, DbConnection Connection)> GetConnectionAndContextAsync()
     {
         var dbContext = await _dbContextProvider.GetDbContextAsync();
         var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+        }
+        return (dbContext, connection);
+    }
+
+    private void AssignTransaction(DbCommand command, TaskManagementDbContext dbContext)
+    {
+        if (dbContext.Database.CurrentTransaction != null)
+        {
+            command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
+        }
+    }
+
+    public async Task<PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input)
+    {
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         var list = new List<DepartmentDto>();
         long totalCount = 0;
 
         await using (var command = connection.CreateCommand())
         {
+            AssignTransaction(command, dbContext);
             command.CommandText = "Sp_Department_GetList";
             command.CommandType = CommandType.StoredProcedure;
 
@@ -66,13 +85,12 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
     public async Task<DepartmentDto> GetByIdAsync(Guid id)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         DepartmentDto? dto = null;
         await using (var command = connection.CreateCommand())
         {
+            AssignTransaction(command, dbContext);
             command.CommandText = "Sp_Department_GetById";
             command.CommandType = CommandType.StoredProcedure;
             command.Parameters.Add(new SqlParameter("@Id", id));
@@ -96,11 +114,10 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
     public async Task CreateAsync(CreateUpdateDepartmentDto input, Guid id, Guid? creatorId)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         await using var command = connection.CreateCommand();
+        AssignTransaction(command, dbContext);
         command.CommandText = "Sp_Department_Create";
         command.CommandType = CommandType.StoredProcedure;
 
@@ -111,17 +128,19 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
         command.Parameters.Add(new SqlParameter("@ParentId", (object?)input.ParentId ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@IsActive", input.IsActive));
         command.Parameters.Add(new SqlParameter("@CreatorId", (object?)creatorId ?? DBNull.Value));
+        command.Parameters.Add(new SqlParameter("@ExtraProperties", "{}"));
+        command.Parameters.Add(new SqlParameter("@ConcurrencyStamp", Guid.NewGuid().ToString("N")));
+        command.Parameters.Add(new SqlParameter("@CreationTime", DateTime.Now));
 
         await command.ExecuteNonQueryAsync();
     }
 
     public async Task UpdateAsync(Guid id, CreateUpdateDepartmentDto input, Guid? modifierId)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         await using var command = connection.CreateCommand();
+        AssignTransaction(command, dbContext);
         command.CommandText = "Sp_Department_Update";
         command.CommandType = CommandType.StoredProcedure;
 
@@ -138,11 +157,10 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
     public async Task DeleteAsync(Guid id, Guid? deleterId)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         await using var command = connection.CreateCommand();
+        AssignTransaction(command, dbContext);
         command.CommandText = "Sp_Department_Delete";
         command.CommandType = CommandType.StoredProcedure;
 
@@ -155,12 +173,11 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
     public async Task<List<DepartmentTreeDto>> GetTreeAsync()
     {
         var list = new List<DepartmentTreeDto>();
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         await using (var command = connection.CreateCommand())
         {
+            AssignTransaction(command, dbContext);
             command.CommandText = "Sp_Department_GetList";
             command.CommandType = CommandType.StoredProcedure;
             command.Parameters.Add(new SqlParameter("@SkipCount", 0));
@@ -197,13 +214,12 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
     public async Task<List<DepartmentMemberDto>> GetUsersByDepartmentIdAsync(Guid departmentId)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         var members = new List<DepartmentMemberDto>();
         await using (var command = connection.CreateCommand())
         {
+            AssignTransaction(command, dbContext);
             command.CommandText = @"
                 SELECT u.Id as UserId, u.UserName, u.Email, ud.IsManager 
                 FROM UserDepartments ud
@@ -229,11 +245,10 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
     public async Task UpsertUserDepartmentAsync(Guid userId, Guid departmentId, bool isManager)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         await using var command = connection.CreateCommand();
+        AssignTransaction(command, dbContext);
         command.CommandText = @"
             IF EXISTS (SELECT 1 FROM UserDepartments WHERE UserId = @UserId AND DepartmentId = @DepartmentId)
                 UPDATE UserDepartments SET IsManager = @IsManager WHERE UserId = @UserId AND DepartmentId = @DepartmentId;
@@ -250,11 +265,10 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
     public async Task<bool> DeleteUserDepartmentAsync(Guid departmentId, Guid userId)
     {
-        var dbContext = await _dbContextProvider.GetDbContextAsync();
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+        var (dbContext, connection) = await GetConnectionAndContextAsync();
 
         await using var command = connection.CreateCommand();
+        AssignTransaction(command, dbContext);
         command.CommandText = "DELETE FROM UserDepartments WHERE DepartmentId = @DepartmentId AND UserId = @UserId";
         command.CommandType = CommandType.Text;
 

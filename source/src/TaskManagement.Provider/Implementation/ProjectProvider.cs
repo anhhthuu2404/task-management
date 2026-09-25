@@ -22,6 +22,8 @@ namespace TaskManagement.Provider.Implementation
             _connectionString = configuration.GetConnectionString("Default") ?? string.Empty;
         }
 
+        // --- PROJECT ---
+
         public async Task<List<ProjectQueryResponse>> GetListAsync(ProjectGetListRequest request)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -115,6 +117,150 @@ namespace TaskManagement.Provider.Implementation
 
             await connection.ExecuteAsync(
                 "sp_Project_Delete",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        // --- PROJECT MILESTONES ---
+
+        public async Task<List<ProjectMilestoneResponse>> GetMilestonesByProjectIdAsync(Guid projectId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@ProjectId", projectId);
+
+            var result = await connection.QueryAsync<ProjectMilestoneResponse>(
+                "sp_ProjectMilestone_GetByProjectId",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
+        public async Task<ProjectMilestoneResponse?> GetMilestoneByIdAsync(Guid id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", id);
+
+            return await connection.QueryFirstOrDefaultAsync<ProjectMilestoneResponse>(
+                "sp_ProjectMilestone_GetById",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task CreateMilestoneAsync(ProjectMilestoneResponse input)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id);
+            parameters.Add("@ProjectId", input.ProjectId);
+            parameters.Add("@Title", input.Title);
+            parameters.Add("@Description", input.Description);
+            parameters.Add("@DueDate", input.DueDate);
+            parameters.Add("@Status", input.Status);
+            parameters.Add("@CreatorId", input.CreatorId);
+            parameters.Add("@AssigneeUserId", input.AssigneeUserId);
+
+            await connection.ExecuteAsync(
+                "sp_ProjectMilestone_Create",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task UpdateMilestoneAsync(ProjectMilestoneResponse input)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", input.Id);
+            parameters.Add("@Title", input.Title);
+            parameters.Add("@Description", input.Description);
+            parameters.Add("@DueDate", input.DueDate);
+            parameters.Add("@Status", input.Status);
+            parameters.Add("@LastModifierId", input.LastModifierId);
+            parameters.Add("@AssigneeUserId", input.AssigneeUserId);
+
+            await connection.ExecuteAsync(
+                "sp_ProjectMilestone_Update",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task DeleteMilestoneAsync(Guid id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", id);
+
+            await connection.ExecuteAsync(
+                "sp_ProjectMilestone_Delete",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        // --- PROJECT MEMBERS ---
+
+        public async Task<List<ProjectMemberResponse>> GetMembersByProjectIdAsync(Guid projectId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@ProjectId", projectId);
+
+            var result = await connection.QueryAsync<ProjectMemberResponse>(
+                "sp_ProjectMember_GetByProjectId",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
+
+        public async Task AddMemberAsync(ProjectMemberResponse input)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id);
+            parameters.Add("@ProjectId", input.ProjectId);
+            parameters.Add("@UserId", input.UserId);
+            parameters.Add("@Role", input.Role);
+
+            await connection.ExecuteAsync(
+                "sp_ProjectMember_Add",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task RemoveMemberAsync(Guid id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", id);
+
+            await connection.ExecuteAsync(
+                "sp_ProjectMember_Remove",
                 parameters,
                 commandType: CommandType.StoredProcedure
             );

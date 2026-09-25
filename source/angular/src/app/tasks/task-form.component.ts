@@ -42,6 +42,8 @@ export class TaskFormComponent implements OnInit {
   selectedFiles: File[] = [];
   uploadProgress = 0;
 
+  private cachedTaskData: any = null;
+
   ngOnInit(): void {
     this.initForm();
     this.setMinDate();
@@ -68,7 +70,7 @@ export class TaskFormComponent implements OnInit {
     this.form = this.fb.group({
       title: ['', [Validators.required, Validators.maxLength(256)]],
       description: [''],
-      categoryId: [{ value: '', disabled: true }, Validators.required],
+      categoryId: [{ value: null, disabled: true }, Validators.required],
       projectId: [null, Validators.required],
       departmentId: [{ value: null, disabled: true }],
       milestoneId: [null],
@@ -93,7 +95,7 @@ export class TaskFormComponent implements OnInit {
       } else {
         this.filteredUsers = [...this.users];
         this.milestones = [];
-        this.form.patchValue({ departmentId: null, categoryId: '' }, { emitEvent: false });
+        this.form.patchValue({ departmentId: null, categoryId: null, assigneeId: null }, { emitEvent: false });
         this.cdr.detectChanges();
       }
     });
@@ -118,8 +120,23 @@ export class TaskFormComponent implements OnInit {
     // 1. Load danh mục
     this.rest.request<any, any>({ method: 'GET', url: '/api/task-management/categories', params: { maxResultCount: 100 } }).subscribe({
       next: (res) => { 
-        this.categories = Array.isArray(res) ? res : (res?.items || res?.result || []); 
-        this.cdr.detectChanges();
+        const rawCats = Array.isArray(res) ? res : (res?.items || res?.result || []); 
+        this.categories = rawCats.map((c: any) => ({
+          id: String(c.id || c.Id),
+          name: c.name || c.Name || c.displayName || c.DisplayName
+        }));
+
+        if (this.cachedTaskData) {
+          this.patchAndDisableForm(this.cachedTaskData);
+        } else {
+          queueMicrotask(() => {
+            const currentCatId = this.form.get('categoryId')?.value;
+            if (currentCatId) {
+              this.form.get('categoryId')?.setValue(String(currentCatId), { emitEvent: false });
+            }
+            this.cdr.detectChanges();
+          });
+        }
       }
     });
 
@@ -127,6 +144,10 @@ export class TaskFormComponent implements OnInit {
     this.rest.request<any, any>({ method: 'GET', url: '/api/app/project', params: { maxResultCount: 100 } }).subscribe({
       next: (res) => { 
         this.projects = Array.isArray(res) ? res : (res?.items || res?.result || []); 
+        const currentProjId = this.form.get('projectId')?.value;
+        if (currentProjId) {
+          this.onProjectChange(currentProjId);
+        }
         this.cdr.detectChanges();
       }
     });
@@ -141,11 +162,34 @@ export class TaskFormComponent implements OnInit {
       error: () => { this.departments = []; }
     });
 
-    // 4. Load toàn bộ người dùng ban đầu
-    this.rest.request<any, any>({ method: 'GET', url: '/api/identity/users' }).subscribe({
+    // 4. Load toàn bộ người dùng hệ thống (Chỉ hiển thị tên)
+    this.rest.request<any, any>({ method: 'GET', url: '/api/identity/users', params: { maxResultCount: 1000 } }).subscribe({
       next: (res) => { 
-        this.users = Array.isArray(res) ? res : (res?.items || res?.result || []); 
-        this.filteredUsers = [...this.users];
+        const rawUsers = Array.isArray(res) ? res : (res?.items || res?.result || []); 
+        this.users = rawUsers.map((u: any) => {
+          const targetU = u.user || u.User || u.appUser || u.AppUser || u;
+          const name = targetU.name || targetU.Name || targetU.firstName || targetU.FirstName || '';
+          const surname = targetU.surname || targetU.Surname || targetU.lastName || targetU.LastName || '';
+          const userName = targetU.userName || targetU.UserName || '';
+          
+          // Chỉ lấy tên (name), nếu không có thì lấy userName
+          const displayName = name.trim() || userName;
+
+          return {
+            id: String(targetU.id || targetU.Id || u.id || u.Id),
+            userName: userName,
+            name: name,
+            surname: surname,
+            fullName: displayName, 
+            displayName: displayName,
+            email: targetU.email || targetU.Email
+          };
+        });
+
+        if (!this.form.get('projectId')?.value) {
+          this.filteredUsers = [...this.users];
+        }
+
         this.cdr.detectChanges();
       }
     });
@@ -155,22 +199,23 @@ export class TaskFormComponent implements OnInit {
     if (!projectId) {
       this.milestones = [];
       this.filteredUsers = [...this.users];
-      this.form.patchValue({ departmentId: null, categoryId: '' }, { emitEvent: false });
+      this.form.patchValue({ departmentId: null, categoryId: null, assigneeId: null }, { emitEvent: false });
       queueMicrotask(() => this.cdr.detectChanges());
       return;
     }
 
-    const selectedProject = this.projects.find(p => (p.id === projectId || p.Id === projectId));
+    const selectedProject = this.projects.find(p => String(p.id || p.Id) === String(projectId));
     if (selectedProject) {
       const deptId = selectedProject.departmentId || selectedProject.DepartmentId || selectedProject.department?.id || selectedProject.Department?.Id;
       const catId = selectedProject.categoryId || selectedProject.CategoryId || selectedProject.category?.id || selectedProject.Category?.Id;
 
       this.form.patchValue({
         departmentId: deptId || null,
-        categoryId: catId || ''
+        categoryId: catId ? String(catId) : null
       }, { emitEvent: false });
     }
 
+    // Load milestones
     this.rest.request<any, any>({ method: 'GET', url: `/api/app/project/milestones/${projectId}` }).subscribe({
       next: (res) => { 
         const rawList = Array.isArray(res) ? res : (res?.items || res?.result || []);
@@ -196,32 +241,56 @@ export class TaskFormComponent implements OnInit {
       }
     });
 
+    // Load thành viên thuộc dự án (Chỉ hiển thị tên)
     this.rest.request<any, any>({ method: 'GET', url: `/api/app/project/by-project/${projectId}/members` }).subscribe({
       next: (res) => {
         const projectMembers = Array.isArray(res) ? res : (res?.items || res?.result || []);
         
-        this.filteredUsers = projectMembers.map((m: any) => ({
-          id: m.userId || m.UserId,
-          userName: m.userName || m.UserName,
-          name: m.name || m.Name,
-          surname: m.surname || m.Surname,
-          email: m.email || m.Email,
-          role: m.role || m.Role
-        }));
+        if (projectMembers && projectMembers.length > 0) {
+          this.filteredUsers = projectMembers.map((m: any) => {
+            const targetUserId = String(m.userId || m.UserId || m.user?.id || m.User?.Id || m.id || m.Id);
+            
+            const existingUser = this.users.find(u => String(u.id) === targetUserId);
+            if (existingUser) {
+              return existingUser;
+            }
 
-        if (this.filteredUsers.length === 0) {
+            const targetU = m.user || m.User || m.appUser || m.AppUser || m;
+            const name = targetU.name || targetU.Name || targetU.firstName || targetU.FirstName || '';
+            const surname = targetU.surname || targetU.Surname || targetU.lastName || targetU.LastName || '';
+            const userName = targetU.userName || targetU.UserName || '';
+            
+            const displayName = name.trim() || userName;
+
+            return {
+              id: targetUserId,
+              userName: userName,
+              name: name,
+              surname: surname,
+              fullName: displayName, 
+              displayName: displayName,
+              email: targetU.email || targetU.Email,
+              role: m.role || m.Role
+            };
+          });
+        } else {
           this.filteredUsers = [...this.users];
         }
 
         const currentVal = this.form?.get('assigneeId')?.value;
         if (currentVal) {
-          this.form?.get('assigneeId')?.setValue(currentVal, { emitEvent: false });
+          const stringVal = String(currentVal);
+          const existsInSystem = this.users.some(u => String(u.id) === stringVal);
+          if (existsInSystem && !this.filteredUsers.some(u => String(u.id) === stringVal)) {
+            const foundUser = this.users.find(u => String(u.id) === stringVal);
+            if (foundUser) this.filteredUsers.push(foundUser);
+          }
         }
 
         queueMicrotask(() => this.cdr.detectChanges());
       },
       error: (err) => {
-        console.error('Không thể tải danh sách thành viên dự án:', err);
+        console.error('Không thể tải danh sách thành viên dự án, sử dụng danh sách toàn hệ thống:', err);
         this.filteredUsers = [...this.users];
         queueMicrotask(() => this.cdr.detectChanges());
       }
@@ -233,6 +302,7 @@ export class TaskFormComponent implements OnInit {
     this.rest.request<any, any>({ method: 'GET', url: `/api/app/task/${id}` }).subscribe({
       next: (task) => {
         if (task) {
+          this.cachedTaskData = task;
           const projId = task.projectId || task.ProjectId || task.project?.id || task.Project?.Id;
           
           if (projId) {
@@ -275,17 +345,40 @@ export class TaskFormComponent implements OnInit {
 
   private patchAndDisableForm(task: any): void {
     const projId = task.projectId || task.ProjectId || task.project?.id || task.Project?.Id;
-    const catId = task.categoryId || task.CategoryId || task.category?.id || task.Category?.Id;
-    const deptId = task.departmentId || task.DepartmentId || task.department?.id || task.Department?.Id;
+    let catId = task.categoryId || task.CategoryId || task.category?.id || task.Category?.Id;
+    let deptId = task.departmentId || task.DepartmentId || task.department?.id || task.Department?.Id;
+    let assigneeId = task.assigneeId || task.AssigneeId;
+
+    const emptyGuid = '00000000-0000-0000-0000-000000000000';
+    if (!catId || catId === emptyGuid) catId = null;
+    if (!deptId || deptId === emptyGuid) deptId = null;
+
+    if (projId && this.projects.length > 0) {
+      const matchedProject = this.projects.find(p => String(p.id || p.Id) === String(projId));
+      if (matchedProject) {
+        const projCatId = matchedProject.categoryId || matchedProject.CategoryId || matchedProject.category?.id || matchedProject.Category?.Id;
+        const projDeptId = matchedProject.departmentId || matchedProject.DepartmentId || matchedProject.department?.id || matchedProject.Department?.Id;
+        
+        if (!catId && projCatId && projCatId !== emptyGuid) catId = projCatId;
+        if (!deptId && projDeptId && projDeptId !== emptyGuid) deptId = projDeptId;
+      }
+    }
+
+    const finalCatId = catId ? String(catId) : null;
+    const finalAssigneeId = assigneeId ? String(assigneeId) : null;
+
+    this.form.get('categoryId')?.enable({ emitEvent: false });
+    this.form.get('projectId')?.enable({ emitEvent: false });
+    this.form.get('departmentId')?.enable({ emitEvent: false });
 
     this.form.patchValue({
       title: task.title || task.Title,
       description: task.description || task.Description,
-      categoryId: catId || '',
-      projectId: projId || null,
-      departmentId: deptId || null,
+      categoryId: finalCatId,
+      projectId: projId ? String(projId) : null,
+      departmentId: deptId ? String(deptId) : null,
       milestoneId: task.milestoneId || task.MilestoneId,
-      assigneeId: task.assigneeId || task.AssigneeId,
+      assigneeId: finalAssigneeId,
       dueDate: (task.dueDate || task.DueDate) ? (task.dueDate || task.DueDate).split('T')[0] : '',
       priority: task.priority !== undefined ? task.priority : task.Priority,
       status: task.status !== undefined ? task.status : task.Status,
@@ -293,9 +386,11 @@ export class TaskFormComponent implements OnInit {
       frequency: task.frequency !== undefined ? task.frequency : task.Frequency || 0
     }, { emitEvent: false });
     
-    this.form.get('categoryId')?.disable({ emitEvent: false });
-    this.form.get('projectId')?.disable({ emitEvent: false });
-    this.form.get('departmentId')?.disable({ emitEvent: false });
+    if (this.isEditMode) {
+      this.form.get('categoryId')?.disable({ emitEvent: false });
+      this.form.get('projectId')?.disable({ emitEvent: false });
+      this.form.get('departmentId')?.disable({ emitEvent: false });
+    }
 
     this.isLoading = false;
     
@@ -387,5 +482,46 @@ export class TaskFormComponent implements OnInit {
 
   onCancel(): void {
     this.router.navigate(['/tasks']);
+  }
+
+  // --- Các hàm hỗ trợ hiển thị template (Ưu tiên trả về tên riêng) ---
+  getUserDisplayName(user: any): string {
+    if (!user) return '';
+    
+    if (typeof user === 'string') {
+      const found = this.users.find(u => String(u.id) === user);
+      if (found) {
+        return found.name || found.userName || found.email || user;
+      }
+      return user;
+    }
+
+    const u = user.user || user.User || user.appUser || user.AppUser || user.userInfo || user.UserInfo || user;
+
+    const firstName = u.name || u.Name || u.firstName || u.FirstName || '';
+    if (firstName.trim()) return firstName.trim();
+
+    const userName = u.userName || u.UserName;
+    if (userName && userName.trim()) return userName.trim();
+
+    const email = u.email || u.Email;
+    if (email && email.trim()) return email.trim();
+
+    const userId = u.id || u.Id || u.userId || u.UserId;
+    if (userId) {
+      const foundById = this.users.find(item => String(item.id) === String(userId));
+      if (foundById) {
+        return foundById.name || foundById.userName || foundById.email || `Người dùng (${userId})`;
+      }
+    }
+
+    return `Người dùng (${userId || 'ID'})`;
+  }
+
+  getUserId(user: any): any {
+    if (!user) return null;
+    if (typeof user === 'string') return user;
+    const u = user.user || user.User || user.appUser || user.AppUser || user;
+    return u.id || u.Id || u.userId || u.UserId;
   }
 }

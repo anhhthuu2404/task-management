@@ -4,6 +4,9 @@ using TaskManagement.EntityFrameworkCore;
 using TaskManagement.Provider;
 using TaskManagement.Provider.Implementation;
 using TaskManagement.Provider.Interface;
+using TaskManagement.Reports.Implementation; 
+using TaskManagement.Reports.Interface; 
+using TaskManagement.Tasks;
 using Volo.Abp.Modularity;
 
 [DependsOn(
@@ -20,8 +23,10 @@ public class TaskManagementProvidersModule : AbpModule
         context.Services.AddTransient<IRoleProvider, RoleProvider>();
         context.Services.AddTransient<IDepartmentProvider, DepartmentProvider>();
         context.Services.AddTransient<IUserProvider, UserProvider>();
-
-        // Bổ sung thêm dòng này để đăng ký IProjectProvider vào DI Container
         context.Services.AddTransient<IProjectProvider, ProjectProvider>();
+        context.Services.AddTransient<ITaskProvider, TaskProvider>();
+        context.Services.AddTransient<INotificationProvider, NotificationProvider>();
+        context.Services.AddTransient<IReportProvider, ReportProvider>();
+        context.Services.AddTransient<IDashboardProvider, DashboardProvider>();
     }
 }

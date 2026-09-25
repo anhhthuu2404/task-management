@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TaskManagement.Notifications;
 using TaskManagement.Provider.Interface;
 using TaskManagement.Provider.Request;
+using TaskManagement.Provider.Response;
 using TaskManagement.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -79,29 +80,35 @@ namespace TaskManagement.Projects
         [HttpGet("/api/app/project/milestones/{projectId}")]
         public async Task<List<MilestoneDto>> GetMilestonesByProjectAsync(Guid projectId)
         {
-            var milestones = await _milestoneRepository.GetListAsync(x => x.ProjectId == projectId);
-            return ObjectMapper.Map<List<ProjectMilestone>, List<MilestoneDto>>(milestones);
+            // Chuyển sang sử dụng Dapper Provider gọi Stored Procedure
+            var data = await _projectProvider.GetMilestonesByProjectIdAsync(projectId);
+            return ObjectMapper.Map<List<ProjectMilestoneResponse>, List<MilestoneDto>>(data);
         }
 
         [HttpPost("/api/app/project/milestone/{projectId}")]
         public async Task<MilestoneDto> CreateMilestoneAsync(Guid projectId, CreateUpdateMilestoneDto input)
         {
-            var milestone = new ProjectMilestone
+            var milestoneId = GuidGenerator.Create();
+
+            var milestoneResponse = new ProjectMilestoneResponse
             {
+                Id = milestoneId,
                 ProjectId = projectId,
                 Title = input.Title,
                 Description = input.Description,
                 DueDate = input.DueDate,
-                Status = input.Status,
-                AssigneeUserId = input.AssigneeUserId
+                Status = (int)input.Status,
+                AssigneeUserId = input.AssigneeUserId,
+                CreatorId = CurrentUser.Id
             };
 
-            await _milestoneRepository.InsertAsync(milestone);
+            // Gọi Provider để tạo Milestone qua Stored Procedure
+            await _projectProvider.CreateMilestoneAsync(milestoneResponse);
 
             var newTask = new TaskItem
             {
                 ProjectId = projectId,
-                MilestoneId = milestone.Id,
+                MilestoneId = milestoneId,
                 Title = input.Title,
                 Description = input.Description,
                 DueDate = input.DueDate,
@@ -125,7 +132,7 @@ namespace TaskManagement.Projects
 
                 await _notificationRepository.InsertAsync(notification);
 
-                // Publish sự kiện realtime qua SignalR mà bạn đã cấu hình
+                // Publish sự kiện realtime qua SignalR
                 await _distributedEventBus.PublishAsync(new TaskNotificationEto
                 {
                     UserId = input.AssigneeUserId.Value,
@@ -135,13 +142,13 @@ namespace TaskManagement.Projects
                 });
             }
 
-            return ObjectMapper.Map<ProjectMilestone, MilestoneDto>(milestone);
+            return ObjectMapper.Map<ProjectMilestoneResponse, MilestoneDto>(milestoneResponse);
         }
 
         [HttpDelete("/api/app/project/milestone/{milestoneId}")]
         public async Task DeleteMilestoneAsync(Guid milestoneId)
         {
-            var milestone = await _milestoneRepository.GetAsync(milestoneId);
+            var milestone = await _projectProvider.GetMilestoneByIdAsync(milestoneId);
 
             if (milestone != null)
             {
@@ -152,7 +159,8 @@ namespace TaskManagement.Projects
                     await _taskRepository.DeleteAsync(task.Id);
                 }
 
-                await _milestoneRepository.DeleteAsync(milestoneId);
+                // Xóa milestone thông qua Dapper Provider
+                await _projectProvider.DeleteMilestoneAsync(milestoneId);
             }
         }
 
@@ -161,26 +169,19 @@ namespace TaskManagement.Projects
         {
             try
             {
-                var members = await _memberRepository.GetListAsync(x => x.ProjectId == projectId, cancellationToken: cancellationToken);
-                var userIds = members.Select(x => x.UserId).ToList();
+                // Sử dụng Dapper Provider để lấy danh sách thành viên kết hợp sẵn thông tin User từ Stored Procedure
+                var members = await _projectProvider.GetMembersByProjectIdAsync(projectId);
 
-                var userQuery = await _userRepository.GetQueryableAsync();
-                var users = await userQuery.Where(x => userIds.Contains(x.Id)).ToListAsync(cancellationToken);
-
-                var resultList = members.Select(m =>
+                var resultList = members.Select(m => new ProjectMemberDto
                 {
-                    var user = users.FirstOrDefault(u => u.Id == m.UserId);
-                    return new ProjectMemberDto
-                    {
-                        Id = m.Id,
-                        ProjectId = m.ProjectId,
-                        UserId = m.UserId,
-                        Role = m.Role,
-                        UserName = user?.UserName,
-                        Name = user?.Name,
-                        Surname = user?.Surname,
-                        Email = user?.Email
-                    };
+                    Id = m.Id,
+                    ProjectId = m.ProjectId,
+                    UserId = m.UserId,
+                    Role = m.Role,
+                    UserName = m.UserName,
+                    Name = m.Name,
+                    Surname = m.Surname,
+                    Email = m.Email
                 }).ToList();
 
                 return new ListResultDto<ProjectMemberDto>(resultList);
@@ -194,21 +195,24 @@ namespace TaskManagement.Projects
         [HttpPost("/api/app/project/member/{projectId}")]
         public async Task<ProjectMemberDto> AddMemberAsync(Guid projectId, AddProjectMemberDto input)
         {
-            var member = new ProjectMember
+            var memberResponse = new ProjectMemberResponse
             {
+                Id = GuidGenerator.Create(),
                 ProjectId = projectId,
                 UserId = input.UserId,
                 Role = input.Role
             };
 
-            await _memberRepository.InsertAsync(member);
-            return ObjectMapper.Map<ProjectMember, ProjectMemberDto>(member);
+            // Thêm thành viên qua Stored Procedure
+            await _projectProvider.AddMemberAsync(memberResponse);
+            return ObjectMapper.Map<ProjectMemberResponse, ProjectMemberDto>(memberResponse);
         }
 
         [HttpDelete("/api/app/project/member/{memberId}")]
         public async Task RemoveMemberAsync(Guid memberId)
         {
-            await _memberRepository.DeleteAsync(memberId);
+            // Xóa thành viên qua Stored Procedure
+            await _projectProvider.RemoveMemberAsync(memberId);
         }
 
         [HttpGet("/api/app/project/{projectId}/tasks")]

@@ -9,8 +9,10 @@ namespace TaskManagement.Tasks;
 [Table("Tasks")]
 public class TaskItem : FullAuditedAggregateRoot<Guid>
 {
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
+    public string Title { get; set; } = string.Empty;       // Tiêu đề (Tiếng Việt)
+    public string? TitleEn { get; set; }                   // Tiêu đề (Tiếng Anh tự động dịch)
+    public string? Description { get; set; }               // Mô tả (Tiếng Việt)
+    public string? DescriptionEn { get; set; }             // Mô tả (Tiếng Anh tự động dịch)
     public Guid? DepartmentId { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? MilestoneId { get; set; }
@@ -26,11 +28,9 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
     public DateTime? StartDate { get; set; }
     public string? AssigneeName { get; set; }
 
-    // === BỔ SUNG 3 TRƯỜNG CHO TÍNH NĂNG LẶP LẠI VÀ BACKGROUND WORKER ===
     public bool IsRecurring { get; set; } = false;
     public RecurrenceFrequency? Frequency { get; set; }
     public DateTime? LastGeneratedDate { get; set; }
-    // ==================================================================
 
     public virtual ICollection<TaskHistory> Histories { get; set; } = new List<TaskHistory>();
     public virtual ICollection<TaskAttachment> Attachments { get; set; } = new List<TaskAttachment>();
@@ -40,7 +40,6 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
         Title = string.Empty;
     }
 
-    
     public TaskItem(
         Guid id,
         string title,
@@ -57,7 +56,6 @@ public class TaskItem : FullAuditedAggregateRoot<Guid>
         DueDate = dueDate;
     }
 
-    // Giữ nguyên hoàn toàn logic UpdateAssignee cũ
     public void UpdateAssignee(Guid? newAssigneeId, string? newAssigneeName)
     {
         if (AssigneeId != newAssigneeId)

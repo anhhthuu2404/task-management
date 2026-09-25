@@ -6,7 +6,8 @@ namespace TaskManagement.Tasks;
 public class TaskChecklistItem : FullAuditedEntity<Guid>
 {
     public Guid TaskId { get; set; }
-    public string Title { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;       // Tiêu đề (Tiếng Việt)
+    public string? TitleEn { get; set; }                   // Tiêu đề (Tiếng Anh tự động dịch)
     public bool IsDone { get; set; }
 
     public virtual TaskItem Task { get; set; } = null!;

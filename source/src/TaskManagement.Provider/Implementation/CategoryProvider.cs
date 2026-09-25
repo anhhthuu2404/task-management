@@ -1,16 +1,16 @@
-﻿using Dapper;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Dapper;
 using TaskManagement.Categories;
 using TaskManagement.Provider.Interface;
 using TaskManagement.Provider.Request;
+using TaskManagement.Provider.Response;
 using Volo.Abp.DependencyInjection;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace TaskManagement.Provider.Implementation;
 
@@ -27,24 +27,33 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
 
     public async Task<(List<CategoryDto> Items, int TotalCount)> GetPagedListAsync(CategoryGetListRequest request)
     {
-        // Bổ sung dòng khởi tạo connection này nhé:
         using var connection = CreateConnection();
-        await connection.OpenAsync(); // Nhớ mở kết nối nếu chưa mở tự động
+        await connection.OpenAsync();
 
-        using var multi = await connection.QueryMultipleAsync(
+        var queryResult = await connection.QueryAsync<CategoryQueryResponse>(
             "sp_Categories_GetPagedList",
             new
             {
                 Keyword = request.Filter,
                 request.SkipCount,
                 request.MaxResultCount,
-                request.Sorting
+                Sorting = request.Sorting
             },
             commandType: CommandType.StoredProcedure
         );
 
-        var items = (await multi.ReadAsync<CategoryDto>()).ToList();
-        var totalCount = await multi.ReadFirstAsync<int>();
+        var list = queryResult.ToList();
+
+        // Sửa lỗi ép kiểu TotalCount an toàn (từ long sang int)
+        int totalCount = list.FirstOrDefault() != null ? (int)list.First().TotalCount : 0;
+
+        // Chỉ ánh xạ các thuộc tính cơ bản có sẵn trong CategoryDto
+        var items = list.Select(x => new CategoryDto
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Description = x.Description
+        }).ToList();
 
         return (items, totalCount);
     }
@@ -71,7 +80,8 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
                 input.Description,
                 IsActive = true,
                 CreationTime = DateTime.Now,
-                CreatorId = (Guid?)null
+                CreatorId = (Guid?)null,
+                ConcurrencyStamp = Guid.NewGuid().ToString("N")
             },
             commandType: CommandType.StoredProcedure
         );
@@ -89,7 +99,8 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
                 input.Description,
                 IsActive = true,
                 LastModificationTime = DateTime.Now,
-                LastModifierId = (Guid?)null
+                LastModifierId = (Guid?)null,
+                ConcurrencyStamp = Guid.NewGuid().ToString("N")
             },
             commandType: CommandType.StoredProcedure
         );

@@ -4,7 +4,6 @@ namespace TaskManagement.Dashboards
 {
     public class DashboardStatisticsDto
     {
-        // KPI Cards Tổng quan
         public int TotalCategories { get; set; }
         public int TotalTags { get; set; }
         public int TotalDepartments { get; set; }
@@ -14,7 +13,6 @@ namespace TaskManagement.Dashboards
         public int CompletedTasks { get; set; }
         public int PendingTasks { get; set; }
 
-        // Dữ liệu cho biểu đồ thống kê
         public Dictionary<string, int> TasksByStatus { get; set; } = new();
         public Dictionary<string, int> UsersByDepartment { get; set; } = new();
     }
