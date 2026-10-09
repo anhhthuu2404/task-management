@@ -14,9 +14,9 @@
           type="text" 
           class="form-control p-3.5 fs-5 rounded-3" 
           formControlName="title" 
-          [class.is-invalid]="form.get('title')?.touched && form.get('title')?.invalid" 
+          [class.is-invalid]="(form.get('title')?.touched || isSubmitted) && form.get('title')?.invalid"          
           [placeholder]="'::Task:TitlePlaceholder' | abpLocalization"
-        />
+       />
         <div class="invalid-feedback fs-6">{{ '::Task:TitleRequired' | abpLocalization }}</div>
       </div>
 
@@ -37,10 +37,10 @@
         <div class="col-md-6 mb-3">
           <label class="form-label required fw-semibold fs-6 text-dark">{{ '::Task:Category' | abpLocalization }}</label>
           <select 
-            class="form-select p-3.5 fs-5 rounded-3" 
-            formControlName="categoryId" 
-            [class.is-invalid]="form.get('categoryId')?.touched && form.get('categoryId')?.invalid"
-          >
+             class="form-select p-3.5 fs-5 rounded-3" 
+             formControlName="categoryId" 
+             [class.is-invalid]="(form.get('categoryId')?.touched || isSubmitted) && form.get('categoryId')?.invalid"           
+           >
             <option value="">-- {{ '::Task:SelectCategory' | abpLocalization }} --</option>
             <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
           </select>
@@ -51,10 +51,10 @@
         <div class="col-md-6 mb-3">
           <label class="form-label required fw-semibold fs-6 text-dark">{{ '::Task:Project' | abpLocalization }}</label>
           <select 
-            class="form-select p-3.5 fs-5 rounded-3" 
-            formControlName="projectId"
-            [class.is-invalid]="form.get('projectId')?.touched && form.get('projectId')?.invalid"
-          >
+             class="form-select p-3.5 fs-5 rounded-3" 
+             formControlName="projectId"
+             [class.is-invalid]="(form.get('projectId')?.touched || isSubmitted) && form.get('projectId')?.invalid"            
+            >
             <option [ngValue]="null">-- {{ '::Task:SelectProject' | abpLocalization }} --</option>
             <option *ngFor="let proj of projects" [value]="proj.id">{{ proj.name }}</option>
           </select>
@@ -78,7 +78,7 @@
           <select 
             class="form-select p-3.5 fs-5 rounded-3" 
             formControlName="assigneeId"
-            [class.is-invalid]="form.get('assigneeId')?.touched && form.get('assigneeId')?.invalid"
+            [class.is-invalid]="(form.get('assigneeId')?.touched || isSubmitted) && form.get('assigneeId')?.invalid"          
           >
             <option [ngValue]="null">-- {{ '::Task:SelectAssignee' | abpLocalization }} --</option>
             <option *ngFor="let user of filteredUsers" [value]="user.id">
@@ -91,12 +91,12 @@
         <div class="col-md-6 mb-3">
           <label class="form-label required fw-semibold fs-6 text-dark">{{ '::Task:DueDate' | abpLocalization }}</label>
           <input 
-              type="date" 
-              class="form-control p-3.5 fs-5 rounded-3" 
-              formControlName="dueDate" 
-              [min]="minDate"
-              [class.is-invalid]="form.get('dueDate')?.touched && form.get('dueDate')?.invalid"
-            />
+            type="date" 
+            class="form-control p-3.5 fs-5 rounded-3" 
+            formControlName="dueDate" 
+            [min]="minDate"
+            [class.is-invalid]="(form.get('dueDate')?.touched || isSubmitted) && form.get('dueDate')?.invalid"         
+          />
           <div class="invalid-feedback fs-6">{{ '::Task:DueDateRequired' | abpLocalization }}</div>
         </div>
       </div>
@@ -125,7 +125,7 @@
         </div>
       </div>
 
-      <!-- Cấu hình lặp lại công việc (Thu nhỏ chiều cao cho mỏng gọn) -->
+      <!-- Cấu hình lặp lại công việc -->
       <div class="mb-4">
         <div class="px-3 py-2 bg-light rounded-3 border-0 shadow-xs">
           <div class="form-check d-flex align-items-center mb-0">
@@ -133,7 +133,6 @@
             <label class="form-check-label fw-semibold cursor-pointer fs-6 text-dark ms-2 mb-0" for="isRecurring">{{ '::Task:IsRecurring' | abpLocalization }}</label>
           </div>
 
-          <!-- Dropdown chọn tần suất -->
           <div *ngIf="form.get('isRecurring')?.value" class="mt-2 pt-2 border-top">
             <select class="form-select py-2 px-3 fs-6 rounded-2 bg-white" formControlName="frequency">
               <option [value]="0">{{ '::Enum:Frequency.0' | abpLocalization }}</option>
@@ -157,12 +156,10 @@
         />
         <small class="form-text text-muted fs-6 d-block mt-1.5">{{ '::Task:FileHint' | abpLocalization }}</small>
 
-        <!-- Progress Bar -->
         <div class="progress mt-3 rounded-pill overflow-hidden" *ngIf="uploadProgress > 0 && uploadProgress < 100" style="height: 8px;">
           <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" [style.width.%]="uploadProgress"></div>
         </div>
 
-        <!-- Danh sách file đã chọn -->
         <div class="d-flex flex-wrap gap-2 mt-3" *ngIf="selectedFiles.length > 0">
           <div *ngFor="let file of selectedFiles; let i = index" class="badge bg-white text-dark border px-3.5 py-2.5 d-flex align-items-center gap-2 shadow-xs rounded-pill fs-6 fw-normal">
             <i class="bi bi-paperclip text-primary fs-5"></i>

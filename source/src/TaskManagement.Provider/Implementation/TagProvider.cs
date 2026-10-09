@@ -17,7 +17,7 @@ namespace TaskManagement.Provider.Implementation
     {
         private readonly IRepository<Tag, Guid> _tagRepository = tagRepository;
 
-        public async Task<PagedResultDto<TagDto>> GetListAsync(GetTagListInput input)
+        public async Task<PagedResultDto<TagDto>> GetListAsync(GetTagListInput input, string culture = "vi")
         {
             var dbContext = await _tagRepository.GetDbContextAsync();
             var connection = dbContext.Database.GetDbConnection();
@@ -33,12 +33,13 @@ namespace TaskManagement.Provider.Implementation
                     command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
                 }
 
-                command.CommandText = "EXEC [dbo].[Sp_Tag_GetList] @Filter, @CategoryId, @SkipCount, @MaxResultCount, @Sorting";
+                command.CommandText = "EXEC [dbo].[Sp_Tag_GetList] @Filter, @CategoryId, @SkipCount, @MaxResultCount, @Sorting, @Culture";
                 command.Parameters.Add(new SqlParameter("@Filter", (object?)input.Filter ?? DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@CategoryId", input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty ? (object)input.CategoryId.Value : DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@SkipCount", input.SkipCount));
                 command.Parameters.Add(new SqlParameter("@MaxResultCount", input.MaxResultCount));
                 command.Parameters.Add(new SqlParameter("@Sorting", (object?)input.Sorting ?? "creationTime DESC"));
+                command.Parameters.Add(new SqlParameter("@Culture", (object?)culture ?? "vi"));
 
                 await using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
@@ -46,7 +47,9 @@ namespace TaskManagement.Provider.Implementation
                     var dto = new TagDto
                     {
                         Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                        Name = reader.GetString(reader.GetOrdinal("Name")),
+                        NameVi = reader.IsDBNull(reader.GetOrdinal("NameVi")) ? string.Empty : reader.GetString(reader.GetOrdinal("NameVi")),
+                        NameEn = reader.IsDBNull(reader.GetOrdinal("NameEn")) ? string.Empty : reader.GetString(reader.GetOrdinal("NameEn")),
+                        Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? string.Empty : reader.GetString(reader.GetOrdinal("Name")),
                         ColorCode = reader.IsDBNull(reader.GetOrdinal("ColorCode")) ? string.Empty : reader.GetString(reader.GetOrdinal("ColorCode")),
                         CategoryId = reader.IsDBNull(reader.GetOrdinal("CategoryId")) ? (Guid?)null : reader.GetGuid(reader.GetOrdinal("CategoryId")),
                         CategoryName = reader.IsDBNull(reader.GetOrdinal("CategoryName")) ? null : reader.GetString(reader.GetOrdinal("CategoryName")),
@@ -65,7 +68,7 @@ namespace TaskManagement.Provider.Implementation
             return new PagedResultDto<TagDto>(totalCount, items);
         }
 
-        public async Task<TagDto> GetByIdAsync(Guid id)
+        public async Task<TagDto> GetByIdAsync(Guid id, string culture = "vi")
         {
             var dbContext = await _tagRepository.GetDbContextAsync();
             var connection = dbContext.Database.GetDbConnection();
@@ -79,8 +82,9 @@ namespace TaskManagement.Provider.Implementation
                     command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
                 }
 
-                command.CommandText = "EXEC [dbo].[Sp_Tag_GetById] @Id";
+                command.CommandText = "EXEC [dbo].[Sp_Tag_GetById] @Id, @Culture";
                 command.Parameters.Add(new SqlParameter("@Id", id));
+                command.Parameters.Add(new SqlParameter("@Culture", (object?)culture ?? "vi"));
 
                 await using var reader = await command.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
@@ -88,7 +92,9 @@ namespace TaskManagement.Provider.Implementation
                     dto = new TagDto
                     {
                         Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                        Name = reader.GetString(reader.GetOrdinal("Name")),
+                        NameVi = reader.IsDBNull(reader.GetOrdinal("NameVi")) ? string.Empty : reader.GetString(reader.GetOrdinal("NameVi")),
+                        NameEn = reader.IsDBNull(reader.GetOrdinal("NameEn")) ? string.Empty : reader.GetString(reader.GetOrdinal("NameEn")),
+                        Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? string.Empty : reader.GetString(reader.GetOrdinal("Name")),
                         ColorCode = reader.IsDBNull(reader.GetOrdinal("ColorCode")) ? string.Empty : reader.GetString(reader.GetOrdinal("ColorCode")),
                         CategoryId = reader.IsDBNull(reader.GetOrdinal("CategoryId")) ? (Guid?)null : reader.GetGuid(reader.GetOrdinal("CategoryId")),
                         CategoryName = reader.IsDBNull(reader.GetOrdinal("CategoryName")) ? null : reader.GetString(reader.GetOrdinal("CategoryName")),
@@ -113,10 +119,12 @@ namespace TaskManagement.Provider.Implementation
                 command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
             }
 
-            command.CommandText = "EXEC [dbo].[Sp_Tag_Create] @Id, @Name, @ColorCode, @CategoryId, @CreationTime, @CreatorId, @IsActive, @ExtraProperties, @ConcurrencyStamp";
+            command.CommandText = "EXEC [dbo].[Sp_Tag_Create] @Id, @NameVi, @NameEn, @Name, @ColorCode, @CategoryId, @CreationTime, @CreatorId, @IsActive, @ExtraProperties, @ConcurrencyStamp";
 
             command.Parameters.Add(new SqlParameter("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id));
-            command.Parameters.Add(new SqlParameter("@Name", input.Name));
+            command.Parameters.Add(new SqlParameter("@NameVi", (object?)input.NameVi ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter("@NameEn", (object?)input.NameEn ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter("@Name", (object?)input.Name ?? DBNull.Value));
             command.Parameters.Add(new SqlParameter("@ColorCode", (object?)input.ColorCode ?? DBNull.Value));
             command.Parameters.Add(new SqlParameter("@CategoryId", input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty ? (object)input.CategoryId.Value : DBNull.Value));
             command.Parameters.Add(new SqlParameter("@CreationTime", DateTime.UtcNow));
@@ -141,9 +149,11 @@ namespace TaskManagement.Provider.Implementation
                 command.Transaction = dbContext.Database.CurrentTransaction.GetDbTransaction();
             }
 
-            command.CommandText = "EXEC [dbo].[Sp_Tag_Update] @Id, @Name, @ColorCode, @CategoryId, @LastModificationTime, @LastModifierId";
+            command.CommandText = "EXEC [dbo].[Sp_Tag_Update] @Id, @NameVi, @NameEn, @Name, @ColorCode, @CategoryId, @LastModificationTime, @LastModifierId";
             command.Parameters.Add(new SqlParameter("@Id", id));
-            command.Parameters.Add(new SqlParameter("@Name", input.Name));
+            command.Parameters.Add(new SqlParameter("@NameVi", (object?)input.NameVi ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter("@NameEn", (object?)input.NameEn ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter("@Name", (object?)(input.Name ?? input.NameVi) ?? DBNull.Value));
             command.Parameters.Add(new SqlParameter("@ColorCode", (object?)input.ColorCode ?? DBNull.Value));
             command.Parameters.Add(new SqlParameter("@CategoryId", input.CategoryId.HasValue && input.CategoryId.Value != Guid.Empty ? (object)input.CategoryId.Value : DBNull.Value));
             command.Parameters.Add(new SqlParameter("@LastModificationTime", DateTime.UtcNow));

@@ -20,7 +20,8 @@ import {
   ArcElement,
   RadialLinearScale,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 
 Chart.register(
@@ -37,7 +38,8 @@ Chart.register(
   ArcElement,
   RadialLinearScale,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 import { DashboardService, DashboardStatisticsDto } from './dashboard.service';
@@ -60,6 +62,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   completedTasks = 0;
   inProgressTasks = 0;
   overdueTasks = 0;
+
+  // Biến cho phần phân tích theo thời gian (Analysis Line Chart) lấy dữ liệu thực tế
+  analysisViewMode: 'month' | 'year' = 'month';
+  allLoadedTasks: any[] = [];
+  analysisChartData: any = { labels: [], datasets: [] };
 
   taskChartData: any = { labels: [], datasets: [] };
   completedOverdueChartData: any = { labels: [], datasets: [] }; 
@@ -92,12 +99,37 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     }
   };
 
+  // Cấu hình riêng cho biểu đồ Line Analysis
+  analysisChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            return ` ${context.parsed.y} công việc`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0 }
+      },
+      x: {
+        grid: { display: false }
+      }
+    }
+  };
+
   constructor(
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private httpClient: HttpClient,
     private dashboardService: DashboardService,
-    private localizationService: LocalizationService // Inject LocalizationService để lấy ngôn ngữ hiện tại (vi/en)
+    private localizationService: LocalizationService
   ) {}
 
   ngOnInit(): void {
@@ -126,6 +158,102 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // Chuyển đổi chế độ xem Tháng / Năm cho biểu đồ Analysis
+  setAnalysisViewMode(mode: 'month' | 'year'): void {
+    this.analysisViewMode = mode;
+    this.updateAnalysisChartData();
+    this.cdr.markForCheck();
+  }
+
+  // HÀM XỬ LÝ DỮ LIỆU THỰC TẾ CHO BIỂU ĐỒ ANALYSIS (KHÔNG GÁN CỨNG)
+  updateAnalysisChartData(): void {
+    const currentLang = this.localizationService.currentLang;
+    
+    if (this.analysisViewMode === 'month') {
+      // Lấy thời gian hiện tại (Tháng và Năm thực tế)
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0 - 11
+
+      // Lấy số ngày trong tháng hiện tại (ví dụ: tháng 10 có 31 ngày)
+      const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      
+      const labels: string[] = [];
+      const dataCounts: number[] = new Array(daysInCurrentMonth).fill(0);
+
+      for (let i = 1; i <= daysInCurrentMonth; i++) {
+        labels.push(currentLang === 'en' ? `Day ${i}` : `Ngày ${i}`);
+      }
+
+      // Đếm số lượng công việc thực tế từ API dựa trên dueDate hoặc creationTime
+      this.allLoadedTasks.forEach((t: any) => {
+        const dateValue = t.dueDate || t.deadline || t.creationTime || t.startTime;
+        if (dateValue) {
+          const tDate = new Date(dateValue);
+          if (tDate.getFullYear() === currentYear && tDate.getMonth() === currentMonth) {
+            const dayOfMonth = tDate.getDate(); // Ngày trong tháng (1 - 31)
+            if (dayOfMonth >= 1 && dayOfMonth <= daysInCurrentMonth) {
+              dataCounts[dayOfMonth - 1]++;
+            }
+          }
+        }
+      });
+
+      this.analysisChartData = {
+        labels: labels,
+        datasets: [{
+          data: dataCounts,
+          label: currentLang === 'en' ? 'Task Analysis' : 'Phân tích công việc',
+          fill: true,
+          borderColor: '#4ea8de',
+          backgroundColor: 'rgba(78, 168, 222, 0.15)',
+          tension: 0.4,
+          pointBackgroundColor: '#4ea8de',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4
+        }]
+      };
+
+    } else {
+      // Chế độ xem theo Năm (Tháng 1 đến Tháng 12) từ dữ liệu thực tế
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const monthNamesVi = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+      
+      const monthCounts = new Array(12).fill(0);
+      const currentYear = new Date().getFullYear();
+
+      this.allLoadedTasks.forEach((t: any) => {
+        const dateValue = t.dueDate || t.deadline || t.creationTime || t.startTime;
+        if (dateValue) {
+          const tDate = new Date(dateValue);
+          if (tDate.getFullYear() === currentYear) {
+            const mIndex = tDate.getMonth();
+            if (mIndex >= 0 && mIndex < 12) {
+              monthCounts[mIndex]++;
+            }
+          }
+        }
+      });
+
+      this.analysisChartData = {
+        labels: currentLang === 'en' ? months : monthNamesVi,
+        datasets: [{
+          data: monthCounts,
+          label: currentLang === 'en' ? 'Task Analysis' : 'Phân tích công việc',
+          fill: true,
+          borderColor: '#4ea8de',
+          backgroundColor: 'rgba(78, 168, 222, 0.15)',
+          tension: 0.4,
+          pointBackgroundColor: '#4ea8de',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5
+        }]
+      };
+    }
+  }
+
   loadDashboardData(): void {
     requestAnimationFrame(() => {
       this.isToastVisible = true;
@@ -137,7 +265,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       }, 3000);
     });
 
-    const currentLang = this.localizationService.currentLang; // Lấy mã ngôn ngữ hiện tại ('vi' hoặc 'en')
+    const currentLang = this.localizationService.currentLang;
 
     this.dashboardService.getStatistics().pipe(
       catchError(() => of(null))
@@ -186,6 +314,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       }
     });
 
+    // Lấy đồng thời tất cả dữ liệu thực tế từ các API của ABP Framework
     forkJoin({
       categories: this.httpClient.get<any>('/api/app/category?maxResultCount=100').pipe(catchError(() => of({ items: [] }))),
       tags: this.httpClient.get<any>('/api/app/tag?maxResultCount=100').pipe(catchError(() => of({ items: [] }))),
@@ -214,6 +343,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         const roles = extractArray(res.roles);
         const projects = extractArray(res.projects);
         const taskItems = extractArray(res.tasks);
+
+        // Lưu danh sách task thực tế để vẽ biểu đồ Analysis
+        this.allLoadedTasks = taskItems; 
+        this.updateAnalysisChartData();  
 
         this.totalTasks = taskItems.length;
         
@@ -251,7 +384,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           }]
         };
 
-        // Danh mục (Category)
+        // Danh mục thực tế
         this.categoryChartData = {
           labels: catItems.map((x: any) => (currentLang === 'en' && x.nameEn) ? x.nameEn : (x.name ?? '')),
           datasets: [{ 
@@ -263,20 +396,21 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           }]
         };
 
-      // Thẻ (Tag)
-          this.tagChartData = {
-               labels: tagItems.map((x: any) => (currentLang === 'en' && x.nameEn) ? x.nameEn : (x.name ?? '')),
-               datasets: [{ 
-               data: tagItems.map((tag: any) => taskItems.filter((t: any) => {
-      // So sánh trực tiếp categoryId của thẻ với categoryId của task
-                 return t.categoryId === tag.categoryId || t.category?.id === tag.categoryId;
-             }).length), 
-                label: currentLang === 'en' ? 'Task Count' : 'Số lượng danh mục', 
-                 backgroundColor: '#b7efc5' 
-              }]
-          };
+        // Thẻ thực tế
+        this.tagChartData = {
+          labels: catItems.map((cat: any) => (currentLang === 'en' && cat.nameEn) ? cat.nameEn : (cat.name ?? '')),
+          datasets: [{ 
+            data: catItems.map((cat: any) => {
+              return tagItems.filter((tag: any) => 
+                tag.categoryId === cat.id || tag.category?.id === cat.id
+              ).length;
+            }), 
+            label: currentLang === 'en' ? 'Tag Count' : 'Số lượng danh mục', 
+            backgroundColor: '#b7efc5' 
+          }]
+        };
 
-        // Dự án (Project)
+        // Dự án thực tế
         this.projectChartData = {
           labels: projects.map((p: any) => (currentLang === 'en' && p.nameEn) ? p.nameEn : (p.name ?? '')),
           datasets: [{ 
@@ -288,7 +422,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           }]
         };
 
-        // Phòng ban (Department)
+        // Phòng ban thực tế
         this.departmentChartData = {
           labels: allDepts.map((d: any) => {
             const parent = allDepts.find((p: any) => p.id === d.parentId);
@@ -306,7 +440,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           }]
         };
 
-        // Người dùng (User)
+        // Người dùng thực tế
         this.userChartData = {
           labels: users.map((u: any) => u.userName ?? u.name ?? ''),
           datasets: [{ 
@@ -330,7 +464,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           }]
         };
 
-        // Vai trò (Role)
+        // Vai trò thực tế
         this.roleChartData = {
           labels: roles.map((r: any) => r.name ?? ''),
           datasets: [{ data: roles.map(() => 1), label: 'Role', backgroundColor: '#e2ece9' }]

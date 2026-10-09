@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { CoreModule, LocalizationService } from '@abp/ng.core';
+import { CoreModule, ConfigStateService, LocalizationService } from '@abp/ng.core';
 import { ToasterService, ConfirmationService, Confirmation } from '@abp/ng.theme.shared';
 
 @Component({
@@ -20,18 +20,22 @@ export class UserComponent implements OnInit {
   private readonly cd = inject(ChangeDetectorRef);
   private readonly toaster = inject(ToasterService);
   private readonly confirmation = inject(ConfirmationService);
+  private readonly configState = inject(ConfigStateService);
   private readonly localizationService = inject(LocalizationService);
 
   users: any[] = [];
-  totalCount = 0;           // Biến lưu tổng số lượng user
-  pageSize = 10;            // Số lượng bản ghi trên 1 trang
-  page = 0;                 // Trang hiện tại (ABP bắt đầu từ 0 hoặc tính theo skipCount)
+  totalCount = 0;          
+  pageSize = 10;            
+  page = 0;                 
 
   isModalOpen = false;
   isEditMode = false;
   selectedUserId: string | null = null;
   showPassword = false;
   changePassword = false; 
+
+  isCurrentLoggedInUser = false;
+  isAdminUser = false; // Biến phân quyền Admin
 
   formData: any = {
     userName: '',
@@ -46,28 +50,34 @@ export class UserComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.checkAdminRole();
     this.loadUsers();
   }
 
-  // Hàm tải dữ liệu có phân trang
+  // Kiểm tra quyền Admin dựa trên danh sách roles trong state
+  checkAdminRole(): void {
+    const roles: string[] = this.configState.getDeep('currentUser.roles') || [];
+    this.isAdminUser = roles.some(role => role.toLowerCase() === 'admin');
+  }
+
   loadUsers(pageOffset: number = 0): void {
     this.page = pageOffset;
     const skipCount = this.page * this.pageSize;
     
-    // Gọi API Identity User của ABP kèm theo phân trang skipCount và maxResultCount
     this.httpClient.get<any>(`/api/identity/users?skipCount=${skipCount}&maxResultCount=${this.pageSize}`).subscribe({
       next: (res: any) => {
         this.users = res.items || [];
-        this.totalCount = res.totalCount || 0; // Lấy tổng số lượng từ API trả về
+        this.totalCount = res.totalCount || 0;
         this.cd.detectChanges();
       },
-      error: (err) => console.error('Error loading users:', err)
+      error: (err) => {
+        const isEn = this.localizationService.currentLang?.startsWith('en');
+        console.error(isEn ? 'Error loading users:' : 'Lỗi tải danh sách người dùng:', err);
+      }
     });
   }
 
-  // Hàm lắng nghe sự kiện đổi trang từ giao diện <abp-paginator>
   getData(pageInfo: any): void {
-    // ABP paginator thường truyền về offset hoặc số trang, ta tính toán lại page
     const pageIndex = pageInfo.offset ? pageInfo.offset : (pageInfo - 1 >= 0 ? pageInfo - 1 : 0);
     this.loadUsers(pageIndex);
   }
@@ -79,6 +89,10 @@ export class UserComponent implements OnInit {
     if (user) {
       this.isEditMode = true;
       this.selectedUserId = user.id;
+
+      const currentUserId = this.configState.getDeep('currentUser.id');
+      this.isCurrentLoggedInUser = (currentUserId === user.id);
+
       this.formData = {
         userName: user.userName,
         email: user.email,
@@ -93,6 +107,7 @@ export class UserComponent implements OnInit {
     } else {
       this.isEditMode = false;
       this.selectedUserId = null;
+      this.isCurrentLoggedInUser = false; 
       this.formData = {
         userName: '',
         email: '',
@@ -129,21 +144,29 @@ export class UserComponent implements OnInit {
       }
     }
 
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     if (this.isEditMode && this.selectedUserId) {
       this.httpClient.put(`/api/identity/users/${this.selectedUserId}`, payload).subscribe({
         next: () => {
-          this.toaster.success('User updated successfully.', 'Success');
+          this.toaster.success(
+            isEn ? 'User updated successfully.' : 'Cập nhật người dùng thành công.', 
+            isEn ? 'Success' : 'Thành công'
+          );
           this.closeModal();
-          this.loadUsers(this.page); // Load lại trang hiện tại
+          this.loadUsers(this.page);
         },
         error: (err: any) => this.handleError(err, 'update')
       });
     } else {
       this.httpClient.post('/api/identity/users', payload).subscribe({
         next: () => {
-          this.toaster.success('User created successfully.', 'Success');
+          this.toaster.success(
+            isEn ? 'User created successfully.' : 'Tạo người dùng thành công.', 
+            isEn ? 'Success' : 'Thành công'
+          );
           this.closeModal();
-          this.loadUsers(0); // Tạo mới xong quay về trang đầu tiên
+          this.loadUsers(0);
         },
         error: (err: any) => this.handleError(err, 'create')
       });
@@ -151,18 +174,27 @@ export class UserComponent implements OnInit {
   }
 
   deleteUser(id: string): void {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     this.confirmation
-      .warn('Are you sure you want to delete this user?', 'AreYouSure')
+      .warn(
+        isEn ? 'Are you sure you want to delete this user?' : 'Bạn có chắc chắn muốn xóa người dùng này?', 
+        isEn ? 'Are you sure' : 'Xác nhận xóa'
+      )
       .subscribe((status) => {
         if (status === Confirmation.Status.confirm) {
           this.httpClient.delete(`/api/identity/users/${id}`).subscribe({
             next: () => {
-              this.toaster.success('User deleted successfully.', 'Success');
-              this.loadUsers(this.page); // Load lại trang hiện tại
+              this.toaster.success(
+                isEn ? 'User deleted successfully.' : 'Xóa người dùng thành công.', 
+                isEn ? 'Success' : 'Thành công'
+              );
+              this.loadUsers(this.page);
             },
             error: (err: any) => {
-              const errorMsg = err.error?.error?.message || 'Could not delete the user!';
-              this.toaster.error(errorMsg, 'Error');
+              const defaultMsg = isEn ? 'Could not delete the user!' : 'Không thể xóa người dùng này!';
+              const errorMsg = err.error?.error?.message || defaultMsg;
+              this.toaster.error(errorMsg, isEn ? 'Error' : 'Lỗi');
             }
           });
         }
@@ -170,11 +202,15 @@ export class UserComponent implements OnInit {
   }
 
   private handleError(err: any, actionName: string): void {
-    let errorMsg = `An error occurred while trying to ${actionName} user!`;
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+    let errorMsg = isEn 
+      ? `An error occurred while trying to ${actionName} user!` 
+      : `Đã xảy ra lỗi khi ${actionName === 'create' ? 'tạo' : 'cập nhật'} người dùng!`;
+
     if (err.error?.error) {
       const abpError = err.error.error;
       errorMsg = abpError.details || abpError.message || errorMsg;
     }
-    this.toaster.error(errorMsg, 'Error');
+    this.toaster.error(errorMsg, isEn ? 'Error' : 'Lỗi');
   }
 }

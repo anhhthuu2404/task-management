@@ -5,8 +5,12 @@ namespace TaskManagement.Tags;
 
 public class TagDto : FullAuditedEntityDto<Guid>
 {
+    public string NameVi { get; set; }
+    public string NameEn { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? ColorCode { get; set; }
     public Guid? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+
+
 }

@@ -7,7 +7,9 @@ namespace TaskManagement.Projects
     public class ProjectDto : FullAuditedEntityDto<Guid>
     {
         public string Name { get; set; } = string.Empty;
+        public string? NameEn { get; set; }
         public string? Description { get; set; }
+        public string? DescriptionEn { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -23,7 +25,9 @@ namespace TaskManagement.Projects
     public class CreateUpdateProjectDto
     {
         public string Name { get; set; } = string.Empty;
+        public string? NameEn { get; set; } // Sẽ được tự động dịch nếu để trống
         public string? Description { get; set; }
+        public string? DescriptionEn { get; set; } // Sẽ được tự động dịch nếu để trống
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public Guid? DepartmentId { get; set; }
@@ -43,7 +47,9 @@ namespace TaskManagement.Projects
     {
         public Guid ProjectId { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string? TitleEn { get; set; }
         public string? Description { get; set; }
+        public string? DescriptionEn { get; set; }
         public DateTime DueDate { get; set; }
         public MilestoneStatus Status { get; set; }
         public Guid? AssigneeUserId { get; set; }
@@ -52,11 +58,12 @@ namespace TaskManagement.Projects
     public class CreateUpdateMilestoneDto
     {
         public string Title { get; set; } = string.Empty;
+        public string? TitleEn { get; set; } // Sẽ được tự động dịch nếu để trống
         public string? Description { get; set; }
+        public string? DescriptionEn { get; set; } // Sẽ được tự động dịch nếu để trống
         public DateTime DueDate { get; set; }
         public MilestoneStatus Status { get; set; }
         public Guid? AssigneeUserId { get; set; }
-
     }
 
     public class ProjectMemberDto : EntityDto<Guid>

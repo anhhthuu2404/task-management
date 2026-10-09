@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Volo.Abp.Domain.Repositories;
@@ -19,16 +20,15 @@ namespace TaskManagement.Tasks
         private readonly ILocalEventBus _localEventBus;
         private readonly IClock _clock;
         private readonly IAsyncQueryableExecuter _asyncExecuter;
-        private readonly IDistributedEventBus _distributedEventBus; // Thêm biến Distributed Event Bus
+        private readonly IDistributedEventBus _distributedEventBus;
 
-        // Constructor duy nhất, nhận đầy đủ các dependency
         public TaskManager(
             IRepository<TaskItem, Guid> taskRepository,
             IRepository<Notification, Guid> notificationRepository,
             ILocalEventBus localEventBus,
             IClock clock,
             IAsyncQueryableExecuter asyncExecuter,
-            IDistributedEventBus distributedEventBus) // Inject IDistributedEventBus vào đây
+            IDistributedEventBus distributedEventBus)
         {
             _taskRepository = taskRepository;
             _notificationRepository = notificationRepository;
@@ -53,35 +53,44 @@ namespace TaskManagement.Tasks
                             && t.Status != TaskItemStatus.Overdue)
             );
 
+            if (!overdueTasks.Any()) return;
+
+            // Ép kiểu taskIds sang List<Guid?> để khớp với kiểu dữ liệu của n.TaskId trong Notification
+            var taskIds = overdueTasks.Select(t => (Guid?)t.Id).ToList();
+            var notificationQuery = await _notificationRepository.GetQueryableAsync();
+            var existingNotifications = await _asyncExecuter.ToListAsync(
+                notificationQuery.Where(n => n.TaskId.HasValue && taskIds.Contains(n.TaskId) && n.Message.Contains("quá hạn"))
+            );
+            var notifiedTaskIds = new HashSet<Guid>(existingNotifications.Where(n => n.TaskId.HasValue).Select(n => n.TaskId!.Value));
+
             foreach (var task in overdueTasks)
             {
-                // Cập nhật trạng thái sang Quá hạn và ép lưu ngay lập tức (autoSave: true)
                 task.Status = TaskItemStatus.Overdue;
-                await _taskRepository.UpdateAsync(task, autoSave: true);
+                await _taskRepository.UpdateAsync(task);
 
-                // Nếu task không có người thực hiện thì bỏ qua việc gửi thông báo
+                // Kiểm tra null an toàn cho AssigneeId (hoặc AssigneeUserId tùy entity của bạn)
                 if (!task.AssigneeId.HasValue) continue;
 
-                // Tránh tạo trùng thông báo nếu đã tồn tại thông báo quá hạn cho Task này
-                var existingNotification = await _notificationRepository.FirstOrDefaultAsync(n =>
-                   n.TaskId == task.Id && n.Message.Contains("quá hạn"));
+                // Lấy giá trị Guid chuẩn bằng .Value để truyền vào Notification
+                Guid assigneeId = task.AssigneeId.Value;
 
-                if (existingNotification != null) continue;
+                if (notifiedTaskIds.Contains(task.Id)) continue;
 
                 var message = $"Công việc \"{task.Title}\" của bạn đã bị quá hạn (Hạn chót: {task.DueDate.Value:dd/MM/yyyy})!";
 
-                // Tạo bản ghi thông báo lưu vào Database
-                var notification = new Notification(Guid.NewGuid(), task.AssigneeId.Value, message)
+                // Sử dụng biến assigneeId (kiểu Guid) đã ép kiểu an toàn
+                var notification = new Notification(Guid.NewGuid(), assigneeId, message)
                 {
                     TaskId = task.Id,
                     IsRead = false
                 };
-                await _notificationRepository.InsertAsync(notification, autoSave: true);
+                await _notificationRepository.InsertAsync(notification);
 
-                // Bắn Distributed Event đúng loại TaskNotificationEto để Handler bắt và đẩy qua SignalR
+                notifiedTaskIds.Add(task.Id);
+
                 await _distributedEventBus.PublishAsync(new TaskNotificationEto
                 {
-                    UserId = task.AssigneeId.Value,
+                    UserId = assigneeId,
                     TaskId = task.Id,
                     Message = message,
                     CreationTime = DateTime.UtcNow
@@ -101,6 +110,8 @@ namespace TaskManagement.Tasks
                             && t.Frequency.HasValue
                             && t.Status != TaskItemStatus.Completed)
             );
+
+            if (!recurringTasks.Any()) return;
 
             foreach (var parentTask in recurringTasks)
             {
@@ -141,10 +152,10 @@ namespace TaskManagement.Tasks
                         IsRecurring = false
                     };
 
-                    await _taskRepository.InsertAsync(newTask, autoSave: true);
+                    await _taskRepository.InsertAsync(newTask);
 
                     parentTask.LastGeneratedDate = now;
-                    await _taskRepository.UpdateAsync(parentTask, autoSave: true);
+                    await _taskRepository.UpdateAsync(parentTask);
                 }
             }
         }

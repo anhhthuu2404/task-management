@@ -10,5 +10,6 @@ namespace TaskManagement.Provider.Interface
         Task<List<NotificationQueryResponse>> GetByUserIdAsync(Guid userId);
         Task CreateAsync(NotificationQueryResponse input);
         Task MarkAsReadAsync(Guid id);
+        Task MarkAsDeletedAsync(Guid id);
     }
 }

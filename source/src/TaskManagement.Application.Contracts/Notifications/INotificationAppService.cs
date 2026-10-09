@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Volo.Abp.Application.Services;
 
-namespace TaskManagement.Notifications;
-
-public interface INotificationAppService : IApplicationService
+namespace TaskManagement.Notifications
 {
-    Task<List<NotificationDto>> GetUserNotificationsAsync();
-    Task CreateNotificationAsync(Guid targetReviewerId, Guid taskId, string message);
-    Task MarkAsReadAsync(Guid id);
+    public interface INotificationAppService
+    {
+        Task<List<NotificationDto>> GetUserNotificationsAsync();
+
+        // Bổ sung phương thức này để đồng bộ với NotificationAppService và ProjectAppService
+        Task CreateTaskNotificationAsync(Guid? assignedUserId, Guid taskId, string message);
+
+        Task CreateNotificationAsync(Guid targetReviewerId, Guid taskId, string message);
+        Task MarkAsReadAsync(Guid id);
+        Task DeleteAsync(Guid id);
+    }
 }

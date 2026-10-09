@@ -15,7 +15,10 @@ namespace TaskManagement.Tasks.Response
         public Guid? AssigneeId { get; set; }
 
         public string? AssigneeName { get; set; }    
-        public string? AssigneeUserName { get; set; } 
+        public string? AssigneeUserName { get; set; }
+        public string? TitleEn { get; set; }
+        public string? DescriptionEn { get; set; }
+
 
         public Guid ProjectId { get; set; }
         public string? ProjectName { get; set; }

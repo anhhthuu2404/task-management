@@ -67,44 +67,48 @@
         <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
           <thead class="table-light text-uppercase fs-7 text-secondary">
             <tr>
-              <th scope="col" class="ps-4 py-3 text-nowrap" style="width: 14.28%;">#</th>
-              <th scope="col" class="py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Title' | abpLocalization }}</th>
-              <th scope="col" class="py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Project' | abpLocalization }}</th>
-              <th scope="col" class="py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Assignee' | abpLocalization }}</th>
-              <th scope="col" class="text-center py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Status' | abpLocalization }}</th>
-              <th scope="col" class="text-center py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:Progress' | abpLocalization }}</th>
-              <th scope="col" class="text-end pe-4 py-3 text-nowrap" style="width: 14.28%;">{{ '::Task:DueDate' | abpLocalization }}</th>
+              <th scope="col" class="ps-4 py-3 text-nowrap" style="width: 5%;">#</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 25%;">{{ '::Task:Title' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 15%;">{{ '::Task:Project' | abpLocalization }}</th>
+              <th scope="col" class="py-3 text-nowrap" style="width: 15%;">{{ '::Task:Assignee' | abpLocalization }}</th>
+              <th scope="col" class="text-center py-3 text-nowrap" style="width: 15%;">{{ '::Task:Status' | abpLocalization }}</th>
+              <th scope="col" class="text-center py-3 text-nowrap" style="width: 12%;">{{ '::Task:Progress' | abpLocalization }}</th>
+              <th scope="col" class="text-end pe-4 py-3 text-nowrap" style="width: 13%;">{{ '::Task:DueDate' | abpLocalization }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of reportData; let i = index">
               <!-- STT -->
-              <td class="ps-4 text-muted fw-medium" style="width: 14.28%;">{{ i + 1 }}</td>
+              <td class="ps-4 text-muted fw-medium">{{ i + 1 }}</td>
               
-              <!-- Tiêu đề -->
-              <td style="width: 14.28%;">
-                <span class="fw-semibold text-dark text-truncate d-block">{{ item.title }}</span>
+             <!-- Tiêu đề -->
+              <td>
+                <span class="fw-semibold text-dark text-break" 
+                      style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;" 
+                      [title]="item.title">
+                  {{ item.title }}
+                </span>
               </td>
               
               <!-- Dự án -->
-              <td style="width: 14.28%;">
-                <span class="text-secondary small fw-medium text-truncate d-block">{{ item.projectName || '---' }}</span>
+              <td>
+                <span class="text-secondary small fw-medium text-truncate d-block" [title]="item.projectName || ''">{{ item.projectName || '---' }}</span>
               </td>
               
               <!-- Người thực hiện -->
-              <td style="width: 14.28%;">
-                <span class="text-dark fw-medium small text-truncate d-block">{{ item.assigneeName || '---' }}</span>
+              <td>
+                <span class="text-dark fw-medium small text-truncate d-block" [title]="item.assigneeName || ''">{{ item.assigneeName || '---' }}</span>
               </td>
               
               <!-- Trạng thái -->
-              <td class="text-center" style="width: 14.28%;">
+              <td class="text-center">
                 <span class="badge px-3 py-1.5 fw-medium rounded-pill text-nowrap" [ngClass]="getStatusBadgeClass(item.status)">
                   {{ getStatusText(item.status) }}
                 </span>
               </td>
               
               <!-- Tiến độ -->
-              <td class="text-center" style="width: 14.28%;">
+              <td class="text-center">
                 <div class="progress position-relative rounded-pill bg-light shadow-xs overflow-hidden mx-auto" style="height: 20px; width: 95px;">
                   <div class="progress-bar rounded-pill bg-primary" 
                        role="progressbar" 
@@ -120,7 +124,7 @@
               </td>
               
               <!-- Hạn hoàn thành -->
-              <td class="text-end pe-4 text-nowrap" style="width: 14.28%;">
+              <td class="text-end pe-4 text-nowrap">
                 <span class="small fw-medium text-secondary d-inline-flex align-items-center gap-1 justify-content-end" *ngIf="item.dueDate">
                   <i class="bi bi-calendar-event text-primary"></i>
                   <span>{{ item.dueDate | date:'dd/MM/yyyy' }}</span>

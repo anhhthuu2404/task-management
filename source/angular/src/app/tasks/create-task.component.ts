@@ -21,7 +21,6 @@ export class CreateTaskComponent implements OnInit {
 
   categories: any[] = [];
   
-  // Khai báo đủ biến cho cả HTML và Logic lọc
   projects: any[] = [];
   departments: any[] = [];
   
@@ -37,6 +36,7 @@ export class CreateTaskComponent implements OnInit {
   selectedFiles: File[] = [];
   
   isSubmitting = false;
+  isSubmitted = false; // <-- Thêm biến cờ kiểm soát submit
   uploadProgress = 0;
   minDate = new Date().toISOString().split('T')[0];
 
@@ -60,25 +60,32 @@ export class CreateTaskComponent implements OnInit {
     this.loadProjects();
     this.loadDepartments();
 
+    this.form.reset({
+      priority: 1,
+      status: 0,
+      isRecurring: false,
+      frequency: 0
+    });
+    this.form.markAsUntouched();
+    this.form.markAsPristine();
+
     // 1. Lắng nghe thay đổi Danh mục để lọc Dự án và Phòng ban tương ứng
     this.form.get('categoryId')?.valueChanges.subscribe(categoryId => {
       this.form.patchValue({ projectId: null, departmentId: null, assigneeId: null, milestoneId: null }, { emitEvent: false });
       
       if (categoryId) {
-        // Lọc dự án thuộc danh mục được chọn
         this.filteredProjects = this.allProjects.filter(p => 
           String(p.categoryId || p.CategoryId || p.catId || '') === String(categoryId)
         );
-        this.projects = [...this.filteredProjects]; // Đồng bộ cho thẻ select HTML
+        this.projects = [...this.filteredProjects];
 
-        // Lọc phòng ban liên quan tới danh mục hoặc các dự án trong danh mục đó
         const validDepartmentIds = this.filteredProjects.map(p => String(p.departmentId || p.DepartmentId)).filter(id => !!id);
         
         this.filteredDepartments = this.allDepartments.filter(d => 
           validDepartmentIds.includes(String(d.id || d.Id)) || 
           String(d.categoryId || d.CategoryId || '') === String(categoryId)
         );
-        this.departments = [...this.filteredDepartments]; // Đồng bộ cho thẻ select HTML
+        this.departments = [...this.filteredDepartments];
       } else {
         this.filteredProjects = [];
         this.projects = [];
@@ -118,6 +125,35 @@ export class CreateTaskComponent implements OnInit {
     });
   }
 
+  onSubmit(): void {
+    this.isSubmitted = true; 
+
+    if (this.form.invalid) {
+      alert('Vui lòng điền đầy đủ thông tin bắt buộc trước khi lưu!');
+      return;
+    }
+
+    this.isSubmitting = true;
+    const formValues = this.form.value;
+
+    this.httpClient.post('/api/app/task', formValues).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.router.navigate(['/tasks']);
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        console.error('Lỗi khi lưu công việc:', err);
+        alert('Có lỗi xảy ra khi tạo công việc!');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onCancel(): void {
+    this.router.navigate(['/tasks']);
+  }
+
   loadCategories(): void {
     this.httpClient.get<any>('/api/app/category').subscribe({
       next: (res: any) => {
@@ -134,7 +170,7 @@ export class CreateTaskComponent implements OnInit {
         const data = res as { items?: any[] } | any[];
         this.allProjects = Array.isArray(data) ? data : (data?.items || []);
         this.filteredProjects = [];
-        this.projects = []; // Ban đầu chưa chọn danh mục thì danh sách trống
+        this.projects = []; 
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Lỗi tải dự án:', err)
@@ -147,7 +183,7 @@ export class CreateTaskComponent implements OnInit {
         const rawDepts = Array.isArray(res) ? res : (res?.items || res?.result || []);
         this.allDepartments = rawDepts.filter((d: any) => !d.parentId && !d.parentDepartmentId);
         this.filteredDepartments = [];
-        this.departments = []; // Ban đầu chưa chọn danh mục thì danh sách trống
+        this.departments = []; 
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Lỗi tải phòng ban:', err)
@@ -301,33 +337,5 @@ export class CreateTaskComponent implements OnInit {
 
   removeFile(index: number): void {
     this.selectedFiles.splice(index, 1);
-  }
-
-  onSubmit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc trước khi lưu!');
-      return;
-    }
-
-    this.isSubmitting = true;
-    const formValues = this.form.value;
-
-    this.httpClient.post('/api/app/task', formValues).subscribe({
-      next: () => {
-        this.isSubmitting = false;
-        alert('Tạo công việc thành công!');
-        this.router.navigate(['/tasks']);
-      },
-      error: (err) => {
-        this.isSubmitting = false;
-        console.error('Lỗi khi lưu công việc:', err);
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  onCancel(): void {
-    this.router.navigate(['/tasks']);
   }
 }

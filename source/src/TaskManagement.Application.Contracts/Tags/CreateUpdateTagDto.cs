@@ -9,6 +9,9 @@ public class CreateUpdateTagDto
     [StringLength(64)]
     public string Name { get; set; } = string.Empty;
 
+    public string? NameVi { get; set; }
+    public string? NameEn { get; set; }
+
     [StringLength(32)]
     public string? ColorCode { get; set; }
 

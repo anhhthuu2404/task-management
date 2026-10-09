@@ -17,6 +17,8 @@ export class RoleComponent implements OnInit {
   permissionGroups: any[] = [];
   
   isRoleModalOpen = false;
+  isEditing = false;       // Phân biệt trạng thái Thêm mới hay Sửa
+  editingRoleId = '';      // Lưu ID của vai trò đang sửa
   roleDisplayName = '';
   roleName = '';
 
@@ -264,20 +266,36 @@ export class RoleComponent implements OnInit {
     this.cd.detectChanges();
   }
 
-  openRoleModal(): void { 
+  // Mở modal Thêm mới
+  openCreateRoleModal(): void { 
+    this.isEditing = false;
+    this.editingRoleId = '';
     this.roleDisplayName = '';
     this.roleName = ''; 
     this.isRoleModalOpen = true; 
     this.cd.detectChanges(); 
   }
 
+  // Mở modal Sửa/Cập nhật
+  openEditRoleModal(role: any): void {
+    this.isEditing = true;
+    this.editingRoleId = role.id;
+    this.roleDisplayName = role.displayName || role.name;
+    this.roleName = role.name;
+    this.isRoleModalOpen = true;
+    this.cd.detectChanges();
+  }
+
   onDisplayNameChange(value: string): void {
     this.roleDisplayName = value;
-    this.roleName = this.removeVietnameseTones(value)
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '');
+    // Chỉ tự động sinh mã system code khi đang ở chế độ thêm mới
+    if (!this.isEditing) {
+      this.roleName = this.removeVietnameseTones(value)
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+    }
   }
 
   private removeVietnameseTones(str: string): string {
@@ -292,6 +310,7 @@ export class RoleComponent implements OnInit {
       .replace(/[đĐ]/g, 'd'); 
   }
 
+  // Hàm xử lý chung cho Cả Tạo mới và Cập nhật
   saveRole(): void {
     if (!this.roleDisplayName || !this.roleDisplayName.trim()) {
       alert('Vui lòng nhập tên vai trò!');
@@ -305,15 +324,29 @@ export class RoleComponent implements OnInit {
       isPublic: true
     };
 
-    this.httpClient.post('/api/identity/roles', payload).subscribe({
-      next: () => {
-        this.closeRoleModal();
-        this.loadRoles();
-      },
-      error: (err) => {
-        alert(err.error?.error?.message || 'Tên vai trò không hợp lệ hoặc đã tồn tại!');
-      }
-    });
+    if (this.isEditing) {
+      // Gọi API Cập nhật (PUT)
+      this.httpClient.put(`/api/identity/roles/${this.editingRoleId}`, payload).subscribe({
+        next: () => {
+          this.closeRoleModal();
+          this.loadRoles();
+        },
+        error: (err) => {
+          alert(err.error?.error?.message || 'Không thể cập nhật vai trò!');
+        }
+      });
+    } else {
+      // Gọi API Tạo mới (POST)
+      this.httpClient.post('/api/identity/roles', payload).subscribe({
+        next: () => {
+          this.closeRoleModal();
+          this.loadRoles();
+        },
+        error: (err) => {
+          alert(err.error?.error?.message || 'Tên vai trò không hợp lệ hoặc đã tồn tại!');
+        }
+      });
+    }
   }
 
   deleteRole(id: string): void {

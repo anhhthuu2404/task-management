@@ -22,7 +22,7 @@
         </div>
       </div>
 
-      <!-- NÚT HÀNH ĐỘNG PHÂN QUYỀN THEO VAI TRÒ -->
+        <!-- NÚT HÀNH ĐỘNG PHÂN QUYỀN THEO VAI TRÒ -->
       <div class="d-flex align-items-center flex-wrap gap-2 flex-shrink-0">
         
         <!-- Người thực hiện (Assignee): Nộp báo cáo / Gửi duyệt -->
@@ -43,6 +43,7 @@
             <i class="bi bi-x-circle-fill"></i> {{ '::Task:Reject' | abpLocalization }}
           </button>
         </ng-container>
+        
 
         <!-- DROPDOWN TRẠNG THÁI (Dành cho Quản lý / Admin) -->
        <div class="position-relative status-dropdown-container" *ngIf="isCreatorOrManager">
@@ -343,7 +344,8 @@
                     <span class="badge rounded-pill px-3.5 py-1.5 fs-6 fw-medium" [ngClass]="sub.completed ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle'">
                       {{ sub.completed ? ('::Task:Completed' | abpLocalization) : ('::Task:InProgress' | abpLocalization) }}
                     </span>
-                    <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteSubTask(i)" [title]="'::General:Delete' | abpLocalization" style="width: 36px; height: 36px;"><i class="bi bi-trash fs-5"></i></button>
+                    <!-- Đã truyền đầy đủ chỉ số i và sub.id vào hàm xóa -->
+                    <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteSubTask(i, sub.id)" [title]="'::General:Delete' | abpLocalization" style="width: 36px; height: 36px;"><i class="bi bi-trash fs-5"></i></button>
                   </div>
                 </div>
               </div>
@@ -374,7 +376,8 @@
                       {{ item.title }}
                     </label>
                   </div>
-                  <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteChecklistItem(i)" [title]="'::General:Delete' | abpLocalization" style="width: 36px; height: 36px;">
+                  <!-- Đã truyền đầy đủ chỉ số i và item.id vào hàm xóa -->
+                  <button class="btn btn-sm btn-light text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteChecklistItem(i, item.id)" [title]="'::General:Delete' | abpLocalization" style="width: 36px; height: 36px;">
                     <i class="bi bi-trash fs-5"></i>
                   </button>
                 </div>

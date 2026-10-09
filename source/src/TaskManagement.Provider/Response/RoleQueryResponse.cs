@@ -11,4 +11,6 @@ public class RoleQueryResponse
     public bool IsDefault { get; set; }
     public bool IsPublic { get; set; }
     public long TotalCount { get; set; }
+    public string NameVi { get; set; }
+    public string NameEn { get; set; }
 }

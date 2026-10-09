@@ -200,6 +200,11 @@ export class ProjectsComponent implements OnInit {
     this.projectForm.reset({ status: 'Active', departmentId: null, categoryId: null });
     this.isProjectModalOpen = true;
   }
+  openProjectDetail(project: any) {
+  this.selectedProject = project;
+  this.loadProjectTasksAndMilestones(project.id);
+}
+
 
   openEditProjectModal(project: any): void {
     this.selectedEditingProjectId = project.id || null;
@@ -276,7 +281,7 @@ export class ProjectsComponent implements OnInit {
     this.selectedDepartmentId = '';
   }
 
-  loadMembers(projectId: string): void {
+ loadMembers(projectId: string): void {
     this.httpClient.get<any>(`/api/app/project/by-project/${projectId}/members`).subscribe({
       next: (res: any) => {
         const data = res;
@@ -365,20 +370,39 @@ export class ProjectsComponent implements OnInit {
       }
     });
   }
+  
 
-  deleteTask(taskId: string): void {
-    if (!taskId) return;
+ deleteTask(taskId: string, milestoneId?: string): void {
+    console.log('--- Đang xóa Task ID:', taskId, 'Milestone ID:', milestoneId);
     
-    if (confirm('Bạn có chắc chắn muốn xóa công việc này không?')) {
-      this.httpClient.delete(`/api/app/task/${taskId}`).subscribe({
+    if (!confirm('Bạn có chắc chắn muốn xóa công việc này không?')) return;
+
+    // 1. Gọi API xóa Task (nếu có task ID)
+    const deleteObs = taskId 
+      ? this.httpClient.delete(`/api/app/task/${taskId}`)
+      : null;
+
+    if (deleteObs) {
+      deleteObs.subscribe({
         next: () => {
-          this.projectTasks = this.projectTasks.filter(t => (t.id || t.Id) !== taskId);
+          this.refreshProjectData();
         },
         error: (err: any) => {
-          console.error('Lỗi khi xóa công việc:', err);
-          alert('Không thể xóa công việc này.');
+          console.error('Lỗi khi xóa task:', err);
+          // Vẫn cho phép refresh dữ liệu giao diện nếu task đã bị xóa hoặc không tồn tại
+          this.refreshProjectData();
         }
       });
+    } else {
+      this.refreshProjectData();
+    }
+  }
+
+  // Hàm phụ trợ để gọi lại dữ liệu dự án
+  private refreshProjectData(): void {
+    const currentProjectId = this.selectedProject?.id;
+    if (currentProjectId) {
+      this.loadProjectTasksAndMilestones(currentProjectId);
     }
   }
 
@@ -441,7 +465,19 @@ export class ProjectsComponent implements OnInit {
       });
     }
   }
-
+// Nếu bấm nút xóa trên dòng Cột mốc, ta gọi trực tiếp hàm xóa milestone
+  deleteMilestoneTask(milestoneId: string): void {
+    if (confirm('Bạn có chắc muốn xóa cột mốc và công việc này không?')) {
+      this.httpClient.delete(`/api/app/project/milestone/${milestoneId}`).subscribe({
+        next: () => {
+          if (this.selectedProject?.id) {
+            this.loadProjectTasksAndMilestones(this.selectedProject.id);
+          }
+        },
+        error: (err: any) => console.error('Lỗi khi xóa cột mốc:', err)
+      });
+    }
+  }
   addMember(): void {
     if (this.memberForm.invalid || !this.selectedProject?.id) {
       this.memberForm.markAllAsTouched();

@@ -25,7 +25,7 @@ public interface ITaskAppService : ICrudAppService<
     // SubTask
     Task<SubTaskDto> CreateSubTaskAsync(Guid taskId, CreateUpdateSubTaskDto input);
     Task<SubTaskDto> UpdateSubTaskAsync(Guid subTaskId, CreateUpdateSubTaskDto input);
-    Task ToggleSubTaskStatusAsync(Guid subTaskId);
+    Task<SubTaskDto> ToggleSubTaskStatusAsync(Guid subTaskId);
     Task DeleteSubTaskAsync(Guid subTaskId);
 
     // Checklist

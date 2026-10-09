@@ -7,6 +7,7 @@ public class TaskActivityLog : CreationAuditedEntity<Guid>
 {
     public Guid TaskId { get; set; }
     public string Action { get; set; } = string.Empty;
+    public string? ActionEn { get; set; }
     public string UserName { get; set; } = string.Empty;
     public string? Details { get; set; }
     public string? FieldName { get; set; }

@@ -6,6 +6,7 @@ namespace TaskManagement.Provider.Response
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string TitleEn { get; set; } = string.Empty;
         public Guid? ProjectId { get; set; }
         public string ProjectName { get; set; } = string.Empty;
         public Guid? AssignedUserId { get; set; }

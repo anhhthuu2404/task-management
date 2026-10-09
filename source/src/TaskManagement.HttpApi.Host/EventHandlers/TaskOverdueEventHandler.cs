@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
-using TaskManagement.Hubs;
+using TaskManagement.Hubs; // Namespace chứa NotificationHub trong HttpApi.Host
 using TaskManagement.Tasks;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus;
@@ -11,27 +11,29 @@ namespace TaskManagement.HttpApi.Host.EventHandlers
 {
     public class TaskOverdueEventHandler : ILocalEventHandler<TaskOverdueEto>, ITransientDependency
     {
-        private readonly IHubContext<TaskNotificationHub> _hubContext;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public TaskOverdueEventHandler(IHubContext<TaskNotificationHub> hubContext)
+        public TaskOverdueEventHandler(IHubContext<NotificationHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
         public async Task HandleEventAsync(TaskOverdueEto eventData)
         {
-            // Thêm bảo vệ chống lỗi null hoặc thiếu ID người nhận
             if (eventData == null || eventData.AssigneeId == Guid.Empty || string.IsNullOrWhiteSpace(eventData.Message))
             {
                 return;
             }
 
-            await _hubContext.Clients.Group($"User_{eventData.AssigneeId}")
-                .SendAsync("ReceiveTaskNotification", new
+            // Dùng NotificationHub và khớp tên group theo userId thuần túy, phương thức "ReceiveNotification"
+            await _hubContext.Clients.Group(eventData.AssigneeId.ToString())
+                .SendAsync("ReceiveNotification", new
                 {
-                    Title = "Công việc đã quá hạn!",
-                    Message = eventData.Message,
-                    TaskId = eventData.TaskId
+                    id = Guid.NewGuid().ToString(),
+                    title = "Công việc đã quá hạn!",
+                    message = eventData.Message,
+                    taskId = eventData.TaskId,
+                    creationTime = DateTime.Now
                 });
         }
     }

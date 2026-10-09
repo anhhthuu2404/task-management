@@ -8,6 +8,7 @@ namespace TaskManagement.Tasks
     {
         public Guid TaskId { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string? TitleEn { get; set; } // <--- Thêm trường lưu tiêu đề tiếng Anh
         public bool IsCompleted { get; set; }
         public Guid? AssigneeId { get; set; }
         public string? AssigneeName { get; set; }
@@ -18,6 +19,8 @@ namespace TaskManagement.Tasks
         [Required]
         [StringLength(256)]
         public string Title { get; set; } = string.Empty;
+
+        public string? TitleEn { get; set; } // <--- Thêm vào đây để đồng bộ khi tạo/sửa
 
         public Guid? AssigneeId { get; set; }
     }

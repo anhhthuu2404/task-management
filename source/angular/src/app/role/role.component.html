@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
        <div>
-         <h3 class="fw-bold text-dark m-0">{{ '::Menu:Roles' | abpLocalization }}</h3>
-         <p class="text-secondary m-0 mt-1" style="font-size: 14px;">{{ '::RolesHeaderDescription' | abpLocalization }}</p>
+        <h3 class="fw-bold text-dark m-0">{{ '::Menu:Roles' | abpLocalization }}</h3>
+        <p class="text-secondary m-0 mt-1" style="font-size: 14px;">{{ '::RolesHeaderDescription' | abpLocalization }}</p>
        </div>
-       <button type="button" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2 rounded-3" (click)="openRoleModal()">
+       <button type="button" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2 rounded-3" (click)="openCreateRoleModal()">
          <i class="fa fa-plus-circle fs-5"></i> <span>{{ '::NewRole' | abpLocalization }}</span>
        </button>
     </div>
@@ -23,8 +23,19 @@
             [class.active]="selectedRole?.id === role.id"
             (click)="selectRole(role)">
             <span class="fw-semibold text-truncate me-2">{{ role.displayName || role.name }}</span>
-            <div class="d-flex align-items-center flex-shrink-0">
-              <span class="badge rounded-pill bg-light text-dark border me-2 px-2 py-1" *ngIf="role.isStatic">{{ '::Static' | abpLocalization }}</span>
+            <div class="d-flex align-items-center flex-shrink-0 gap-1">
+              <span class="badge rounded-pill bg-light text-dark border me-1 px-2 py-1" *ngIf="role.isStatic">{{ '::Static' | abpLocalization }}</span>
+              
+              <!-- Nút Sửa vai trò -->
+              <button 
+                type="button" 
+                class="btn btn-sm btn-outline-primary border-0 p-1" 
+                (click)="$event.stopPropagation(); openEditRoleModal(role)" 
+                [title]="'::Edit' | abpLocalization">
+                <i class="fa fa-pencil fs-6"></i>
+              </button>
+
+              <!-- Nút Xóa vai trò -->
               <button 
                 type="button" 
                 class="btn btn-sm btn-outline-danger border-0 p-1" 
@@ -58,7 +69,6 @@
           <div class="mb-4 bg-white p-4 rounded-4 shadow-sm border" style="max-height: 400px; overflow-y: auto;"> 
             <h5 class="fw-bold text-dark mb-4 pb-2 border-bottom fs-5">{{ '::SystemPermissionList' | abpLocalization }}</h5>
            
-            <!-- Duyệt qua các nhóm quyền (Permission Groups) -->
             <div *ngFor="let group of permissionGroups" class="mb-4 pb-3 border-bottom">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="fw-bold text-dark fs-6">
@@ -75,7 +85,6 @@
                 </div>
               </div>
               <div class="ms-3 row g-3">
-                <!-- Duyệt qua các quyền trong nhóm -->
                 <div *ngFor="let perm of group.permissions" class="col-md-6 form-check mb-1">
                   <input 
                     class="form-check-input fs-5 me-2" 
@@ -97,7 +106,6 @@
               <i class="fa fa-users text-primary me-2"></i>{{ '::MembersOfRole' | abpLocalization }}
             </h5>
 
-            <!-- Form thêm user vào vai trò -->
             <div class="input-group mb-3 shadow-xs">
               <select class="form-select border-secondary-subtle fs-6 py-2" [(ngModel)]="selectedUserIdToAdd">
                 <option value="" disabled selected>-- {{ '::SelectUserToAdd' | abpLocalization }} --</option>
@@ -110,7 +118,6 @@
               </button>
             </div>
 
-            <!-- Danh sách hiển thị người dùng thuộc vai trò -->
             <div class="table-responsive bg-white rounded-3 shadow-xs border" style="max-height: 220px; overflow-y: auto;">
               <table class="table table-hover align-middle mb-0 fs-6">
                 <tbody>
@@ -144,12 +151,14 @@
   </div>
 </div>
 
-<!-- Modal Thêm Vai trò -->
+<!-- Modal Thêm / Sửa Vai trò -->
 <div *ngIf="isRoleModalOpen" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
       <div class="modal-header bg-primary text-white px-4 py-3">
-        <h5 class="modal-title fw-bold fs-5">{{ '::NewRole' | abpLocalization }}</h5>
+        <h5 class="modal-title fw-bold fs-5">
+          {{ isEditing ? ('::EditRole' | abpLocalization) : ('::NewRole' | abpLocalization) }}
+        </h5>
         <button type="button" class="btn-close btn-close-white" (click)="closeRoleModal()"></button>
       </div>
       <div class="modal-body p-4">
@@ -167,7 +176,7 @@
         <!-- Mã vai trò hệ thống -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark fs-6">{{ '::RoleNameSystemCode' | abpLocalization }}</label>
-          <input [(ngModel)]="roleName" type="text" class="form-control bg-light fs-6 py-2" readonly />
+          <input [(ngModel)]="roleName" type="text" class="form-control bg-light fs-6 py-2" [readonly]="isEditing" />
           <small class="text-muted mt-1 d-block">{{ '::RoleNameHint' | abpLocalization }}</small>
         </div>
       </div>

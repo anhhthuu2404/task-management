@@ -20,12 +20,13 @@ public class CreateTaskInputDto
     public string? Description { get; set; }
 
     [Required]
-    public Guid CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
     public Guid? MilestoneId { get; set; }
     public Guid? DepartmentId { get; set; }
-
+    public string? AssigneeUserName { get; set; }
     public Guid? AssigneeId { get; set; }
-
+    public string? TitleEn { get; set; }
+    public string? DescriptionEn { get; set; }
     public Guid? ProjectId { get; set; }
 
     [Required]

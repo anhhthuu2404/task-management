@@ -56,6 +56,8 @@
     "Tag:FilterByCategory": "Lọc theo danh mục",
     "Tag:AllCategories": "-- Tất cả danh mục --",
     "TagName": "Tên thẻ",
+    "TagNameVi": "Tên nhãn (Tiếng Việt)",
+    "TagNameEn": "Tên nhãn (Tiếng Anh)",
 
     "Department:AddNewRoot": "Thêm phòng ban gốc",
     "Department:TreeTitle": "Sơ đồ Phòng ban",
@@ -233,6 +235,17 @@
     "Task:AttachFile": "Đính kèm tệp",
     "Task:SendComment": "Gửi bình luận",
     "Task:AttachmentHelp": "Hỗ trợ định dạng: pdf, docx, doc, png, jpg, jpeg, xlsx",
+
+    "Enum:TaskStatus.0": "Mới",
+    "Enum:TaskStatus.1": "Đang làm",
+    "Enum:TaskStatus.2": "Hoàn thành",
+    "Enum:TaskStatus.3": "Đã hủy",
+    "Enum:TaskStatus.4": "Tạm dừng",
+    "Enum:TaskStatus.5": "Quá hạn",
+    "Task:NoComments": "Chưa có bình luận nào",
+    "Task:SubTaskPlaceholder": "Nhập tên công việc con...",
+    "Task:NoTimeline": "Chưa có lịch sử hoạt động",
+
     "Common:Cancel": "Hủy",
     "Common:Save": "Lưu",
     "Department:Name": "Tên phòng ban",
@@ -398,7 +411,10 @@
     "TaskStatus:5": "Quá hạn",
     "General:PaginationInfo": "Hiển thị",
     "General:Records": "bản ghi",
-
+    "Task:SubmissionNote": "Ghi chú nộp bài",
+    "Task:NoChecklist": "Không có checklist nào",
+    "Dashboard:TaskTrendAnalysis": "Phân tích xu hướng công việc",
+    "NoComments": "Không có bình luận nào",
     "TaskStatusStatistics": "Thống kê trạng thái Công việc",
     "ProjectStatistics": "Thống kê Dự án",
     "CategoryStatistics": "Thống kê Danh mục",

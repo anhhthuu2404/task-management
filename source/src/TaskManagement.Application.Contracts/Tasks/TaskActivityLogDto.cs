@@ -7,6 +7,7 @@ namespace TaskManagement.Tasks
     {
         public Guid TaskId { get; set; }
         public string Action { get; set; } = string.Empty;
+        public string? ActionEn { get; set; }
         public string? UserName { get; set; }
         public string? Details { get; set; }
         public string? CreatorName { get; set; }

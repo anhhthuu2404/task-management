@@ -8,6 +8,7 @@ namespace TaskManagement.Tasks
     {
         public Guid TaskId { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string? TitleEn { get; set; } // Bổ sung thêm TitleEn vào đây
         public bool IsDone { get; set; }
         public DateTime CreationTime { get; set; }
     }

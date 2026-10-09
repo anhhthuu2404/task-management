@@ -195,6 +195,9 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
             b.ConfigureByConvention();
             b.Property(x => x.Text).IsRequired().HasMaxLength(2000);
 
+            // THÊM DÒNG NÀY ĐỂ TẮT HOÀN TOÀN LỖI CONCURRENCY CHO BẢNG NÀY
+            b.Property(x => x.ConcurrencyStamp).IsConcurrencyToken(false);
+
             // Cấu hình OwnsMany tương thích với Guid Id
             b.OwnsMany(x => x.Attachments, a =>
             {

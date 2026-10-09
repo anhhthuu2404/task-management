@@ -8,7 +8,7 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 using TaskManagement.Provider.Interface;
-using TaskManagement.Roles; // Đã đổi sang namespace chứa RoleDto chuẩn
+using TaskManagement.Roles;
 
 namespace TaskManagement.Provider.Implementation
 {
@@ -47,6 +47,8 @@ namespace TaskManagement.Provider.Implementation
                             Id = reader.GetGuid(reader.GetOrdinal("Id")),
                             TenantId = reader.IsDBNull(reader.GetOrdinal("TenantId")) ? (Guid?)null : reader.GetGuid(reader.GetOrdinal("TenantId")),
                             Name = reader.GetString(reader.GetOrdinal("Name")),
+                            NameVi = reader.IsDBNull(reader.GetOrdinal("NameVi")) ? null : reader.GetString(reader.GetOrdinal("NameVi")),
+                            NameEn = reader.IsDBNull(reader.GetOrdinal("NameEn")) ? null : reader.GetString(reader.GetOrdinal("NameEn")),
                             NormalizedName = reader.GetString(reader.GetOrdinal("NormalizedName")),
                             IsDefault = reader.GetBoolean(reader.GetOrdinal("IsDefault")),
                             IsStatic = reader.GetBoolean(reader.GetOrdinal("IsStatic")),
@@ -85,6 +87,8 @@ namespace TaskManagement.Provider.Implementation
                             Id = reader.GetGuid(reader.GetOrdinal("Id")),
                             TenantId = reader.IsDBNull(reader.GetOrdinal("TenantId")) ? (Guid?)null : reader.GetGuid(reader.GetOrdinal("TenantId")),
                             Name = reader.GetString(reader.GetOrdinal("Name")),
+                            NameVi = reader.IsDBNull(reader.GetOrdinal("NameVi")) ? null : reader.GetString(reader.GetOrdinal("NameVi")),
+                            NameEn = reader.IsDBNull(reader.GetOrdinal("NameEn")) ? null : reader.GetString(reader.GetOrdinal("NameEn")),
                             NormalizedName = reader.GetString(reader.GetOrdinal("NormalizedName")),
                             IsDefault = reader.GetBoolean(reader.GetOrdinal("IsDefault")),
                             IsStatic = reader.GetBoolean(reader.GetOrdinal("IsStatic")),
@@ -107,10 +111,12 @@ namespace TaskManagement.Provider.Implementation
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "EXEC [dbo].[Sp_Role_Create] @Id, @TenantId, @Name, @NormalizedName, @IsDefault, @IsStatic, @IsPublic";
+                command.CommandText = "EXEC [dbo].[Sp_Role_Create] @Id, @TenantId, @Name, @NameVi, @NameEn, @NormalizedName, @IsDefault, @IsStatic, @IsPublic";
                 command.Parameters.Add(new SqlParameter("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id));
                 command.Parameters.Add(new SqlParameter("@TenantId", (object)input.TenantId ?? DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@Name", input.Name));
+                command.Parameters.Add(new SqlParameter("@NameVi", (object)input.NameVi ?? DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@NameEn", (object)input.NameEn ?? DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@NormalizedName", input.Name.ToUpperInvariant()));
                 command.Parameters.Add(new SqlParameter("@IsDefault", input.IsDefault));
                 command.Parameters.Add(new SqlParameter("@IsStatic", input.IsStatic));
@@ -128,9 +134,11 @@ namespace TaskManagement.Provider.Implementation
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "EXEC [dbo].[Sp_Role_Update] @Id, @Name, @NormalizedName, @IsDefault, @IsPublic";
+                command.CommandText = "EXEC [dbo].[Sp_Role_Update] @Id, @Name, @NameVi, @NameEn, @NormalizedName, @IsDefault, @IsPublic";
                 command.Parameters.Add(new SqlParameter("@Id", id));
                 command.Parameters.Add(new SqlParameter("@Name", input.Name));
+                command.Parameters.Add(new SqlParameter("@NameVi", (object)input.NameVi ?? DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@NameEn", (object)input.NameEn ?? DBNull.Value));
                 command.Parameters.Add(new SqlParameter("@NormalizedName", input.Name.ToUpperInvariant()));
                 command.Parameters.Add(new SqlParameter("@IsDefault", input.IsDefault));
                 command.Parameters.Add(new SqlParameter("@IsPublic", input.IsPublic));

@@ -11,6 +11,8 @@ namespace TaskManagement.Tasks
         public TaskPriority Priority { get; set; }
         public TaskItemStatus Status { get; set; }
         public DateTime? DueDate { get; set; }
+        public string? TitleEn { get; set; }
+        public string? DescriptionEn { get; set; }
         public Guid CategoryId { get; set; }
         public Guid? AssigneeId { get; set; }
         public string? AssigneeName { get; set; }

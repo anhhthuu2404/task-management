@@ -6,7 +6,9 @@ namespace TaskManagement.Provider.Response
     {
         public Guid Id { get; set; }
         public string? Name { get; set; }
+        public string? NameEn { get; set; }         // <--- Đặt NameEn ở đây cho đúng class Project
         public string? Description { get; set; }
+        public string? DescriptionEn { get; set; }  // <--- Đặt DescriptionEn ở đây cho đúng class Project
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? Status { get; set; }
@@ -21,7 +23,9 @@ namespace TaskManagement.Provider.Response
         public Guid Id { get; set; }
         public Guid ProjectId { get; set; }
         public string Title { get; set; } = string.Empty;
+        public string? TitleEn { get; set; }
         public string? Description { get; set; }
+        public string? DescriptionEn { get; set; }
         public DateTime DueDate { get; set; }
         public int Status { get; set; }
         public DateTime CreationTime { get; set; }

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CoreModule, RestService } from '@abp/ng.core';
+import { CoreModule, RestService, ListService, LocalizationService } from '@abp/ng.core';
 import { ToasterService, ConfirmationService, Confirmation, ThemeSharedModule } from '@abp/ng.theme.shared';
 import { PageModule } from '@abp/ng.components/page';
 
@@ -31,6 +31,7 @@ export interface IdentityRoleDto {
   selector: 'app-department',
   standalone: true,
   imports: [CommonModule, CoreModule, FormsModule, PageModule, ThemeSharedModule],
+  providers: [ListService],
   templateUrl: './department.component.html'
 })
 export class DepartmentComponent implements OnInit {
@@ -38,6 +39,7 @@ export class DepartmentComponent implements OnInit {
   private readonly restService = inject(RestService);
   private readonly noti = inject(ToasterService);
   private readonly confirmation = inject(ConfirmationService);
+  private readonly localizationService = inject(LocalizationService);
 
   departments: DepartmentTreeDto[] = [];
   selectedDepartment: DepartmentTreeDto | null = null;
@@ -62,7 +64,11 @@ export class DepartmentComponent implements OnInit {
   }
 
   loadDepartmentTree(preserveSelectionId?: string): void {
-    this.departmentService.getTree({ skipHandleError: true }).subscribe({
+    // Lấy ngôn ngữ chuẩn từ đối tượng global `abp` của hệ thống
+    const currentCulture = (window as any).abp?.localization?.currentCulture?.name || 'vi';
+
+    // Gọi đúng cú pháp nhận 1 tham số truyền vào service proxy của ABP
+    this.departmentService.getTree({ culture: currentCulture } as any).subscribe({
       next: (data: DepartmentTreeDto[]) => {
         this.departments = data || [];
 
@@ -86,7 +92,8 @@ export class DepartmentComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.noti.error(err?.error?.error?.message || 'Không thể tải cây phòng ban');
+        const isEn = this.localizationService.currentLang?.startsWith('en');
+        this.noti.error(err?.error?.error?.message || (isEn ? 'Could not load department tree' : 'Không thể tải cây phòng ban'));
       }
     });
   }
@@ -114,9 +121,12 @@ export class DepartmentComponent implements OnInit {
   }
 
   private fetchDepartmentDetail(id: string): void {
+    const currentCulture = (window as any).abp?.localization?.currentCulture?.name || 'vi';
+
     this.restService.request<any, DepartmentDto>({
       method: 'GET',
-      url: `/api/app/department/${id}`
+      url: `/api/app/department/${id}`,
+      params: { culture: currentCulture }
     }, { apiName: 'default' }).subscribe({
       next: (detailRes) => {
         if (detailRes && this.selectedDepartment && this.selectedDepartment.id === id) {
@@ -124,7 +134,8 @@ export class DepartmentComponent implements OnInit {
         }
       },
       error: (err) => {
-        console.error('Không thể tải chi tiết phòng ban', err);
+        const isEn = this.localizationService.currentLang?.startsWith('en');
+        console.error(isEn ? 'Could not load department details' : 'Không thể tải chi tiết phòng ban', err);
       }
     });
   }
@@ -152,7 +163,8 @@ export class DepartmentComponent implements OnInit {
           resolve();
         },
         error: (err) => {
-          console.error('Không thể tải danh sách vai trò', err);
+          const isEn = this.localizationService.currentLang?.startsWith('en');
+          console.error(isEn ? 'Could not load roles list' : 'Không thể tải danh sách vai trò', err);
           resolve();
         }
       });
@@ -190,35 +202,46 @@ export class DepartmentComponent implements OnInit {
   }
 
   saveDepartment(): void {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     const req = this.isEditMode && this.selectedDepartment?.id
-      ? this.departmentService.update(this.selectedDepartment.id, this.formData, { skipHandleError: true })
-      : this.departmentService.create(this.formData, { skipHandleError: true });
+      ? this.departmentService.update(this.selectedDepartment.id, this.formData)
+      : this.departmentService.create(this.formData);
 
     req.subscribe({
       next: () => {
-        this.noti.success(this.isEditMode ? 'Cập nhật phòng ban thành công' : 'Thêm mới phòng ban thành công');
+        const successMsg = this.isEditMode 
+          ? (isEn ? 'Department updated successfully' : 'Cập nhật phòng ban thành công')
+          : (isEn ? 'Department created successfully' : 'Thêm mới phòng ban thành công');
+        this.noti.success(successMsg);
         this.closeModal();
         this.loadDepartmentTree(this.selectedDepartment?.id);
       },
       error: (err) => {
-        this.noti.error(err.error?.error?.message || 'Có lỗi xảy ra khi lưu phòng ban!');
+        const defaultMsg = isEn ? 'An error occurred while saving the department!' : 'Có lỗi xảy ra khi lưu phòng ban!';
+        this.noti.error(err.error?.error?.message || defaultMsg);
       }
     });
   }
 
   deleteDepartment(id: string): void {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     this.confirmation
-      .warn('Bạn có chắc chắn muốn xóa phòng ban này cùng tất cả phòng ban con?', 'Xác nhận xóa')
+      .warn(
+        isEn ? 'Are you sure you want to delete this department and all its child departments?' : 'Bạn có chắc chắn muốn xóa phòng ban này cùng tất cả phòng ban con?', 
+        isEn ? 'Delete confirmation' : 'Xác nhận xóa'
+      )
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
-          this.departmentService.delete(id, { skipHandleError: true }).subscribe({
+          this.departmentService.delete(id).subscribe({
             next: () => {
-              this.noti.success('Xóa phòng ban thành công');
+              this.noti.success(isEn ? 'Department deleted successfully' : 'Xóa phòng ban thành công');
               this.selectedDepartment = null;
               this.loadDepartmentTree();
             },
             error: (err) => {
-              this.noti.error(err?.error?.error?.message || 'Không thể xóa phòng ban');
+              this.noti.error(err?.error?.error?.message || (isEn ? 'Could not delete department' : 'Không thể xóa phòng ban'));
             }
           });
         }
@@ -230,8 +253,10 @@ export class DepartmentComponent implements OnInit {
   }
 
   async openAssignModal(): Promise<void> {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     if (!this.selectedDepartment || !this.selectedDepartment.code) {
-      this.noti.warn('Phòng ban này chưa có mã (Role Code) để lọc nhân sự!');
+      this.noti.warn(isEn ? 'This department does not have a code (Role Code) to filter personnel!' : 'Phòng ban này chưa có mã (Role Code) để lọc nhân sự!');
       return;
     }
 
@@ -248,7 +273,7 @@ export class DepartmentComponent implements OnInit {
       const targetRole = (roleRes?.items || []).find((r: IdentityRoleDto) => r.name === roleName);
       
       if (!targetRole) {
-        this.noti.warn(`Không tìm thấy vai trò hệ thống có mã/tên là "${roleName}"!`);
+        this.noti.warn(isEn ? `System role with code/name "${roleName}" was not found!` : `Không tìm thấy vai trò hệ thống có mã/tên là "${roleName}"!`);
         this.availableUsers = [];
         return;
       }
@@ -285,11 +310,13 @@ export class DepartmentComponent implements OnInit {
       
       this.isAssignModalOpen = true;
     } catch (err: any) {
-      this.noti.error(err?.error?.error?.message || 'Không thể tải danh sách người dùng theo vai trò!');
+      this.noti.error(err?.error?.error?.message || (isEn ? 'Could not load users by role!' : 'Không thể tải danh sách người dùng theo vai trò!'));
     }
   }
 
   saveAssignUser(): void {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     if (!this.selectedDepartment?.id || !this.assignData.userId) return;
 
     const payload: AssignUserToDepartmentDto = {
@@ -304,7 +331,7 @@ export class DepartmentComponent implements OnInit {
       body: payload
     }, { apiName: 'default' }).subscribe({
       next: () => {
-        this.noti.success('Thêm thành viên vào phòng ban thành công');
+        this.noti.success(isEn ? 'Member added to department successfully' : 'Thêm thành viên vào phòng ban thành công');
         this.closeAssignModal();
         const currentId = this.selectedDepartment?.id;
         if (currentId) {
@@ -313,19 +340,27 @@ export class DepartmentComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.noti.error(err.error?.error?.message || 'Không thể thêm thành viên!');
+        this.noti.error(err.error?.error?.message || (isEn ? 'Could not add member!' : 'Không thể thêm thành viên!'));
       }
     });
   }
 
   toggleManager(member: any): void {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     if (!this.selectedDepartment?.id || !member.userId) return;
 
     const newManagerStatus = !member.isManager;
-    const actionText = newManagerStatus ? 'chỉ định làm trưởng phòng' : 'bỏ vai trò trưởng phòng';
+    const actionText = newManagerStatus 
+      ? (isEn ? 'designate as manager' : 'chỉ định làm trưởng phòng') 
+      : (isEn ? 'remove manager role' : 'bỏ vai trò trưởng phòng');
+
+    const confirmMsg = isEn 
+      ? `Are you sure you want to ${actionText} for account "${member.userName}"?` 
+      : `Bạn có chắc chắn muốn ${actionText} cho tài khoản "${member.userName}"?`;
 
     this.confirmation
-      .warn(`Bạn có chắc chắn muốn ${actionText} cho tài khoản "${member.userName}"?`, 'Xác nhận phân quyền')
+      .warn(confirmMsg, isEn ? 'Authorization confirmation' : 'Xác nhận phân quyền')
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
           const payload: AssignUserToDepartmentDto = {
@@ -340,7 +375,7 @@ export class DepartmentComponent implements OnInit {
             body: payload
           }, { apiName: 'default' }).subscribe({
             next: () => {
-              this.noti.success('Cập nhật quyền trưởng phòng thành công');
+              this.noti.success(isEn ? 'Manager permission updated successfully' : 'Cập nhật quyền trưởng phòng thành công');
               const currentId = this.selectedDepartment?.id;
               if (currentId) {
                 this.loadDepartmentTree(currentId);
@@ -348,7 +383,7 @@ export class DepartmentComponent implements OnInit {
               }
             },
             error: (err) => {
-              this.noti.error(err.error?.error?.message || 'Không thể cập nhật quyền trưởng phòng!');
+              this.noti.error(err.error?.error?.message || (isEn ? 'Could not update manager permission!' : 'Không thể cập nhật quyền trưởng phòng!'));
             }
           });
         }
@@ -356,10 +391,15 @@ export class DepartmentComponent implements OnInit {
   }
 
   removeUserFromDept(userId: string): void {
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     if (!this.selectedDepartment?.id) return;
 
     this.confirmation
-      .warn('Bạn có chắc chắn muốn xóa nhân sự này khỏi phòng ban?', 'Xác nhận gỡ nhân sự')
+      .warn(
+        isEn ? 'Are you sure you want to remove this staff member from the department?' : 'Bạn có chắc chắn muốn xóa nhân sự này khỏi phòng ban?', 
+        isEn ? 'Confirm staff removal' : 'Xác nhận gỡ nhân sự'
+      )
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
           const departmentId = this.selectedDepartment!.id;
@@ -369,7 +409,7 @@ export class DepartmentComponent implements OnInit {
             url: `/api/app/department/user?departmentId=${departmentId}&userId=${userId}`
           }, { apiName: 'default' }).subscribe({
             next: () => {
-              this.noti.success('Đã gỡ nhân sự khỏi phòng ban');
+              this.noti.success(isEn ? 'Staff removed from department' : 'Đã gỡ nhân sự khỏi phòng ban');
               const currentSelectedId = this.selectedDepartment?.id;
               if (currentSelectedId) {
                 this.loadDepartmentTree(currentSelectedId);
@@ -377,7 +417,7 @@ export class DepartmentComponent implements OnInit {
               }
             },
             error: (err) => {
-              this.noti.error(err.error?.error?.message || 'Không thể xóa thành viên!');
+              this.noti.error(err.error?.error?.message || (isEn ? 'Could not remove member!' : 'Không thể xóa thành viên!'));
             }
           });
         }

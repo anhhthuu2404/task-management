@@ -16,6 +16,7 @@ public class TaskCommentDto : EntityDto<Guid>
 {
     public Guid TaskId { get; set; }
     public string Text { get; set; } = string.Empty;
+    public string? TextEn { get; set; }
     public string? FileUrl { get; set; }
     public string? FileName { get; set; }
 

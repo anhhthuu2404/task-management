@@ -1,25 +1,35 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Dapper;
+using GTranslate.Translators;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TaskManagement.EntityFrameworkCore;
 using TaskManagement.Notifications;
 using TaskManagement.Permissions;
 using TaskManagement.Projects;
 using TaskManagement.TaskHistories;
 using TaskManagement.Tasks.Dtos;
 using Volo.Abp;
-using Volo.Abp.Application.Services;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Application.Services;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Identity;
 using Volo.Abp.Uow;
+
 namespace TaskManagement.Tasks;
 
 [Authorize(TaskManagementPermissions.Tasks.Default)]
@@ -31,7 +41,7 @@ public class TaskAppService : CrudAppService<
     CreateTaskInputDto,
     UpdateTaskInputDto>, ITaskAppService
 {
-    private readonly string[] _allowedExtensions = [".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx"];
+    private readonly string[] _allowedExtensions = [".pdf", ".docx", ".doc", ".png", ".jpg", ".jpeg", ".xlsx", ".csv"];
     private const int MaxFileSizeInBytes = 10 * 1024 * 1024; // Giới hạn 10MB
 
     private readonly IDistributedEventBus _distributedEventBus;
@@ -45,6 +55,8 @@ public class TaskAppService : CrudAppService<
     private readonly IRepository<ProjectMilestone, Guid> _milestoneRepository;
     private readonly IRepository<Notification, Guid> _notificationRepository;
     private readonly ITaskProvider _taskProvider;
+    private readonly ITranslator _translator;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public TaskAppService(
         IRepository<TaskItem, Guid> repository,
@@ -58,7 +70,9 @@ public class TaskAppService : CrudAppService<
         IRepository<Notification, Guid> notificationRepository,
         IDistributedEventBus distributedEventBus,
         IRepository<ProjectMilestone, Guid> milestoneRepository,
-        ITaskProvider taskProvider)
+        ITaskProvider taskProvider,
+        ITranslator translator,
+        IHttpContextAccessor httpContextAccessor)
         : base(repository)
     {
         _userRepository = userRepository;
@@ -72,6 +86,8 @@ public class TaskAppService : CrudAppService<
         _notificationRepository = notificationRepository;
         _distributedEventBus = distributedEventBus;
         _taskProvider = taskProvider;
+        _translator = translator;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     protected override string? GetPolicyName { get; set; } = TaskManagementPermissions.Tasks.Default;
@@ -79,7 +95,6 @@ public class TaskAppService : CrudAppService<
     protected override string? CreatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Create;
     protected override string? UpdatePolicyName { get; set; } = TaskManagementPermissions.Tasks.Edit;
     protected override string? DeletePolicyName { get; set; } = TaskManagementPermissions.Tasks.Delete;
-   
 
     #region Entity Mapping Overrides
     protected override async Task<TaskItem> MapToEntityAsync(CreateTaskInputDto input)
@@ -87,6 +102,9 @@ public class TaskAppService : CrudAppService<
         var entity = await base.MapToEntityAsync(input);
         entity.MilestoneId = input.MilestoneId;
         entity.ProjectId = input.ProjectId;
+
+        await MapLocalizedTitleAsync(entity, input.Title);
+        await MapLocalizedDescriptionAsync(entity, input.Description);
         return entity;
     }
 
@@ -95,6 +113,53 @@ public class TaskAppService : CrudAppService<
         await base.MapToEntityAsync(input, entity);
         entity.MilestoneId = input.MilestoneId;
         entity.ProjectId = input.ProjectId;
+
+        await MapLocalizedTitleAsync(entity, input.Title);
+        await MapLocalizedDescriptionAsync(entity, input.Description);
+    }
+
+    private async Task MapLocalizedTitleAsync(TaskItem entity, string? rawTitle)
+    {
+        var trimmedTitle = rawTitle?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedTitle))
+        {
+            return;
+        }
+
+        entity.Title = trimmedTitle;
+        entity.TitleEn = await TranslateToEnglishOrDefaultAsync(trimmedTitle);
+    }
+
+    private async Task MapLocalizedDescriptionAsync(TaskItem entity, string? rawDescription)
+    {
+        var trimmedDescription = rawDescription?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedDescription))
+        {
+            entity.Description = null;
+            entity.DescriptionEn = null;
+            return;
+        }
+
+        entity.Description = trimmedDescription;
+        entity.DescriptionEn = await TranslateToEnglishOrDefaultAsync(trimmedDescription);
+    }
+
+    private async Task<string> TranslateToEnglishOrDefaultAsync(string text)
+    {
+        try
+        {
+            var translation = await _translator.TranslateAsync(text, "en");
+            if (translation != null && !string.IsNullOrEmpty(translation.Translation))
+            {
+                return translation.Translation;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"--- TRANSLATE ERROR ---: {ex.Message}");
+        }
+
+        return text;
     }
     #endregion
 
@@ -103,38 +168,88 @@ public class TaskAppService : CrudAppService<
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskLookupDto>> GetCategoryLookupAsync()
     {
-        var list = new List<TaskLookupDto>
+        var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
+        string textToTranslate = "Tất cả danh mục";
+        string translatedText = textToTranslate;
+
+        if (currentCulture.Equals("en", StringComparison.OrdinalIgnoreCase))
         {
-            new() { Id = Guid.Empty, DisplayName = "Tất cả danh mục" }
-        };
-        return await Task.FromResult(list);
+            try
+            {
+                var translationResult = await _translator.TranslateAsync(textToTranslate, "vi", "en");
+                if (translationResult != null && !string.IsNullOrEmpty(translationResult.Translation))
+                {
+                    translatedText = translationResult.Translation;
+                }
+            }
+            catch
+            {
+                translatedText = "All categories";
+            }
+        }
+
+        return [new() { Id = Guid.Empty, DisplayName = translatedText }];
     }
 
     [HttpGet("/api/app/task/project-lookup")]
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskLookupDto>> GetProjectLookupAsync()
     {
-        var list = new List<TaskLookupDto>
+        var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
+        string textToTranslate = "Tất cả dự án";
+        string translatedText = textToTranslate;
+
+        if (currentCulture.Equals("en", StringComparison.OrdinalIgnoreCase))
         {
-            new() { Id = Guid.Empty, DisplayName = "Tất cả dự án" }
-        };
-        return await Task.FromResult(list);
+            try
+            {
+                var translationResult = await _translator.TranslateAsync(textToTranslate, "vi", "en");
+                if (translationResult != null && !string.IsNullOrEmpty(translationResult.Translation))
+                {
+                    translatedText = translationResult.Translation;
+                }
+            }
+            catch
+            {
+                translatedText = "All projects";
+            }
+        }
+
+        return [new() { Id = Guid.Empty, DisplayName = translatedText }];
     }
 
     [HttpGet("/api/app/task/status-lookup")]
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskLookupDto>> GetStatusLookupAsync()
     {
-        var list = new List<TaskLookupDto>
+        var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
+
+        async Task<string> TranslateSafeAsync(string viText, string enFallback)
         {
-            new() { Id = Guid.Empty, DisplayName = "Tất cả trạng thái" },
-            new() { Id = GetStatusGuid(TaskItemStatus.New), DisplayName = "Mới" },
-            new() { Id = GetStatusGuid(TaskItemStatus.InProgress), DisplayName = "Đang thực hiện" },
-            new() { Id = GetStatusGuid(TaskItemStatus.InReview), DisplayName = "Chờ duyệt" },
-            new() { Id = GetStatusGuid(TaskItemStatus.Completed), DisplayName = "Hoàn thành" },
-            new() { Id = GetStatusGuid(TaskItemStatus.Canceled), DisplayName = "Đã hủy" }
-        };
-        return await Task.FromResult(list);
+            if (!currentCulture.Equals("en", StringComparison.OrdinalIgnoreCase))
+            {
+                return viText;
+            }
+            try
+            {
+                var res = await _translator.TranslateAsync(viText, "vi", "en");
+                return (!string.IsNullOrEmpty(res?.Translation)) ? res.Translation : enFallback;
+            }
+            catch
+            {
+                return enFallback;
+            }
+        }
+
+        return
+        [
+            new() { Id = Guid.Empty, DisplayName = await TranslateSafeAsync("Tất cả trạng thái", "All statuses") },
+            new() { Id = GetStatusGuid(TaskItemStatus.New), DisplayName = await TranslateSafeAsync("Mới", "New") },
+            new() { Id = GetStatusGuid(TaskItemStatus.InProgress), DisplayName = await TranslateSafeAsync("Đang thực hiện", "In Progress") },
+            new() { Id = GetStatusGuid(TaskItemStatus.InReview), DisplayName = await TranslateSafeAsync("Chờ duyệt", "In Review") },
+            new() { Id = GetStatusGuid(TaskItemStatus.Completed), DisplayName = await TranslateSafeAsync("Hoàn thành", "Completed") },
+            new() { Id = GetStatusGuid(TaskItemStatus.Canceled), DisplayName = await TranslateSafeAsync("Đã hủy", "Canceled") }
+        ];
     }
 
     private static Guid GetStatusGuid(TaskItemStatus status)
@@ -144,27 +259,27 @@ public class TaskAppService : CrudAppService<
     }
     #endregion
 
-    #region Query & Sorting Filter (Override GetListAsync using Dapper Provider)
+    #region Query & Sorting Filter
     public override async Task<PagedResultDto<TaskDto>> GetListAsync(GetTaskListInputDto input)
     {
         var currentUserId = CurrentUser.Id;
 
-        // Kiểm tra quyền Quản lý hoặc Admin
         var isManagerOrAdmin = CurrentUser.IsInRole("Manager") ||
                                CurrentUser.IsInRole("admin") ||
                                CurrentUser.IsInRole("Admin");
 
-        // Xác định cờ OnlyMyTasks hoặc ép buộc lọc theo user hiện tại nếu không phải Admin/Manager
-        // và client không truyền tường minh AssigneeId hoặc OnlyMyTasks
         bool effectiveOnlyMyTasks = input.OnlyMyTasks;
         Guid? effectiveAssigneeId = input.AssigneeId;
 
-        if (!isManagerOrAdmin && !input.AssigneeId.HasValue && !input.OnlyMyTasks)
+        if (!isManagerOrAdmin)
         {
-            effectiveOnlyMyTasks = true;
+            effectiveAssigneeId = currentUserId;
+        }
+        else if (effectiveOnlyMyTasks)
+        {
+            effectiveAssigneeId = currentUserId;
         }
 
-        // [QUAN TRỌNG] Chuẩn hóa ProjectId: Nếu là null hoặc Guid.Empty thì chuyển thành null để Provider xử lý đúng
         Guid? effectiveProjectId = (input.ProjectId.HasValue && input.ProjectId.Value != Guid.Empty)
             ? input.ProjectId
             : null;
@@ -173,7 +288,7 @@ public class TaskAppService : CrudAppService<
         {
             Keyword = !string.IsNullOrWhiteSpace(input.Keyword) ? input.Keyword : input.Filter,
             CategoryId = input.CategoryId,
-            ProjectId = effectiveProjectId, // Sử dụng biến đã được lọc chuẩn xác ở trên
+            ProjectId = effectiveProjectId,
             AssigneeId = effectiveAssigneeId,
             DepartmentId = input.DepartmentId,
             DepartmentIds = input.DepartmentIds,
@@ -187,27 +302,31 @@ public class TaskAppService : CrudAppService<
 
         var (items, totalCount) = await _taskProvider.GetListAsync(request, currentUserId);
 
-        // Map thủ công từ TaskQueryResponse sang TaskDto để tránh lỗi cảnh báo AutoMapper thừa/thiếu thuộc tính
-        var dtos = items.Select(x => new TaskDto
+        var dtos = new List<TaskDto>();
+        foreach (var x in items)
         {
-            Id = x.Id,
-            Title = x.Title,
-            Description = x.Description,
-            Status = (TaskItemStatus)x.Status,
-            Priority = (TaskPriority)x.Priority,
-            ProgressPercent = x.ProgressPercent,
-            DueDate = x.DueDate,
-            ProjectId = x.ProjectId,
-            CategoryId = x.CategoryId,
-            AssigneeId = x.AssigneeId,
-            DepartmentId = x.DepartmentId,
-            CreationTime = x.CreationTime,
-            CreatorId = x.CreatorId,
-            FileName = x.FileName,
-            FileUrl = x.FileUrl
-        }).ToList();
+            dtos.Add(new TaskDto
+            {
+                Id = x.Id,
+                Title = await GetLocalizedTitleAsync(x.Title, x.TitleEn),
+                Description = await GetLocalizedDescriptionAsync(x.Description, x.DescriptionEn),
+                TitleEn = x.TitleEn,
+                DescriptionEn = x.DescriptionEn,
+                Status = (TaskItemStatus)x.Status,
+                Priority = (TaskPriority)x.Priority,
+                ProgressPercent = x.ProgressPercent,
+                DueDate = x.DueDate,
+                ProjectId = x.ProjectId,
+                CategoryId = x.CategoryId,
+                AssigneeId = x.AssigneeId,
+                DepartmentId = x.DepartmentId,
+                CreationTime = x.CreationTime,
+                CreatorId = x.CreatorId,
+                FileName = x.FileName,
+                FileUrl = x.FileUrl
+            });
+        }
 
-        // Bổ sung thông tin ProjectName và AssigneeName
         await EnrichTaskDtosAsync(dtos);
 
         return new PagedResultDto<TaskDto>(totalCount, dtos);
@@ -222,9 +341,9 @@ public class TaskAppService : CrudAppService<
         var isManagerOrAdmin = CurrentUser.IsInRole("Manager") || CurrentUser.IsInRole("admin") || CurrentUser.IsInRole("Admin");
 
         return query
-            .WhereIf(!isManagerOrAdmin && !input.OnlyMyTasks && !input.AssigneeId.HasValue && currentUserId.HasValue,
-                x => x.AssigneeId == currentUserId.Value || x.CreatorId == currentUserId.Value)
-            .WhereIf(input.OnlyMyTasks && currentUserId.HasValue,
+            .WhereIf(!isManagerOrAdmin && currentUserId.HasValue,
+                x => x.AssigneeId == currentUserId.Value)
+            .WhereIf(isManagerOrAdmin && input.OnlyMyTasks && currentUserId.HasValue,
                 x => x.AssigneeId == currentUserId!.Value || x.CreatorId == currentUserId!.Value)
             .WhereIf(!string.IsNullOrWhiteSpace(searchKeyword), x =>
                 x.Title.Contains(searchKeyword!) || (x.Description != null && x.Description.Contains(searchKeyword!)))
@@ -284,8 +403,31 @@ public class TaskAppService : CrudAppService<
         }
 
         var dto = ObjectMapper.Map<TaskItem, TaskDetailDto>(entity);
+        dto.Title = await GetLocalizedTitleAsync(entity.Title, entity.TitleEn);
+        dto.Description = await GetLocalizedDescriptionAsync(entity.Description, entity.DescriptionEn);
         dto.FileName = entity.FileName;
         dto.FileUrl = entity.FileUrl;
+
+        try
+        {
+            var dbContext = await Repository.GetDbContextAsync();
+            var dbConnection = dbContext.Database.GetDbConnection();
+            if (dbConnection.State != ConnectionState.Open)
+            {
+                await dbConnection.OpenAsync();
+            }
+
+            var attachmentsQuery = await dbConnection.QueryAsync<TaskAttachmentDto>(
+                "SELECT FileName, FileUrl FROM TaskAttachments WHERE TaskId = @TaskId",
+                new { TaskId = id }
+            );
+
+            dto.Attachments = attachmentsQuery.ToList();
+        }
+        catch (Exception)
+        {
+            dto.Attachments = [];
+        }
 
         if (entity.ProjectId.HasValue)
         {
@@ -296,8 +438,8 @@ public class TaskAppService : CrudAppService<
         if (entity.Histories != null && entity.Histories.Count > 0)
         {
             dto.Histories = [.. entity.Histories
-                .OrderByDescending(x => x.CreationTime)
-                .Select(x => ObjectMapper.Map<TaskHistory, TaskHistoryDto>(x))];
+            .OrderByDescending(x => x.CreationTime)
+            .Select(x => ObjectMapper.Map<TaskHistory, TaskHistoryDto>(x))];
         }
 
         if (entity.AssigneeId.HasValue && entity.AssigneeId.Value != Guid.Empty)
@@ -316,6 +458,14 @@ public class TaskAppService : CrudAppService<
 
         var subTasks = await _subTaskRepository.GetListAsync(x => x.TaskId == id);
         var subTaskDtos = ObjectMapper.Map<List<SubTask>, List<SubTaskDto>>(subTasks);
+        foreach (var subDto in subTaskDtos)
+        {
+            var originalSubTask = subTasks.FirstOrDefault(s => s.Id == subDto.Id);
+            if (originalSubTask != null)
+            {
+                ApplySubTaskLocalization(subDto, originalSubTask.TitleEn);
+            }
+        }
 
         var subTaskAssigneeIds = subTasks
             .Where(x => x.AssigneeId.HasValue && x.AssigneeId.Value != Guid.Empty)
@@ -344,11 +494,58 @@ public class TaskAppService : CrudAppService<
         dto.SubTasks = subTaskDtos;
 
         var checklists = await _checklistItemRepository.GetListAsync(x => x.TaskId == id);
-        dto.ChecklistItems = ObjectMapper.Map<List<TaskChecklistItem>, List<ChecklistItemDto>>(checklists);
+        var checklistDtos = ObjectMapper.Map<List<TaskChecklistItem>, List<ChecklistItemDto>>(checklists);
+        foreach (var checkDto in checklistDtos)
+        {
+            var originalItem = checklists.FirstOrDefault(c => c.Id == checkDto.Id);
+            if (originalItem != null)
+            {
+                ApplyChecklistLocalization(checkDto, originalItem.TitleEn);
+            }
+        }
+        dto.ChecklistItems = checklistDtos;
 
+      
+        // ==========================================
+        // XỬ LÝ ACTIVITY LOGS & ÁP DỤNG ĐA NGÔN NGỮ CHI TIẾT
+        // ==========================================
         var logs = await _activityLogRepository.GetListAsync(x => x.TaskId == id);
-        dto.ActivityLogs = ObjectMapper.Map<List<TaskActivityLog>, List<TaskActivityLogDto>>([.. logs.OrderByDescending(x => x.CreationTime)]);
+        var sortedLogs = logs.OrderByDescending(x => x.CreationTime).ToList();
 
+        // 1. Lấy danh sách ID người tạo log để truy vấn tên
+        var logCreatorIds = sortedLogs
+            .Where(x => x.CreatorId.HasValue)
+            .Select(x => x.CreatorId!.Value)
+            .Distinct()
+            .ToList();
+
+        Dictionary<Guid, IdentityUser> logUserDict = [];
+        if (logCreatorIds.Count > 0)
+        {
+            try
+            {
+                var userQuery = await _userRepository.GetQueryableAsync();
+                var users = await AsyncExecuter.ToListAsync(userQuery.Where(x => logCreatorIds.Contains(x.Id)), cancellationToken: CancellationToken.None);
+                logUserDict = users.ToDictionary(u => u.Id);
+            }
+            catch (TaskCanceledException) { }
+        }
+
+        var activityLogDtos = new List<TaskActivityLogDto>();
+        foreach (var log in sortedLogs)
+        {
+            var logDto = ObjectMapper.Map<TaskActivityLog, TaskActivityLogDto>(log);
+
+            // 2. Gán tên người tạo cho từng dòng log
+            logDto.CreatorName = (log.CreatorId.HasValue && logUserDict.TryGetValue(log.CreatorId.Value, out var logUser) && logUser != null)
+                ? (!string.IsNullOrWhiteSpace(logUser.Name) ? logUser.Name : (logUser.UserName ?? string.Empty))
+                : "Hệ thống";
+
+            // 3. Đa ngôn ngữ action
+            ApplyActivityLogLocalization(logDto, log.ActionEn);
+            activityLogDtos.Add(logDto);
+        }
+        dto.ActivityLogs = activityLogDtos;
         var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
         var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
         var sortedComments = comments.OrderByDescending(x => x.CreationTime).ToList();
@@ -385,6 +582,7 @@ public class TaskAppService : CrudAppService<
                 attachments = ParseCommentAttachments(c.FileUrl, c.FileName);
             }
             cDto.Attachments = attachments;
+            ApplyCommentLocalization(cDto, c.TextEn);
 
             commentDtos.Add(cDto);
         }
@@ -421,10 +619,10 @@ public class TaskAppService : CrudAppService<
             }
 
             dto.SubmissionFiles = [.. submissionAttachments.Select(a => new TaskFileDto
-            {
-                FileName = a.FileName,
-                FileUrl = a.FileUrl
-            })];
+        {
+            FileName = a.FileName,
+            FileUrl = a.FileUrl
+        })];
         }
 
         return dto;
@@ -468,6 +666,9 @@ public class TaskAppService : CrudAppService<
                 ? (!string.IsNullOrWhiteSpace(timelineUser.Name) ? timelineUser.Name : (timelineUser.UserName ?? string.Empty))
                 : "Hệ thống";
 
+            // Áp dụng dịch ngôn ngữ cho từng item trong timeline
+            ApplyActivityLogLocalization(dto, log.ActionEn);
+
             dtos.Add(dto);
         }
 
@@ -477,7 +678,6 @@ public class TaskAppService : CrudAppService<
     [UnitOfWork]
     public override async Task DeleteAsync(Guid id)
     {
-        // Dùng FindAsync để trả về null thay vì tự động bắn Exception
         var task = await Repository.FindAsync(id);
         if (task == null)
         {
@@ -485,6 +685,13 @@ public class TaskAppService : CrudAppService<
         }
 
         var taskTitle = task.Title;
+
+        if (task.MilestoneId.HasValue && task.MilestoneId.Value != Guid.Empty)
+        {
+            var milestoneId = task.MilestoneId.Value;
+            await _milestoneRepository.DeleteAsync(milestoneId);
+        }
+
         await LogActivityAsync(id, $"Đã xóa công việc: '{taskTitle}'");
         await NotifyTaskStakeholdersAsync(task, $"Công việc '{taskTitle}' đã bị xóa khỏi hệ thống.");
 
@@ -561,10 +768,101 @@ public class TaskAppService : CrudAppService<
             }
         }
 
-        await MapToEntityAsync(input, entity);
-        entity.ProgressPercent = CalculateProgressByStatus(entity.Status, entity.ProgressPercent);
+        var oldFileUrl = entity.FileUrl;
+        var oldFileName = entity.FileName;
 
-        await ProcessTaskAttachmentsAsync(input.Attachments, entity);
+        await MapToEntityAsync(input, entity);
+
+        if (input.Attachments == null)
+        {
+            entity.FileUrl = oldFileUrl;
+            entity.FileName = oldFileName;
+        }
+        else
+        {
+            var newFilesWithContent = input.Attachments.Where(f => !string.IsNullOrEmpty(f.FileContent)).ToList();
+            if (newFilesWithContent.Count > 0)
+            {
+                await ProcessTaskAttachmentsAsync(newFilesWithContent, entity);
+            }
+
+            var incomingFileUrls = input.Attachments
+                .Where(f => !string.IsNullOrEmpty(f.FileUrl))
+                .Select(f => f.FileUrl)
+                .Distinct()
+                .ToList();
+
+            var incomingFileNames = input.Attachments
+                .Where(f => !string.IsNullOrEmpty(f.FileName))
+                .Select(f => f.FileName)
+                .ToList();
+
+            if (incomingFileUrls.Count > 0)
+            {
+                entity.FileUrl = string.Join(";", incomingFileUrls);
+                entity.FileName = incomingFileNames.Count > 0 ? string.Join(";", incomingFileNames) : oldFileName;
+            }
+            else if (input.Attachments.Count == 0)
+            {
+                entity.FileUrl = null;
+                entity.FileName = null;
+            }
+
+            var dbContext = await Repository.GetDbContextAsync();
+            var dbConnection = dbContext.Database.GetDbConnection();
+            if (dbConnection.State != ConnectionState.Open)
+            {
+                await dbConnection.OpenAsync();
+            }
+            var currentTransaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
+
+            if (incomingFileUrls.Count > 0)
+            {
+                await dbConnection.ExecuteAsync(
+                    "DELETE FROM TaskAttachments WHERE TaskId = @TaskId AND FileUrl NOT IN @FileUrls",
+                    new { TaskId = id, FileUrls = incomingFileUrls },
+                    currentTransaction
+                );
+            }
+            else
+            {
+                await dbConnection.ExecuteAsync(
+                    "DELETE FROM TaskAttachments WHERE TaskId = @TaskId",
+                    new { TaskId = id },
+                    currentTransaction
+                );
+            }
+
+            foreach (var file in input.Attachments)
+            {
+                if (!string.IsNullOrEmpty(file.FileUrl))
+                {
+                    var countExist = await dbConnection.ExecuteScalarAsync<int>(
+                        "SELECT COUNT(1) FROM TaskAttachments WHERE TaskId = @TaskId AND FileUrl = @FileUrl",
+                        new { TaskId = id, FileUrl = file.FileUrl },
+                        currentTransaction
+                    );
+
+                    if (countExist == 0)
+                    {
+                        await dbConnection.ExecuteAsync(
+                            "INSERT INTO TaskAttachments (Id, TaskId, FileName, FileUrl, FilePath) VALUES (@AttachmentId, @TaskId, @FileName, @FileUrl, @FilePath)",
+                            new
+                            {
+                                AttachmentId = Guid.NewGuid(),
+                                TaskId = id,
+                                FileName = file.FileName,
+                                FileUrl = file.FileUrl,
+                                FilePath = file.FileUrl
+                            },
+                            currentTransaction
+                        );
+                    }
+                }
+            }
+        }
+
+        entity.ProgressPercent = CalculateProgressByStatus(entity.Status, entity.ProgressPercent);
 
         await Repository.UpdateAsync(entity, autoSave: true);
 
@@ -658,7 +956,7 @@ public class TaskAppService : CrudAppService<
             var milestone = await _milestoneRepository.FindAsync(entity.MilestoneId.Value);
             if (milestone != null)
             {
-                milestone.AssigneeUserId = newAssigneeId; 
+                milestone.AssigneeUserId = newAssigneeId;
                 await _milestoneRepository.UpdateAsync(milestone, autoSave: true);
             }
         }
@@ -675,34 +973,43 @@ public class TaskAppService : CrudAppService<
     {
         var entity = await GetEntityByIdAsync(id);
 
-        if (string.IsNullOrWhiteSpace(entity.FileUrl) || string.IsNullOrWhiteSpace(fileUrl))
+        var dbContext = await Repository.GetDbContextAsync();
+        var dbConnection = dbContext.Database.GetDbConnection();
+        if (dbConnection.State != ConnectionState.Open)
         {
-            throw new UserFriendlyException("Không tìm thấy tệp đính kèm cần xóa.");
+            await dbConnection.OpenAsync();
         }
+        var currentTransaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
 
-        var urls = entity.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
-        var names = !string.IsNullOrEmpty(entity.FileName)
-            ? entity.FileName.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList()
-            : [];
+        await dbConnection.ExecuteAsync(
+            "DELETE FROM TaskAttachments WHERE TaskId = @TaskId AND FileUrl = @FileUrl",
+            new { TaskId = id, FileUrl = fileUrl },
+            currentTransaction
+        );
 
-        var index = urls.IndexOf(fileUrl);
-        if (index >= 0)
+        if (!string.IsNullOrWhiteSpace(entity.FileUrl))
         {
-            urls.RemoveAt(index);
-            if (index < names.Count)
+            var urls = entity.FileUrl.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var names = !string.IsNullOrEmpty(entity.FileName)
+                ? entity.FileName.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList()
+                : [];
+
+            var index = urls.IndexOf(fileUrl);
+            if (index >= 0)
             {
-                names.RemoveAt(index);
+                urls.RemoveAt(index);
+                if (index < names.Count)
+                {
+                    names.RemoveAt(index);
+                }
             }
-        }
-        else
-        {
-            throw new UserFriendlyException("Không tìm thấy tệp đính kèm trong công việc này.");
+
+            entity.FileUrl = urls.Count > 0 ? string.Join(";", urls) : null;
+            entity.FileName = names.Count > 0 ? string.Join(";", names) : null;
+
+            await Repository.UpdateAsync(entity, autoSave: true);
         }
 
-        entity.FileUrl = urls.Count > 0 ? string.Join(";", urls) : null;
-        entity.FileName = names.Count > 0 ? string.Join(";", names) : null;
-
-        await Repository.UpdateAsync(entity, autoSave: true);
         await LogActivityAsync(id, "Đã xóa một tệp đính kèm khỏi công việc");
         await NotifyTaskStakeholdersAsync(entity, $"Công việc '{entity.Title}' đã bị xóa một tệp đính kèm.");
 
@@ -748,7 +1055,8 @@ public class TaskAppService : CrudAppService<
         var commentAttachments = input?.Attachments?.Select(a => new CommentAttachmentDto
         {
             FileName = a.FileName,
-            FileContent = a.FileContent
+            FileContent = a.FileContent,
+            FileUrl = a.FileUrl
         }).ToList();
 
         await CreateCommentAsync(id, new CreateTaskCommentDto
@@ -772,15 +1080,20 @@ public class TaskAppService : CrudAppService<
     [UnitOfWork]
     public async Task<TaskDetailDto> UpdateSubmissionAsync(Guid id, [FromBody] SubmitReviewInputDto input)
     {
-        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
-        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
+        var dbContextProvider = LazyServiceProvider.GetRequiredService<IDbContextProvider<TaskManagementDbContext>>();
+        var dbContext = await dbContextProvider.GetDbContextAsync();
 
-        var lastSubmissionComment = comments
-            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
+        var targetComment = dbContext.Set<TaskComment>()
+            .Where(x => x.TaskId == id && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
             .OrderByDescending(x => x.CreationTime)
-            .FirstOrDefault() ?? throw new UserFriendlyException("Không tìm thấy thông tin nộp bài duyệt cần chỉnh sửa.");
+            .FirstOrDefault();
 
-        if (lastSubmissionComment.CreatorId != CurrentUser.Id)
+        if (targetComment == null)
+        {
+            throw new UserFriendlyException("Không tìm thấy thông tin nộp bài duyệt cần chỉnh sửa.");
+        }
+
+        if (targetComment.CreatorId != CurrentUser.Id)
         {
             throw new UserFriendlyException("Bạn không có quyền chỉnh sửa mục nộp bài này!");
         }
@@ -788,25 +1101,55 @@ public class TaskAppService : CrudAppService<
         var noteContent = input?.Note?.Trim() ?? string.Empty;
         var newText = string.IsNullOrWhiteSpace(noteContent) ? "[NỘP TRÌNH DUYỆT]" : $"[NỘP TRÌNH DUYỆT]: {noteContent}";
 
-        lastSubmissionComment.Text = newText;
+        var newFileUrls = new List<string>();
+        var newFileNames = new List<string>();
 
-        if (input?.Attachments != null && input.Attachments.Count > 0)
+        if (input?.Attachments != null)
         {
-            lastSubmissionComment.Attachments.Clear();
-            await ProcessCommentAttachmentsAsync([.. input.Attachments.Select(a => new CommentAttachmentDto
+            foreach (var a in input.Attachments)
             {
-                FileName = a.FileName,
-                FileContent = a.FileContent
-            })], lastSubmissionComment);
+                var fileUrl = a.FileUrl;
+                var cleanFileName = !string.IsNullOrEmpty(a.FileName) ? Path.GetFileName(a.FileName) : "Attachment";
 
-            if (lastSubmissionComment.Attachments != null && lastSubmissionComment.Attachments.Count > 0)
-            {
-                lastSubmissionComment.FileUrl = string.Join(";", lastSubmissionComment.Attachments.Select(a => a.FileUrl));
-                lastSubmissionComment.FileName = string.Join(";", lastSubmissionComment.Attachments.Select(a => a.FileName));
+                if (!string.IsNullOrEmpty(a.FileContent) && !string.IsNullOrEmpty(a.FileName))
+                {
+                    fileUrl = await SaveBase64FileAsync(cleanFileName, a.FileContent);
+                }
+
+                if (!string.IsNullOrEmpty(fileUrl))
+                {
+                    newFileUrls.Add(fileUrl);
+                    newFileNames.Add(cleanFileName);
+                }
             }
         }
 
-        await _commentRepository.UpdateAsync(lastSubmissionComment, autoSave: true);
+        var finalFileUrl = newFileUrls.Count > 0 ? string.Join(";", newFileUrls) : null;
+        var finalFileName = newFileNames.Count > 0 ? string.Join(";", newFileNames) : null;
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "DELETE FROM TaskCommentAttachments WHERE TaskCommentId = {0}", targetComment.Id);
+
+        for (int i = 0; i < newFileUrls.Count; i++)
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "INSERT INTO TaskCommentAttachments (Id, TaskCommentId, FileName, FileUrl) VALUES ({0}, {1}, {2}, {3})",
+                Guid.NewGuid(), targetComment.Id, newFileNames[i], newFileUrls[i]);
+        }
+
+        targetComment.Text = newText;
+        targetComment.FileUrl = finalFileUrl;
+        targetComment.FileName = finalFileName;
+
+        var entry = dbContext.Entry(targetComment);
+        entry.State = EntityState.Modified;
+        if (entry.Metadata.FindProperty("ConcurrencyStamp") != null)
+        {
+            entry.Property("ConcurrencyStamp").IsModified = false;
+        }
+
+        await dbContext.SaveChangesAsync();
+
         await LogActivityAsync(id, "Đã cập nhật lại nội dung nộp bài duyệt");
 
         var task = await Repository.GetAsync(id);
@@ -820,20 +1163,24 @@ public class TaskAppService : CrudAppService<
     [UnitOfWork]
     public async Task<TaskDetailDto> DeleteSubmissionAsync(Guid id)
     {
-        var commentQuery = await _commentRepository.WithDetailsAsync(x => x.Attachments);
-        var comments = await AsyncExecuter.ToListAsync(commentQuery.Where(x => x.TaskId == id));
+        var query = await _commentRepository.WithDetailsAsync(x => x.Attachments);
 
-        var lastSubmissionComment = comments
-            .Where(x => !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
+        var lastSubmissionComment = query
+            .Where(x => x.TaskId == id && !string.IsNullOrEmpty(x.Text) && x.Text.Contains("[NỘP TRÌNH DUYỆT]"))
             .OrderByDescending(x => x.CreationTime)
-            .FirstOrDefault() ?? throw new UserFriendlyException("Không tìm thấy thông tin nộp bài duyệt để xóa.");
+            .FirstOrDefault();
+
+        if (lastSubmissionComment == null)
+        {
+            throw new UserFriendlyException("Không tìm thấy thông tin nộp bài duyệt để xóa.");
+        }
 
         if (lastSubmissionComment.CreatorId != CurrentUser.Id)
         {
             throw new UserFriendlyException("Bạn không có quyền xóa mục nộp bài này!");
         }
 
-        await _commentRepository.DeleteAsync(lastSubmissionComment.Id, autoSave: true);
+        await _commentRepository.DeleteAsync(lastSubmissionComment, autoSave: true);
 
         var task = await Repository.GetAsync(id);
         if (task.Status == TaskItemStatus.InReview)
@@ -916,6 +1263,14 @@ public class TaskAppService : CrudAppService<
     #endregion
 
     #region SubTask Management
+    private void ApplySubTaskLocalization(SubTaskDto dto, string? titleEn)
+    {
+        if (IsCurrentCultureEnglish() && !string.IsNullOrEmpty(titleEn))
+        {
+            dto.Title = titleEn;
+        }
+    }
+
     [HttpPost("/api/app/task/{taskId}/sub-task")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
@@ -924,19 +1279,31 @@ public class TaskAppService : CrudAppService<
         var task = await Repository.GetAsync(taskId);
         if (task == null) throw new UserFriendlyException("Công việc gốc không tồn tại.");
 
+        var title = input.Title?.Trim() ?? string.Empty;
+        string titleEn = string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            titleEn = await TranslateToEnglishOrDefaultAsync(title);
+        }
+
         var subTask = new SubTask(GuidGenerator.Create())
         {
             TaskId = taskId,
-            Title = input.Title,
+            Title = title,
+            TitleEn = titleEn,
             AssigneeId = input.AssigneeId.HasValue && input.AssigneeId.Value != Guid.Empty ? input.AssigneeId : null,
             IsCompleted = false
         };
 
         await _subTaskRepository.InsertAsync(subTask, autoSave: true);
-        await LogActivityAsync(taskId, $"Đã thêm công việc con: '{input.Title}'");
-        await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' có thêm công việc con mới: '{input.Title}'");
+        await LogActivityAsync(taskId, $"Đã thêm công việc con: '{title}'");
+        await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' có thêm công việc con mới: '{title}'");
 
-        return ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
+        var dto = ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
+        ApplySubTaskLocalization(dto, subTask.TitleEn);
+
+        return dto;
     }
 
     [HttpPut("/api/app/task/sub-task/{subTaskId}")]
@@ -945,11 +1312,23 @@ public class TaskAppService : CrudAppService<
     public async Task<SubTaskDto> UpdateSubTaskAsync(Guid subTaskId, [FromBody] CreateUpdateSubTaskDto input)
     {
         var subTask = await _subTaskRepository.GetAsync(subTaskId);
-        subTask.Title = input.Title;
+        var title = input.Title?.Trim() ?? string.Empty;
+
+        subTask.Title = title;
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            subTask.TitleEn = await TranslateToEnglishOrDefaultAsync(title);
+        }
+        else
+        {
+            subTask.TitleEn = null;
+        }
+
         subTask.AssigneeId = input.AssigneeId.HasValue && input.AssigneeId.Value != Guid.Empty ? input.AssigneeId : null;
 
         await _subTaskRepository.UpdateAsync(subTask, autoSave: true);
-        await LogActivityAsync(subTask.TaskId, $"Đã cập nhật công việc con: '{input.Title}'");
+        await LogActivityAsync(subTask.TaskId, $"Đã cập nhật công việc con: '{title}'");
 
         var task = await Repository.GetAsync(subTask.TaskId);
         if (task != null)
@@ -957,13 +1336,16 @@ public class TaskAppService : CrudAppService<
             await NotifyTaskStakeholdersAsync(task, $"Công việc con của '{task.Title}' vừa được cập nhật.");
         }
 
-        return ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
+        var dto = ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
+        ApplySubTaskLocalization(dto, subTask.TitleEn);
+
+        return dto;
     }
 
     [HttpPut("/api/app/task/sub-task/{subTaskId}/toggle")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
-    public async Task ToggleSubTaskStatusAsync(Guid subTaskId)
+    public async Task<SubTaskDto> ToggleSubTaskStatusAsync(Guid subTaskId)
     {
         var subTask = await _subTaskRepository.GetAsync(subTaskId);
         subTask.IsCompleted = !subTask.IsCompleted;
@@ -976,6 +1358,11 @@ public class TaskAppService : CrudAppService<
         {
             await NotifyTaskStakeholdersAsync(task, $"Trạng thái công việc con '{subTask.Title}' trong '{task.Title}' đã thay đổi.");
         }
+
+        var dto = ObjectMapper.Map<SubTask, SubTaskDto>(subTask);
+        ApplySubTaskLocalization(dto, subTask.TitleEn);
+
+        return dto;
     }
 
     [HttpDelete("/api/app/task/sub-task/{subTaskId}")]
@@ -986,19 +1373,30 @@ public class TaskAppService : CrudAppService<
         var subTask = await _subTaskRepository.FindAsync(subTaskId);
         if (subTask != null)
         {
-            await _subTaskRepository.DeleteAsync(subTaskId);
-            await LogActivityAsync(subTask.TaskId, $"Đã xóa công việc phụ: '{subTask.Title}'");
+            var taskId = subTask.TaskId;
+            var subTaskTitle = subTask.Title;
 
-            var task = await Repository.GetAsync(subTask.TaskId);
+            await _subTaskRepository.DeleteAsync(subTaskId);
+            await LogActivityAsync(taskId, $"Đã xóa công việc phụ: '{subTaskTitle}'");
+
+            var task = await Repository.GetAsync(taskId);
             if (task != null)
             {
-                await NotifyTaskStakeholdersAsync(task, $"Công việc con '{subTask.Title}' trong '{task.Title}' đã bị xóa.");
+                await NotifyTaskStakeholdersAsync(task, $"Công việc con '{subTaskTitle}' trong '{task.Title}' đã bị xóa.");
             }
         }
     }
     #endregion
 
     #region Checklist Management
+    private void ApplyChecklistLocalization(ChecklistItemDto dto, string? titleEn)
+    {
+        if (IsCurrentCultureEnglish() && !string.IsNullOrEmpty(titleEn))
+        {
+            dto.Title = titleEn;
+        }
+    }
+
     [HttpPost("/api/app/task/{taskId}/checklist-item")]
     [Authorize(TaskManagementPermissions.Tasks.Edit)]
     [UnitOfWork]
@@ -1007,18 +1405,37 @@ public class TaskAppService : CrudAppService<
         var task = await Repository.GetAsync(taskId);
         if (task == null) throw new UserFriendlyException("Công việc gốc không tồn tại.");
 
-        var item = new TaskChecklistItem(GuidGenerator.Create())
+        var dbContextProvider = LazyServiceProvider.GetRequiredService<IDbContextProvider<TaskManagementDbContext>>();
+        var dbContext = await dbContextProvider.GetDbContextAsync();
+
+        var newItemId = GuidGenerator.Create();
+        var title = input.Title?.Trim() ?? string.Empty;
+
+        string titleEn = title;
+        if (!string.IsNullOrWhiteSpace(title))
         {
+            titleEn = await TranslateToEnglishOrDefaultAsync(title);
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "INSERT INTO TaskChecklistItems (Id, TaskId, Title, TitleEn, IsDone, CreationTime, CreatorId) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+            newItemId, taskId, title, titleEn, false, DateTime.Now, CurrentUser.Id);
+        var displayTitle = IsCurrentCultureEnglish() && !string.IsNullOrEmpty(titleEn) ? titleEn : title;
+        await LogActivityAsync(taskId, $"Đã thêm hạng mục kiểm tra: '{displayTitle}'");
+        await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' có thêm mục kiểm tra mới: '{displayTitle}'.");
+
+        var dto = new ChecklistItemDto
+        {
+            Id = newItemId,
             TaskId = taskId,
-            Title = input.Title,
+            Title = title,
+            TitleEn = titleEn,
             IsDone = false
         };
 
-        await _checklistItemRepository.InsertAsync(item, autoSave: true);
-        await LogActivityAsync(taskId, $"Đã thêm hạng mục kiểm tra: '{input.Title}'");
-        await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' có thêm mục kiểm tra mới.");
+        ApplyChecklistLocalization(dto, titleEn);
 
-        return ObjectMapper.Map<TaskChecklistItem, ChecklistItemDto>(item);
+        return dto;
     }
 
     [HttpPut("/api/app/task/checklist-item/{itemId}")]
@@ -1027,18 +1444,34 @@ public class TaskAppService : CrudAppService<
     public async Task<ChecklistItemDto> UpdateChecklistItemAsync(Guid itemId, [FromBody] CreateUpdateChecklistItemDto input)
     {
         var item = await _checklistItemRepository.GetAsync(itemId);
-        item.Title = input.Title;
+        var title = input.Title?.Trim() ?? string.Empty;
+
+        item.Title = title;
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            item.TitleEn = await TranslateToEnglishOrDefaultAsync(title);
+        }
+        else
+        {
+            item.TitleEn = null;
+        }
 
         await _checklistItemRepository.UpdateAsync(item, autoSave: true);
-        await LogActivityAsync(item.TaskId, $"Đã cập nhật mục kiểm tra: '{input.Title}'");
+        var displayTitle = IsCurrentCultureEnglish() && !string.IsNullOrEmpty(item.TitleEn) ? item.TitleEn : title;
+
+        await LogActivityAsync(item.TaskId, $"Đã cập nhật mục kiểm tra: '{displayTitle}'");
 
         var task = await Repository.GetAsync(item.TaskId);
         if (task != null)
         {
-            await NotifyTaskStakeholdersAsync(task, $"Mục kiểm tra trong công việc '{task.Title}' vừa được cập nhật.");
+            await NotifyTaskStakeholdersAsync(task, $"Mục kiểm tra trong công việc '{task.Title}' vừa được cập nhật: '{displayTitle}'.");
         }
 
-        return ObjectMapper.Map<TaskChecklistItem, ChecklistItemDto>(item);
+        var dto = ObjectMapper.Map<TaskChecklistItem, ChecklistItemDto>(item);
+        ApplyChecklistLocalization(dto, item.TitleEn);
+
+        return dto;
     }
 
     [HttpPut("/api/app/task/checklist-item/{itemId}/toggle")]
@@ -1050,12 +1483,14 @@ public class TaskAppService : CrudAppService<
         item.IsDone = !item.IsDone;
 
         await _checklistItemRepository.UpdateAsync(item, autoSave: true);
-        await LogActivityAsync(item.TaskId, $"Đã cập nhật trạng thái mục kiểm tra '{item.Title}' sang {(item.IsDone ? "Hoàn thành" : "Chưa hoàn thành")}");
+        var displayTitle = IsCurrentCultureEnglish() && !string.IsNullOrEmpty(item.TitleEn) ? item.TitleEn : item.Title;
+
+        await LogActivityAsync(item.TaskId, $"Đã cập nhật trạng thái mục kiểm tra '{displayTitle}' sang {(item.IsDone ? "Hoàn thành" : "Chưa hoàn thành")}");
 
         var task = await Repository.GetAsync(item.TaskId);
         if (task != null)
         {
-            await NotifyTaskStakeholdersAsync(task, $"Trạng thái mục kiểm tra của công việc '{task.Title}' đã thay đổi.");
+            await NotifyTaskStakeholdersAsync(task, $"Trạng thái mục kiểm tra '{displayTitle}' của công việc '{task.Title}' đã thay đổi.");
         }
     }
 
@@ -1067,19 +1502,46 @@ public class TaskAppService : CrudAppService<
         var item = await _checklistItemRepository.FindAsync(itemId);
         if (item != null)
         {
-            await _checklistItemRepository.DeleteAsync(itemId);
-            await LogActivityAsync(item.TaskId, $"Đã xóa mục kiểm tra: '{item.Title}'");
+            var taskId = item.TaskId;
+            var displayTitle = IsCurrentCultureEnglish() && !string.IsNullOrEmpty(item.TitleEn) ? item.TitleEn : item.Title;
 
-            var task = await Repository.GetAsync(item.TaskId);
+            await _checklistItemRepository.DeleteAsync(itemId);
+            await LogActivityAsync(taskId, $"Đã xóa mục kiểm tra: '{displayTitle}'");
+
+            var task = await Repository.GetAsync(taskId);
             if (task != null)
             {
-                await NotifyTaskStakeholdersAsync(task, $"Mục kiểm tra của công việc '{task.Title}' đã bị xóa.");
+                await NotifyTaskStakeholdersAsync(task, $"Mục kiểm tra '{displayTitle}' của công việc '{task.Title}' đã bị xóa.");
             }
         }
     }
     #endregion
 
     #region Comments Management
+    private bool IsCurrentCultureEnglish()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.Request?.Headers != null &&
+            httpContext.Request.Headers.TryGetValue("Accept-Language", out var acceptLangValues))
+        {
+            var acceptLanguage = acceptLangValues.ToString();
+            if (!string.IsNullOrEmpty(acceptLanguage))
+            {
+                return acceptLanguage.StartsWith("en", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        var currentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return currentLang.Equals("en", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ApplyCommentLocalization(TaskCommentDto dto, string? textEn)
+    {
+        if (IsCurrentCultureEnglish() && !string.IsNullOrEmpty(textEn))
+        {
+            dto.Text = textEn;
+        }
+    }
     [HttpGet("/api/app/task/{taskId}/comments")]
     [Authorize(TaskManagementPermissions.Tasks.Default)]
     public async Task<List<TaskCommentDto>> GetCommentsAsync(Guid taskId)
@@ -1121,6 +1583,8 @@ public class TaskAppService : CrudAppService<
             }
             dto.Attachments = attachments;
 
+            ApplyCommentLocalization(dto, c.TextEn);
+
             dtos.Add(dto);
         }
 
@@ -1138,12 +1602,19 @@ public class TaskAppService : CrudAppService<
         if (string.IsNullOrWhiteSpace(input.Text) && (input.Attachments == null || input.Attachments.Count == 0))
             throw new UserFriendlyException("Nội dung bình luận hoặc tệp đính kèm không được để trống.");
 
+        var commentText = input.Text?.Trim() ?? string.Empty;
+
         var comment = new TaskComment(GuidGenerator.Create())
         {
             TaskId = taskId,
-            Text = input.Text ?? string.Empty,
+            Text = commentText,
             CreatorId = CurrentUser.Id
         };
+
+        if (!string.IsNullOrWhiteSpace(commentText))
+        {
+            comment.TextEn = await TranslateToEnglishOrDefaultAsync(commentText);
+        }
 
         await ProcessCommentAttachmentsAsync(input.Attachments, comment);
 
@@ -1154,6 +1625,8 @@ public class TaskAppService : CrudAppService<
         }
 
         var insertedComment = await _commentRepository.InsertAsync(comment, autoSave: true);
+
+        var displayText = IsCurrentCultureEnglish() && !string.IsNullOrEmpty(insertedComment.TextEn) ? insertedComment.TextEn : commentText;
         await LogActivityAsync(taskId, $"Đã thêm bình luận mới{(comment.Attachments?.Count > 0 || !string.IsNullOrEmpty(comment.FileName) ? " (kèm tệp đính kèm)" : "")}");
         await NotifyTaskStakeholdersAsync(task, $"Công việc '{task.Title}' có bình luận mới.");
 
@@ -1167,15 +1640,17 @@ public class TaskAppService : CrudAppService<
         if (insertedComment.Attachments != null && insertedComment.Attachments.Count > 0)
         {
             dto.Attachments = [.. insertedComment.Attachments.Select(a => new CommentAttachmentDto
-            {
-                FileName = a.FileName,
-                FileUrl = a.FileUrl
-            })];
+        {
+            FileName = a.FileName,
+            FileUrl = a.FileUrl
+        })];
         }
         else
         {
             dto.Attachments = ParseCommentAttachments(insertedComment.FileUrl, insertedComment.FileName);
         }
+
+        ApplyCommentLocalization(dto, insertedComment.TextEn);
 
         return dto;
     }
@@ -1194,8 +1669,21 @@ public class TaskAppService : CrudAppService<
             throw new UserFriendlyException("Bạn không có quyền chỉnh sửa bình luận này.");
         }
 
-        comment.Text = input.Text ?? string.Empty;
+        var newText = input.Text?.Trim() ?? string.Empty;
+        comment.Text = newText;
+
+        if (!string.IsNullOrWhiteSpace(newText))
+        {
+            comment.TextEn = await TranslateToEnglishOrDefaultAsync(newText);
+        }
+        else
+        {
+            comment.TextEn = null;
+        }
+
         await _commentRepository.UpdateAsync(comment, autoSave: true);
+
+        var displayText = IsCurrentCultureEnglish() && !string.IsNullOrEmpty(comment.TextEn) ? comment.TextEn : newText;
         await LogActivityAsync(comment.TaskId, "Đã chỉnh sửa bình luận");
 
         var task = await Repository.GetAsync(comment.TaskId);
@@ -1213,6 +1701,8 @@ public class TaskAppService : CrudAppService<
             attachments = ParseCommentAttachments(comment.FileUrl, comment.FileName);
         }
         dto.Attachments = attachments;
+
+        ApplyCommentLocalization(dto, comment.TextEn);
 
         return dto;
     }
@@ -1249,6 +1739,91 @@ public class TaskAppService : CrudAppService<
         return await Repository.GetAsync(id);
     }
 
+    private async Task<string> GetLocalizedTitleAsync(string? titleVi, string? titleEn)
+    {
+        var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
+
+        if (currentCulture.Equals("en", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(titleEn))
+            {
+                return titleEn;
+            }
+
+            if (!string.IsNullOrWhiteSpace(titleVi))
+            {
+                try
+                {
+                    var translation = await _translator.TranslateAsync(titleVi, "vi", "en");
+                    if (translation != null && !string.IsNullOrEmpty(translation.Translation))
+                    {
+                        return translation.Translation;
+                    }
+                }
+                catch
+                {
+                }
+                return titleVi;
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(titleVi))
+            {
+                return titleVi;
+            }
+
+            if (!string.IsNullOrWhiteSpace(titleEn))
+            {
+                try
+                {
+                    var translation = await _translator.TranslateAsync(titleEn, "en", "vi");
+                    if (translation != null && !string.IsNullOrEmpty(translation.Translation))
+                    {
+                        return translation.Translation;
+                    }
+                }
+                catch
+                {
+                }
+                return titleEn;
+            }
+        }
+
+        return titleVi ?? titleEn ?? string.Empty;
+    }
+
+    private async Task<string?> GetLocalizedDescriptionAsync(string? descVi, string? descEn)
+    {
+        var currentCulture = System.Threading.Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
+
+        if (currentCulture.Equals("en", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(descEn))
+            {
+                return descEn;
+            }
+
+            if (!string.IsNullOrWhiteSpace(descVi))
+            {
+                try
+                {
+                    var translation = await _translator.TranslateAsync(descVi, "vi", "en");
+                    if (translation != null && !string.IsNullOrEmpty(translation.Translation))
+                    {
+                        return translation.Translation;
+                    }
+                }
+                catch
+                {
+                }
+                return descVi;
+            }
+        }
+
+        return descVi ?? descEn;
+    }
+
     private async Task<Guid?> GetDefaultUserForDepartmentAsync(Guid departmentId)
     {
         try
@@ -1272,7 +1847,6 @@ public class TaskAppService : CrudAppService<
         var projectIds = dtos.Where(x => x.ProjectId.HasValue && x.ProjectId.Value != Guid.Empty).Select(x => x.ProjectId!.Value).Distinct().ToList();
         if (projectIds.Count > 0)
         {
-            // Truyền cancellationToken vào đây
             var projects = await _projectRepository.GetListAsync(x => projectIds.Contains(x.Id), cancellationToken: cancellationToken);
             var projectDict = projects.ToDictionary(p => p.Id);
             foreach (var dto in dtos)
@@ -1287,7 +1861,6 @@ public class TaskAppService : CrudAppService<
         var assigneeIds = dtos.Where(x => x.AssigneeId.HasValue && x.AssigneeId.Value != Guid.Empty).Select(x => x.AssigneeId!.Value).Distinct().ToList();
         if (assigneeIds.Count > 0)
         {
-            // Bạn cũng nên truyền cancellationToken vào UserRepository để đồng bộ
             var users = await _userRepository.GetListAsync(x => assigneeIds.Contains(x.Id), cancellationToken: cancellationToken);
             var userDict = users.ToDictionary(u => u.Id);
             foreach (var dto in dtos)
@@ -1346,6 +1919,8 @@ public class TaskAppService : CrudAppService<
     protected override async Task<TaskDto> MapToGetOutputDtoAsync(TaskItem entity)
     {
         var dto = await base.MapToGetOutputDtoAsync(entity);
+        dto.Title = await GetLocalizedTitleAsync(entity.Title, entity.TitleEn);
+        dto.Description = await GetLocalizedDescriptionAsync(entity.Description, entity.DescriptionEn);
         dto.FileName = entity.FileName;
         dto.FileUrl = entity.FileUrl;
 
@@ -1420,6 +1995,15 @@ public class TaskAppService : CrudAppService<
     protected override async Task<List<TaskDto>> MapToGetListOutputDtosAsync(List<TaskItem> entities)
     {
         var dtos = await base.MapToGetListOutputDtosAsync(entities);
+        foreach (var dto in dtos)
+        {
+            var entity = entities.FirstOrDefault(e => e.Id == dto.Id);
+            if (entity != null)
+            {
+                dto.Title = await GetLocalizedTitleAsync(entity.Title, entity.TitleEn);
+                dto.Description = await GetLocalizedDescriptionAsync(entity.Description, entity.DescriptionEn);
+            }
+        }
         await EnrichTaskDtosAsync(dtos);
         return dtos;
     }
@@ -1554,14 +2138,34 @@ public class TaskAppService : CrudAppService<
 
     private async Task LogActivityAsync(Guid taskId, string action)
     {
+        string actionEn = action;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(action))
+            {
+                actionEn = await TranslateToEnglishOrDefaultAsync(action);
+            }
+        }
+        catch
+        {
+            actionEn = action;
+        }
+
         var log = new TaskActivityLog(GuidGenerator.Create())
         {
             TaskId = taskId,
-            Action = action
+            Action = action,
+            ActionEn = actionEn // Đảm bảo entity TaskActivityLog của bạn có thuộc tính ActionEn (hoặc TextEn tùy theo cách bạn đặt tên cột trong DB)
         };
-        await _activityLogRepository.InsertAsync(log, autoSave: true);
+        await _activityLogRepository.InsertAsync(log, autoSave: false);
     }
-
+    private void ApplyActivityLogLocalization(TaskActivityLogDto dto, string? actionEn)
+    {
+        if (IsCurrentCultureEnglish() && !string.IsNullOrWhiteSpace(actionEn))
+        {
+            dto.Action = actionEn;
+        }
+    }
     private async Task NotifyTaskStakeholdersAsync(TaskItem task, string message, Guid? excludeUserId = null)
     {
         var userIds = new HashSet<Guid>();
@@ -1607,7 +2211,7 @@ public class TaskAppService : CrudAppService<
                     task.Id.ToString()
                 );
 
-                await _notificationRepository.InsertAsync(notification, autoSave: true);
+                await _notificationRepository.InsertAsync(notification, autoSave: false);
 
                 await _distributedEventBus.PublishAsync(new TaskNotificationEto
                 {

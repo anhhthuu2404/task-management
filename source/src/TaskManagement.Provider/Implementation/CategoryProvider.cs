@@ -43,16 +43,18 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
         );
 
         var list = queryResult.ToList();
-
-        // Sửa lỗi ép kiểu TotalCount an toàn (từ long sang int)
         int totalCount = list.FirstOrDefault() != null ? (int)list.First().TotalCount : 0;
 
-        // Chỉ ánh xạ các thuộc tính cơ bản có sẵn trong CategoryDto
         var items = list.Select(x => new CategoryDto
         {
             Id = x.Id,
             Name = x.Name,
-            Description = x.Description
+            NameVi = x.NameVi,
+            NameEn = x.NameEn,
+            Description = x.Description,
+            DescriptionVi = x.DescriptionVi,
+            DescriptionEn = x.DescriptionEn,
+            ColorCode = x.ColorCode
         }).ToList();
 
         return (items, totalCount);
@@ -61,11 +63,25 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
     public async Task<CategoryDto?> GetByIdAsync(Guid id)
     {
         using var connection = CreateConnection();
-        return await connection.QueryFirstOrDefaultAsync<CategoryDto>(
+        var response = await connection.QueryFirstOrDefaultAsync<CategoryQueryResponse>(
             "sp_Categories_GetById",
             new { Id = id },
             commandType: CommandType.StoredProcedure
         );
+
+        if (response == null) return null;
+
+        return new CategoryDto
+        {
+            Id = response.Id,
+            Name = response.Name,
+            NameVi = response.NameVi,
+            NameEn = response.NameEn,
+            Description = response.Description,
+            DescriptionVi = response.DescriptionVi,
+            DescriptionEn = response.DescriptionEn,
+            ColorCode = response.ColorCode
+        };
     }
 
     public async Task InsertAsync(CategoryDto input)
@@ -77,7 +93,12 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
             {
                 input.Id,
                 input.Name,
+                input.NameVi,
+                input.NameEn,
                 input.Description,
+                input.DescriptionVi,
+                input.DescriptionEn,
+                input.ColorCode,
                 IsActive = true,
                 CreationTime = DateTime.Now,
                 CreatorId = (Guid?)null,
@@ -96,7 +117,12 @@ public class CategoryProvider : ICategoryProvider, ITransientDependency
             {
                 Id = id,
                 input.Name,
+                input.NameVi,
+                input.NameEn,
                 input.Description,
+                input.DescriptionVi,
+                input.DescriptionEn,
+                input.ColorCode,
                 IsActive = true,
                 LastModificationTime = DateTime.Now,
                 LastModifierId = (Guid?)null,

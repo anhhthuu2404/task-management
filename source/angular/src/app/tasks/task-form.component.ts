@@ -30,7 +30,7 @@ export class TaskFormComponent implements OnInit {
   isEditMode = false;
   isSubmitting = false;
   isLoading = false;
-
+  existingAttachments: any[] = [];
   categories: any[] = [];
   projects: any[] = [];
   departments: any[] = [];

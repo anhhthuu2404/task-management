@@ -25,6 +25,27 @@ export const appConfig: ApplicationConfig = {
     provideAbpCore(
       withOptions({
         environment,
+        // Sử dụng 'localizations' (dạng mảng) theo đúng chuẩn type của ABP v10
+        localizations: [
+          {
+            culture: 'vi',
+            resources: [
+              {
+                resourceName: 'App',
+                texts: {},
+              },
+            ],
+          },
+          {
+            culture: 'en',
+            resources: [
+              {
+                resourceName: 'App',
+                texts: {},
+              },
+            ],
+          },
+        ],
         registerLocaleFn: (locale: string) => {
           switch (locale) {
             case 'vi':

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { ListService, PagedResultDto, PermissionService, LocalizationModule } from '@abp/ng.core';
+import { ListService, PagedResultDto, PermissionService, LocalizationModule, LocalizationService } from '@abp/ng.core';
 
 import {
   NgxDatatableListDirective,
@@ -48,6 +48,7 @@ export class CategoryComponent implements OnInit {
   private readonly confirmation = inject(ConfirmationService);
   private readonly noti = inject(ToasterService);
   private readonly permissionService = inject(PermissionService);
+  private readonly localizationService = inject(LocalizationService);
   private readonly cdr = inject(ChangeDetectorRef);
   public readonly list = inject(ListService);
 
@@ -63,15 +64,15 @@ export class CategoryComponent implements OnInit {
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
 
   get canCreate(): boolean {
-    return true; // Luôn hiển thị nút Tạo mới
+    return true;
   }
 
   get canEdit(): boolean {
-    return true; // Luôn hiển thị nút Sửa
+    return true;
   }
 
   get canDelete(): boolean {
-    return true; // Luôn hiển thị nút Xóa
+    return true;
   }
 
   ngOnInit() {
@@ -114,7 +115,11 @@ export class CategoryComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi tải danh sách category:', err);
         this.category = { items: [], totalCount: 0 };
-        this.noti.error('Không thể tải danh sách danh mục', 'Lỗi');
+        const isEn = this.localizationService.currentLang?.startsWith('en');
+        this.noti.error(
+          isEn ? 'Could not load category list' : 'Không thể tải danh sách danh mục', 
+          isEn ? 'Error' : 'Lỗi'
+        );
         this.cdr.detectChanges();
       }
     });
@@ -154,7 +159,11 @@ export class CategoryComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.noti.error(err?.error?.error?.message || 'Không thể tải thông tin danh mục', 'Lỗi');
+        const isEn = this.localizationService.currentLang?.startsWith('en');
+        this.noti.error(
+          err?.error?.error?.message || (isEn ? 'Could not load category information' : 'Không thể tải thông tin danh mục'), 
+          isEn ? 'Error' : 'Lỗi'
+        );
       }
     });
   }
@@ -186,6 +195,8 @@ export class CategoryComponent implements OnInit {
       ? this.service.update(targetId, dto as any)
       : this.service.create(dto as any);
 
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     request
       .pipe(finalize(() => {
         this.isSaving = false;
@@ -195,19 +206,30 @@ export class CategoryComponent implements OnInit {
         next: () => {
           this.isModalOpen = false;
           this.list.get();
-          this.noti.success('Lưu thông tin danh mục thành công', 'Thông báo');
+          this.noti.success(
+            isEn ? 'Category saved successfully' : 'Lưu thông tin danh mục thành công', 
+            isEn ? 'Notification' : 'Thông báo'
+          );
         },
         error: (err) => {
-          this.noti.error(err?.error?.error?.message || 'Có lỗi xảy ra', 'Thất bại');
+          this.noti.error(
+            err?.error?.error?.message || (isEn ? 'An error occurred' : 'Có lỗi xảy ra'), 
+            isEn ? 'Failed' : 'Thất bại'
+          );
         }
       });
   }
 
   deleteCategory(id: string) {
     if (!this.canDelete) return;
+
+    const isEn = this.localizationService.currentLang?.startsWith('en');
     
     this.confirmation
-      .warn('Bạn có chắc chắn muốn xóa danh mục này?', 'Xác nhận xóa')
+      .warn(
+        isEn ? 'Are you sure you want to delete this category?' : 'Bạn có chắc chắn muốn xóa danh mục này?', 
+        isEn ? 'Delete confirmation' : 'Xác nhận xóa'
+      )
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
           this.loading = true;
@@ -219,11 +241,17 @@ export class CategoryComponent implements OnInit {
             .subscribe({
               next: () => {
                 this.list.get();
-                this.noti.success('Xóa danh mục thành công', 'Thông báo');
+                this.noti.success(
+                  isEn ? 'Category deleted successfully' : 'Xóa danh mục thành công', 
+                  isEn ? 'Notification' : 'Thông báo'
+                );
               },
               error: (err) => {
-                const errorMsg = err?.error?.error?.message || 'Không thể xóa danh mục này do đang được sử dụng hoặc có ràng buộc dữ liệu!';
-                this.noti.error(errorMsg, 'Thất bại');
+                const defaultMsg = isEn 
+                  ? 'Unable to delete this category as it is currently in use or has data constraints!' 
+                  : 'Không thể xóa danh mục này do đang được sử dụng hoặc có ràng buộc dữ liệu!';
+                const errorMsg = err?.error?.error?.message || defaultMsg;
+                this.noti.error(errorMsg, isEn ? 'Failed' : 'Thất bại');
               }
             });
         }

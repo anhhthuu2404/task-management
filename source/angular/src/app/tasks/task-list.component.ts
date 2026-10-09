@@ -2,8 +2,7 @@ import { Component, OnInit, OnDestroy, inject, NgZone, ChangeDetectorRef } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
-import { RestService, PermissionService } from '@abp/ng.core';
-import { ToasterService } from '@abp/ng.theme.shared';
+import { RestService, PermissionService, LocalizationService } from '@abp/ng.core';
 import { NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { DragDropModule, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
 import { NotificationService, NotificationItem } from 'src/app/shared/services/notification.service';
@@ -52,9 +51,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute); 
   private readonly notificationService = inject(NotificationService);
-  private readonly toaster = inject(ToasterService);
   private readonly zone = inject(NgZone);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly localization = inject(LocalizationService); // Thêm service đa ngôn ngữ của ABP
 
   private notificationSub?: Subscription;
   private previousNotificationCount = 0;
@@ -91,34 +90,36 @@ export class TaskListComponent implements OnInit, OnDestroy {
   kanbanOverdueTasks: TaskDto[] = [];
 
   kanbanColumns = [
-    { title: 'Mới', status: 0, headerClass: 'border-primary', data: this.kanbanNewTasks },
-    { title: 'Đang làm', status: 1, headerClass: 'border-info', data: this.kanbanInProgressTasks },
-    { title: 'Hoàn thành', status: 2, headerClass: 'border-success', data: this.kanbanCompletedTasks },
-    { title: 'Đã hủy', status: 3, headerClass: 'border-secondary', data: this.kanbanCancelledTasks },
-    { title: 'Quá hạn', status: 5, headerClass: 'border-danger', data: this.kanbanOverdueTasks }
-  ];
+  { status: 0, headerClass: 'border-primary', data: this.kanbanNewTasks },
+  { status: 1, headerClass: 'border-info', data: this.kanbanInProgressTasks },
+  { status: 2, headerClass: 'border-success', data: this.kanbanCompletedTasks },
+  { status: 3, headerClass: 'border-secondary', data: this.kanbanCancelledTasks },
+  { status: 5, headerClass: 'border-danger', data: this.kanbanOverdueTasks }
+];
 
   calendarDate: Date = new Date();
   calendarWeeks: any[][] = [];
   currentCalendarMonthName: string = '';
   currentCalendarYear: number = 0;
+
   resetFilters() {
-  this.filters = {
-    keyword: '',
-    filter: '',
-    categoryId: '',
-    assigneeId: '',
-    projectId: '',
-    departmentId: '',
-    priority: null,
-    status: null,
-    skipCount: 0,
-    maxResultCount: 10,
-    sorting: 'CreationTime DESC'
-  };
-  this.page = 1;
-  this.onSearch();
-}
+    this.filters = {
+      keyword: '',
+      filter: '',
+      categoryId: '',
+      assigneeId: '',
+      projectId: '',
+      departmentId: '',
+      priority: null,
+      status: null,
+      skipCount: 0,
+      maxResultCount: 10,
+      sorting: 'CreationTime DESC'
+    };
+    this.page = 1;
+    this.onSearch();
+  }
+  
 
   filters = {
     keyword: '',
@@ -147,7 +148,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
   readonly canEdit = this.permission.getGrantedPolicy('TaskManagement.Tasks.Edit');
   readonly canDelete = this.permission.getGrantedPolicy('TaskManagement.Tasks.Delete');
   
-
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       if (params['projectId']) {
@@ -171,7 +171,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
         if (currentItems.length > this.previousNotificationCount && this.previousNotificationCount !== 0) {
           const latest = currentItems[0];
           if (latest && latest.message) {
-            this.toaster.info(latest.message, 'Thông báo hệ thống mới');
+            const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
             this.fetchTasks();
           }
         }
@@ -204,6 +204,16 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  getFileNames(fileNameString: string): string[] {
+    if (!fileNameString) return [];
+    return fileNameString.split(';').map(f => f.trim()).filter(f => f.length > 0);
+  }
+
+  getFileUrls(fileUrlString: string): string[] {
+    if (!fileUrlString) return [];
+    return fileUrlString.split(';').map(u => u.trim()).filter(u => u.length > 0);
+  }
+
   markAsRead(item: any): void {
     if (!item) return;
     const targetId = item.id || item.key;
@@ -222,7 +232,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
     const messageLower = (item.message || '').toLowerCase();
     const isDeletedTaskMessage = messageLower.includes('đã bị xóa') || 
                                  messageLower.includes('đã xóa công việc') ||
-                                 messageLower.includes('không còn tồn tại');
+                                 messageLower.includes('không còn tồn tại') ||
+                                 messageLower.includes('deleted');
 
     if (isDeletedTaskMessage) {
       return; 
@@ -294,7 +305,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Hàm lấy danh sách user tối ưu bằng Cache, an toàn tuyệt đối với lỗi Infinite Loop
   getUsersForProject(projectId?: string): any[] {
     if (!projectId) return this.users; 
     
@@ -302,7 +312,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
       return this.projectUsersMap[projectId];
     }
 
-    // Gán tạm danh sách toàn cục hoặc mảng rỗng để tránh block UI trong lúc đợi API trả về
     this.projectUsersMap[projectId] = this.users.map((u: any) => ({
       id: u.id || u.Id,
       name: u.name || u.Name || '',
@@ -357,7 +366,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
     return this.projectUsersMap[projectId];
   }
 
-  // Tải trước danh sách thành viên cho các dự án xuất hiện trong danh sách task hiện tại
   preloadProjectMembers(): void {
     if (!this.taskList || this.taskList.length === 0) return;
     
@@ -377,9 +385,21 @@ export class TaskListComponent implements OnInit, OnDestroy {
   }
 
   getUserDisplayName(u: any): string {
-    if (!u) return 'Chưa rõ';
-    return u.name || u.userName || u.email || 'Chưa rõ';
+    const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
+    if (!u) return isEn ? 'Unknown' : 'Chưa rõ';
+    return u.name || u.userName || u.email || (isEn ? 'Unknown' : 'Chưa rõ');
   }
+  getKanbanColumnTitle(status: number): string {
+  const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
+  const titles: Record<number, { vi: string; en: string }> = {
+    0: { vi: 'Mới', en: 'New' },
+    1: { vi: 'Đang làm', en: 'In Progress' },
+    2: { vi: 'Hoàn thành', en: 'Completed' },
+    3: { vi: 'Đã hủy', en: 'Cancelled' },
+    5: { vi: 'Quá hạn', en: 'Overdue' }
+  };
+  return titles[status] ? (isEn ? titles[status].en : titles[status].vi) : '';
+}
 
   updateTaskAssigneeNamesForProject(projectId: string): void {
     const projectUsers = this.projectUsersMap[projectId] || [];
@@ -479,12 +499,14 @@ export class TaskListComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         const data = res as { items?: TaskDto[]; totalCount?: number };
         const rawItems = data?.items || [];
+        const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
+        const unassignedText = isEn ? 'Unassigned' : 'Chưa phân công';
         
         this.taskList = rawItems.map((task: any) => {
           const assigneeId = task.assigneeId || task.AssigneeId || task.assignedUserId || task.AssignedUserId;
           let assigneeName = task.assigneeName || task.AssigneeName || task.assigneeUserName || task.AssigneeUserName || task.userName || task.UserName;
 
-          if (assigneeId && (!assigneeName || assigneeName === 'Chưa phân công' || assigneeName.trim() === '')) {
+          if (assigneeId && (!assigneeName || assigneeName === 'Chưa phân công' || assigneeName === 'Unassigned' || assigneeName.trim() === '')) {
             const foundUser = this.users.find((u: any) => (u.id || u.Id) === assigneeId);
             if (foundUser) {
               assigneeName = foundUser.name || foundUser.userName || foundUser.displayName || foundUser.Name;
@@ -494,11 +516,10 @@ export class TaskListComponent implements OnInit, OnDestroy {
           return {
             ...task,
             assigneeId: assigneeId,
-            assigneeName: assigneeName && assigneeName.trim() !== '' ? assigneeName : 'Chưa phân công'
+            assigneeName: assigneeName && assigneeName.trim() !== '' ? assigneeName : unassignedText
           };
         });
 
-        // Chủ động tải trước danh sách user theo dự án một cách an toàn
         this.preloadProjectMembers();
 
         this.totalCount = data?.totalCount || 0;
@@ -595,7 +616,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
       this.fetchTasks();
     }, 500);
   }
-
+  
   getTasksByStatus(status: number): TaskDto[] {
     switch (status) {
       case 0: return this.kanbanNewTasks;
@@ -627,11 +648,10 @@ export class TaskListComponent implements OnInit, OnDestroy {
     const month = this.calendarDate.getMonth();
      
     this.currentCalendarYear = year;
-    const monthNames = [
-      'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 
-      'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 
-      'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
-    ];
+    const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
+    const monthNames = isEn 
+      ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      : ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
     this.currentCalendarMonthName = monthNames[month];
 
     const firstDayOfMonth = new Date(year, month, 1);
@@ -736,9 +756,10 @@ export class TaskListComponent implements OnInit, OnDestroy {
     const selectedUser = projectUsers.find(u => (u.id || u.Id) === assigneeId);
     const oldAssigneeId = task.assigneeId;
     const oldAssigneeName = task.assigneeName;
+    const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
 
     task.assigneeId = assigneeId || undefined;
-    task.assigneeName = selectedUser ? (selectedUser.name || selectedUser.userName || selectedUser.email) : 'Chưa phân công';
+    task.assigneeName = selectedUser ? (selectedUser.name || selectedUser.userName || selectedUser.email) : (isEn ? 'Unassigned' : 'Chưa phân công');
 
     const params: any = {};
     if (assigneeId) {
@@ -773,55 +794,59 @@ export class TaskListComponent implements OnInit, OnDestroy {
   }
 
   deleteTask(id: string): void {
-    if (!confirm('Bạn có chắc chắn muốn xóa công việc này?')) return;
+    const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
+    const confirmMsg = isEn ? 'Are you sure you want to delete this task?' : 'Bạn có chắc chắn muốn xóa công việc này?';
+    
+    if (!confirm(confirmMsg)) return;
 
     this.rest.request<any, void>({
       method: 'DELETE',
       url: `/api/app/task/${id}`
     }).subscribe({
       next: () => {
-        this.fetchTasks();
+        this.fetchTasks(); 
+        localStorage.setItem('trigger_project_refresh', Date.now().toString());
       }
     });
   }
 
-  getFileList(task: TaskDto): { name: string; url: string }[] {
-    if (task.attachments && task.attachments.length > 0) {
-      return task.attachments.map(a => ({
-        name: a.fileName || 'Tệp đính kèm',
-        url: a.fileUrl?.startsWith('http') ? a.fileUrl : `${this.backendUrl}${a.fileUrl}`
-      }));
-    }
+  getFileList(task: any): { name: string; url: string }[] {
+    if (!task) return [];
 
-    if (!task.fileUrl) return [];
+    const fileNameStr = task.fileName || task.FileName || '';
+    const fileUrlStr = task.fileUrl || task.FileUrl || '';
 
-    const urls = (task.fileUrl || '').split(';').filter(u => !!u);
-    const names = task.fileName ? task.fileName.split(';') : [];
+    if (!fileNameStr) return [];
 
-    return urls.map((url, i) => ({
-      name: names[i] || `File ${i + 1}`,
-      url: url.startsWith('http') ? url : `${this.backendUrl}${url}`
+    const names = String(fileNameStr).split(';').map(n => n.trim()).filter(n => n.length > 0);
+    const urls = String(fileUrlStr).split(';').map(u => u.trim()).filter(u => u.length > 0);
+
+    return names.map((name, index) => ({
+      name: name,
+      url: urls[index] || '#'
     }));
   }
 
   getPriorityBadge(priority: number): { text: string; cssClass: string } {
+    const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
     const maps: Record<number, { text: string; cssClass: string }> = {
-      0: { text: 'Thấp', cssClass: 'bg-secondary-subtle text-secondary border' },
-      1: { text: 'Trung bình', cssClass: 'bg-info-subtle text-info-emphasis border' },
-      2: { text: 'Cao', cssClass: 'bg-warning-subtle text-warning-emphasis border' },
-      3: { text: 'Khẩn cấp', cssClass: 'bg-danger-subtle text-danger border' }
+      0: { text: isEn ? 'Low' : 'Thấp', cssClass: 'bg-secondary-subtle text-secondary border' },
+      1: { text: isEn ? 'Medium' : 'Trung bình', cssClass: 'bg-info-subtle text-info-emphasis border' },
+      2: { text: isEn ? 'High' : 'Cao', cssClass: 'bg-warning-subtle text-warning-emphasis border' },
+      3: { text: isEn ? 'Urgent' : 'Khẩn cấp', cssClass: 'bg-danger-subtle text-danger border' }
     };
     return maps[priority] || { text: 'N/A', cssClass: 'bg-light text-dark' };
   }
 
   getStatusBadge(status: number): { text: string; cssClass: string } {
+    const isEn = this.localization.currentLang?.toLowerCase().startsWith('en');
     const maps: Record<number, { text: string; cssClass: string }> = {
-      0: { text: 'Mới', cssClass: 'bg-secondary-subtle text-secondary border' },
-      1: { text: 'Đang làm', cssClass: 'bg-primary-subtle text-primary border' },
-      2: { text: 'Hoàn thành', cssClass: 'bg-success-subtle text-success border' },
-      3: { text: 'Đã hủy', cssClass: 'bg-danger-subtle text-danger border' },
-      5: { text: 'Quá hạn', cssClass: 'bg-danger text-white border' }
+      0: { text: isEn ? 'New' : 'Mới', cssClass: 'bg-secondary-subtle text-secondary border' },
+      1: { text: isEn ? 'In Progress' : 'Đang làm', cssClass: 'bg-primary-subtle text-primary border' },
+      2: { text: isEn ? 'Completed' : 'Hoàn thành', cssClass: 'bg-success-subtle text-success border' },
+      3: { text: isEn ? 'Cancelled' : 'Đã hủy', cssClass: 'bg-danger-subtle text-danger border' },
+      5: { text: isEn ? 'Overdue' : 'Quá hạn', cssClass: 'bg-danger text-white border' }
     };
-    return maps[status] || { text: 'Không xác định', cssClass: 'bg-light text-dark' };
+    return maps[status] || { text: isEn ? 'Unknown' : 'Không xác định', cssClass: 'bg-light text-dark' };
   }
 }

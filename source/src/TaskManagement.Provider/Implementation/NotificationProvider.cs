@@ -43,20 +43,24 @@ namespace TaskManagement.Provider.Implementation
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            var parameters = new DynamicParameters();
-            parameters.Add("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id);
-            parameters.Add("@UserId", input.UserId);
-            parameters.Add("@Message", input.Message);
-            parameters.Add("@IsRead", input.IsRead);
-            parameters.Add("@CreationTime", input.CreationTime == default ? DateTime.Now : input.CreationTime);
-            parameters.Add("@CreatorId", input.CreatorId);
-            parameters.Add("@TaskId", input.TaskId);
+            // Sử dụng câu lệnh SQL trực tiếp thay vì gọi Store Procedure để loại bỏ triệt để việc lệch thứ tự cột tại SQL Server
+            var query = @"
+                INSERT INTO Notifications (Id, UserId, Message, MessageEn, IsRead, CreationTime, CreatorId, TaskId)
+                VALUES (@Id, @UserId, @Message, @MessageEn, @IsRead, @CreationTime, @CreatorId, @TaskId)";
 
-            await connection.ExecuteAsync(
-                "sp_Notification_Create",
-                parameters,
-                commandType: CommandType.StoredProcedure
-            );
+            var parameters = new
+            {
+                Id = input.Id == Guid.Empty ? Guid.NewGuid() : input.Id,
+                UserId = input.UserId,
+                Message = input.Message,
+                MessageEn = input.MessageEn,
+                IsRead = input.IsRead,
+                CreationTime = input.CreationTime == default ? DateTime.Now : input.CreationTime,
+                CreatorId = input.CreatorId,
+                TaskId = input.TaskId
+            };
+
+            await connection.ExecuteAsync(query, parameters);
         }
 
         public async Task MarkAsReadAsync(Guid id)
@@ -69,6 +73,36 @@ namespace TaskManagement.Provider.Implementation
 
             await connection.ExecuteAsync(
                 "sp_Notification_MarkAsRead",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task MarkAllAsReadByUserIdAsync(Guid userId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", userId);
+
+            await connection.ExecuteAsync(
+                "sp_Notification_MarkAllAsReadByUserId",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task MarkAsDeletedAsync(Guid id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", id);
+
+            await connection.ExecuteAsync(
+                "sp_Notification_Delete",
                 parameters,
                 commandType: CommandType.StoredProcedure
             );

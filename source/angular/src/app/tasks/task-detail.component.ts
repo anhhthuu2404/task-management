@@ -7,6 +7,7 @@ import { ConfigStateService } from '@abp/ng.core';
 import { of, Observable } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { CoreModule } from '@abp/ng.core';
+import { LocalizationService } from '@abp/ng.core';
 import { 
   TaskService, 
   TaskStatus, 
@@ -15,10 +16,11 @@ import {
   SubmitReportInput,
   CreateTaskCommentDto,
   CommentAttachmentDto,
+  
   TaskCommentDto
 } from './task.service';
 
-export interface LocalTaskDetailDto extends TaskDetailDto {
+export interface LocalTaskDetailDto extends Omit<TaskDetailDto, 'checklistItems' | 'subTasks'> {
   fileUrl?: string;
   fileName?: string;
   submissionFileName?: string;
@@ -33,8 +35,14 @@ export interface LocalTaskDetailDto extends TaskDetailDto {
   creatorId?: string;
   managerId?: string;
   
-  // Bổ sung thuộc tính lịch sử thay đổi an toàn
+  // Lịch sử và concurrencyStamp
   histories?: any[];
+  concurrencyStamp?: string;
+
+  // Kiểu dữ liệu linh hoạt cho SubTasks và ChecklistItems khớp cơ sở dữ liệu
+  subTasks?: any[];
+  checklistItems?: any[];
+  checklists?: any[];
 }
 
 @Component({
@@ -50,7 +58,7 @@ export interface LocalTaskDetailDto extends TaskDetailDto {
     .cursor-pointer { cursor: pointer; }
   `],
   standalone: true,
-  imports: [CommonModule,CoreModule, FormsModule, RouterModule]
+  imports: [CommonModule, CoreModule, FormsModule, RouterModule]
 })
 export class TaskDetailComponent implements OnInit {
   @ViewChild('submitFileInput') submitFileInput!: ElementRef<HTMLInputElement>;
@@ -62,20 +70,18 @@ export class TaskDetailComponent implements OnInit {
   isActionLoading: boolean = false;
   currentUserId: string | null = null;
 
-  // --- MỞ RỘNG: DANH SÁCH USER PHỤC VỤ ĐỔI NGƯỜI LỰC HIỆN (GÁN NHANH) ---
   usersList: { id: string; name?: string; userName?: string }[] = [];
 
-  // --- PHÂN QUYỀN VAI TRÒ ---
   get isAssignee(): boolean {
     if (!this.currentUserId || !this.taskDetail) return false;
     return this.taskDetail.assigneeId === this.currentUserId || 
            this.taskDetail.assignedToUserId === this.currentUserId;
   }
+  
 
- get isCreatorOrManager(): boolean {
+  get isCreatorOrManager(): boolean {
     if (!this.currentUserId || !this.taskDetail) return false;
     
-    // Kiểm tra xem user hiện tại có phải là admin không (dựa trên configState hoặc role)
     const currentUser = this.configState.getOne('currentUser') as { userName?: string; roles?: string[] };
     const isAdmin = currentUser?.userName === 'admin' || currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('Admin');
 
@@ -84,27 +90,20 @@ export class TaskDetailComponent implements OnInit {
            this.taskDetail.managerId === this.currentUserId;
   }
 
-  // Dropdown Trạng thái
   isStatusDropdownOpen: boolean = false;
-
-  // Tab State
   activeTab: 'comments' | 'subtask' | 'checklist' | 'timeline' = 'comments';
 
-  // Comment State
   comments: TaskCommentDto[] = [];
   newCommentText: string = '';
   commentSelectedFiles: File[] = [];
   isSubmittingComment: boolean = false;
 
-  // Comment Inline Editing State
   editingCommentId: string | null = null;
   editingCommentText: string = '';
 
-  // --- TIMELINE STATE ---
   timelineLogs: any[] = [];
   isLoadingTimeline: boolean = false;
 
-  // Modals State
   isSubmitModalOpen: boolean = false;
   isEditSubmissionMode: boolean = false;
   submissionNote: string = '';
@@ -113,21 +112,13 @@ export class TaskDetailComponent implements OnInit {
   isRejectModalOpen: boolean = false;
   rejectReason: string = '';
 
-  // --- CÔNG VIỆC PHỤ (SUBTASKS) ---
   isAddSubTaskOpen: boolean = false;
   newSubTaskTitle: string = '';
-  subTaskList: { title: string; completed: boolean }[] = [
-    { title: 'Khảo sát yêu cầu hệ thống', completed: true },
-    { title: 'Thiết kế cơ sở dữ liệu và API', completed: false }
-  ];
+  subTaskList: { id: string; title: string; isCompleted: boolean; completed: boolean }[] = [];
 
-  // --- CHECKLIST STATE ---
   isAddChecklistOpen: boolean = false;
   newChecklistTitle: string = '';
-  checklistItems: { id: string; title: string; completed: boolean }[] = [
-    { id: '1', title: 'Kiểm tra tính hợp lệ của dữ liệu đầu vào', completed: true },
-    { id: '2', title: 'Viết tài liệu hướng dẫn sử dụng', completed: true }
-  ];
+  checklistItems: { id: string; title: string; isCompleted: boolean; completed: boolean }[] = [];
 
   readonly TaskStatus = TaskStatus;
   readonly TaskPriority = TaskPriority;
@@ -139,6 +130,7 @@ export class TaskDetailComponent implements OnInit {
     private toaster: ToasterService,
     private cdr: ChangeDetectorRef,
     private location: Location,
+    private localizationService: LocalizationService,
     private configState: ConfigStateService
   ) {}
 
@@ -154,7 +146,7 @@ export class TaskDetailComponent implements OnInit {
       this.toaster.error('Không tìm thấy mã công việc!', 'Lỗi');
     }
   }
-
+ 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
@@ -163,7 +155,6 @@ export class TaskDetailComponent implements OnInit {
     }
   }
 
-  // --- XỬ LÝ CHUYỂN TAB ---
   switchTab(tab: 'comments' | 'subtask' | 'checklist' | 'timeline'): void {
     this.activeTab = tab;
     if (tab === 'timeline') {
@@ -171,18 +162,9 @@ export class TaskDetailComponent implements OnInit {
     }
   }
 
-  // --- TẢI LỊCH SỬ HOẠT ĐỘNG (TIMELINE / TASK HISTORY) ---
   loadTimelineLogs(): void {
     if (!this.taskId) return;
     this.isLoadingTimeline = true;
-
-    // Ưu tiên lấy từ mảng histories đã đổ sẵn trong taskDetail, nếu không có gọi API riêng
-    if (this.taskDetail?.histories && this.taskDetail.histories.length > 0) {
-      this.timelineLogs = this.taskDetail.histories;
-      this.isLoadingTimeline = false;
-      this.cdr.detectChanges();
-      return;
-    }
 
     if (typeof (this.taskService as any).getTaskTimeline === 'function') {
       (this.taskService as any).getTaskTimeline(this.taskId).subscribe({
@@ -198,13 +180,12 @@ export class TaskDetailComponent implements OnInit {
         }
       });
     } else {
+      this.timelineLogs = this.taskDetail?.histories || [];
       this.isLoadingTimeline = false;
-      this.timelineLogs = [];
       this.cdr.detectChanges();
     }
   }
 
-  // --- MỚI: HÀM GÁN/ĐỔI NGƯỜI THỰC HIỆN NÂNG CAO (ASSIGN / RE-ASSIGN) ---
   updateTaskAssignee(assigneeId: string | null): void {
     if (!this.taskId) return;
 
@@ -215,9 +196,13 @@ export class TaskDetailComponent implements OnInit {
         if (this.taskDetail && updatedTask) {
           this.taskDetail.assigneeId = updatedTask.assigneeId;
           this.taskDetail.assigneeName = updatedTask.assigneeName;
+          if (updatedTask.concurrencyStamp) {
+            this.taskDetail.concurrencyStamp = updatedTask.concurrencyStamp;
+          }
         }
         this.toaster.success('Đã cập nhật người thực hiện thành công.', 'Thông báo');
-        this.loadTaskDetail(true); // Tải lại ngầm để cập nhật thông tin và lịch sử mới nhất
+        this.loadTaskDetail(true);
+        this.loadTimelineLogs();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
         this.isActionLoading = false;
@@ -244,6 +229,7 @@ export class TaskDetailComponent implements OnInit {
         }
         this.toaster.success('Cập nhật trạng thái thành công.', 'Thông báo');
         this.loadTaskDetail(true);
+        this.loadTimelineLogs();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
         this.isActionLoading = false;
@@ -253,7 +239,6 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  // --- XÓA CÔNG VIỆC ---
   onDeleteTask(): void {
     if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn công việc này không?')) {
       return;
@@ -274,7 +259,6 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  // --- BÌNH LUẬN & ĐÍNH KÈM FILE ---
   onCommentFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -349,6 +333,7 @@ export class TaskDetailComponent implements OnInit {
             this.taskDetail.comments = [...this.comments];
           }
 
+          this.loadTimelineLogs();
           this.cdr.detectChanges();
         },
         error: (err: { error?: { error?: { message?: string } } }) => {
@@ -364,7 +349,6 @@ export class TaskDetailComponent implements OnInit {
     }
   }
 
-  // --- SỬA & XÓA BÌNH LUẬN ---
   startEditComment(comment: TaskCommentDto): void {
     this.editingCommentId = comment.id || null;
     this.editingCommentText = comment.text;
@@ -390,6 +374,7 @@ export class TaskDetailComponent implements OnInit {
         this.editingCommentId = null;
         this.editingCommentText = '';
         this.toaster.success('Đã cập nhật bình luận.', 'Thành công');
+        this.loadTimelineLogs();
         this.cdr.detectChanges();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
@@ -411,6 +396,7 @@ export class TaskDetailComponent implements OnInit {
         }
 
         this.toaster.success('Đã xóa bình luận.', 'Thông báo');
+        this.loadTimelineLogs();
         this.cdr.detectChanges();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
@@ -419,7 +405,6 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  // --- DUYỆT CÔNG VIỆC ---
   approveTask(): void {
     this.isActionLoading = true;
     this.taskService.approveTask(this.taskId).subscribe({
@@ -430,6 +415,7 @@ export class TaskDetailComponent implements OnInit {
         }
         this.toaster.success('Đã duyệt và hoàn thành công việc!', 'Thành công');
         this.loadTaskDetail(true);
+        this.loadTimelineLogs();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
         this.isActionLoading = false;
@@ -439,7 +425,6 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  // --- NỘP BÁO CÁO & XÓA SỬA NỘP BÀI ---
   openSubmitModal(isEdit: boolean = false): void {
     this.isEditSubmissionMode = isEdit;
     this.submissionNote = this.taskDetail?.submissionNote || this.taskDetail?.note || '';
@@ -492,6 +477,7 @@ export class TaskDetailComponent implements OnInit {
           this.closeSubmitModal();
           this.toaster.success('Đã cập nhật mục nộp bài duyệt!', 'Thành công');
           this.loadTaskDetail(true);
+          this.loadTimelineLogs();
         },
         error: (err: { error?: { error?: { message?: string } } }) => {
           this.isActionLoading = false;
@@ -512,6 +498,7 @@ export class TaskDetailComponent implements OnInit {
           this.closeSubmitModal();
           this.toaster.success('Đã nộp báo cáo và gửi duyệt thành công!', 'Thành công');
           this.loadTaskDetail(true);
+          this.loadTimelineLogs();
         },
         error: (err: { error?: { error?: { message?: string } } }) => {
           this.isActionLoading = false;
@@ -531,6 +518,7 @@ export class TaskDetailComponent implements OnInit {
         this.isActionLoading = false;
         this.toaster.success('Đã xóa lượt nộp báo cáo.', 'Thông báo');
         this.loadTaskDetail(true);
+        this.loadTimelineLogs();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
         this.isActionLoading = false;
@@ -540,7 +528,6 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  // --- TỪ CHỐI DUYỆT ---
   openRejectModal(): void {
     this.rejectReason = '';
     this.isRejectModalOpen = true;
@@ -560,6 +547,7 @@ export class TaskDetailComponent implements OnInit {
         this.closeRejectModal();
         this.toaster.warn('Đã từ chối duyệt công việc.', 'Thông báo');
         this.loadTaskDetail(true);
+        this.loadTimelineLogs();
       },
       error: (err: { error?: { error?: { message?: string } } }) => {
         this.isActionLoading = false;
@@ -569,7 +557,8 @@ export class TaskDetailComponent implements OnInit {
     });
   }
 
-  // --- CÔNG VIỆC PHỤ (SUBTASKS) ---
+  // ========================== CÔNG VIỆC CON (SUB-TASKS) ==========================
+
   openAddSubTaskModal(): void {
     this.isAddSubTaskOpen = true;
     this.newSubTaskTitle = '';
@@ -579,61 +568,226 @@ export class TaskDetailComponent implements OnInit {
   saveNewSubTask(): void {
     if (!this.newSubTaskTitle || !this.newSubTaskTitle.trim()) return;
     
-    this.subTaskList.push({
-      title: this.newSubTaskTitle.trim(),
-      completed: false
+    const title = this.newSubTaskTitle.trim();
+    this.isActionLoading = true;
+
+    const subTaskService: any = this.taskService;
+    const createSubTask$ = typeof subTaskService.createSubTask === 'function'
+      ? subTaskService.createSubTask(this.taskId, { title })
+      : (typeof subTaskService.addSubTask === 'function' 
+          ? subTaskService.addSubTask(this.taskId, { title }) 
+          : of(null));
+
+    createSubTask$.subscribe({
+      next: () => {
+        this.isActionLoading = false;
+        this.newSubTaskTitle = '';
+        this.isAddSubTaskOpen = false;
+        this.toaster.success('Đã thêm công việc con thành công.', 'Thông báo');
+        this.loadTaskDetail(true);
+        this.loadTimelineLogs();
+      },
+      error: (err: { error?: { error?: { message?: string } } }) => {
+        this.isActionLoading = false;
+        this.toaster.error(err.error?.error?.message || 'Lỗi khi thêm công việc con.', 'Lỗi');
+        this.cdr.detectChanges();
+      }
     });
+  }
+
+  toggleSubTaskItem(item: { id: string; title: string; isCompleted: boolean; completed: boolean }): void {
+    item.completed = !item.completed;
+    item.isCompleted = item.completed;
     
-    this.newSubTaskTitle = '';
-    this.isAddSubTaskOpen = false;
+    const subTaskService: any = this.taskService;
+    if (item.id && typeof subTaskService.toggleSubTaskStatus === 'function') {
+      subTaskService.toggleSubTaskStatus(item.id).subscribe({
+        next: () => {
+          this.loadTimelineLogs();
+        },
+        error: (err: any) => {
+          this.toaster.error(err.error?.error?.message || 'Lỗi cập nhật trạng thái công việc con.', 'Lỗi');
+          item.completed = !item.completed;
+          item.isCompleted = item.completed;
+          this.cdr.detectChanges();
+        }
+      });
+    } else if (item.id && typeof subTaskService.updateSubTask === 'function') {
+      subTaskService.updateSubTask(item.id, { title: item.title, isCompleted: item.completed }).subscribe({
+        next: () => {
+          this.loadTimelineLogs();
+        },
+        error: (err: any) => {
+          this.toaster.error(err.error?.error?.message || 'Lỗi cập nhật trạng thái công việc con.', 'Lỗi');
+          item.completed = !item.completed;
+          item.isCompleted = item.completed;
+          this.cdr.detectChanges();
+        }
+      });
+    }
     this.cdr.detectChanges();
   }
 
-  deleteSubTask(index: number): void {
-    this.subTaskList.splice(index, 1);
-    this.cdr.detectChanges();
+  deleteSubTask(index: number, subTaskId?: string): void {
+    if (!subTaskId) {
+      this.toaster.error('Không tìm thấy mã định danh (ID) của công việc con!', 'Lỗi');
+      return;
+    }
+    if (!confirm('Bạn có chắc chắn muốn xóa công việc con này không?')) return;
+
+    const subTaskService: any = this.taskService;
+    if (typeof subTaskService.deleteSubTask === 'function') {
+      this.isActionLoading = true;
+      subTaskService.deleteSubTask(subTaskId).subscribe({
+        next: () => {
+          this.isActionLoading = false;
+          this.toaster.success('Đã xóa công việc con.', 'Thông báo');
+          this.loadTaskDetail(true);
+          this.loadTimelineLogs();
+        },
+        error: (err: any) => {
+          this.isActionLoading = false;
+          this.toaster.error(err.error?.error?.message || 'Lỗi khi xóa công việc con.', 'Lỗi');
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      this.toaster.error('Hệ thống chưa hỗ trợ phương thức xóa công việc con.', 'Lỗi');
+    }
   }
 
-  // --- CHECKLIST ---
+  // ========================== MỤC KIỂM TRA (CHECKLIST) ==========================
+
   addChecklistItem(): void {
     if (!this.newChecklistTitle || !this.newChecklistTitle.trim()) return;
 
-    this.checklistItems.push({
-      id: new Date().getTime().toString(),
-      title: this.newChecklistTitle.trim(),
-      completed: false
+    const title = this.newChecklistTitle.trim();
+    this.isActionLoading = true;
+
+    const taskSvc: any = this.taskService;
+    const createChecklist$ = typeof taskSvc.createChecklistItem === 'function'
+      ? taskSvc.createChecklistItem(this.taskId, { title })
+      : (typeof taskSvc.addChecklist === 'function' 
+          ? taskSvc.addChecklist(this.taskId, { title }) 
+          : of(null));
+
+    createChecklist$.subscribe({
+      next: () => {
+        this.isActionLoading = false;
+        this.newChecklistTitle = '';
+        this.toaster.success('Đã thêm mục kiểm tra thành công.', 'Thông báo');
+        this.loadTaskDetail(true);
+        this.loadTimelineLogs();
+      },
+      error: (err: { error?: { error?: { message?: string } } }) => {
+        this.isActionLoading = false;
+        this.toaster.error(err.error?.error?.message || 'Lỗi khi thêm mục kiểm tra.', 'Lỗi');
+        this.cdr.detectChanges();
+      }
     });
-
-    this.newChecklistTitle = '';
-    this.cdr.detectChanges();
   }
 
-  toggleChecklistItem(item: { id: string; title: string; completed: boolean }): void {
+  toggleChecklistItem(item: { id: string; title: string; isCompleted: boolean; completed: boolean }): void {
     item.completed = !item.completed;
+    item.isCompleted = item.completed;
+
+    const taskSvc: any = this.taskService;
+    if (item.id && typeof taskSvc.toggleChecklistItemStatus === 'function') {
+      taskSvc.toggleChecklistItemStatus(item.id).subscribe({
+        next: () => {
+          this.loadTimelineLogs();
+        },
+        error: (err: any) => {
+          this.toaster.error(err.error?.error?.message || 'Lỗi cập nhật mục kiểm tra.', 'Lỗi');
+          item.completed = !item.completed;
+          item.isCompleted = item.completed;
+          this.cdr.detectChanges();
+        }
+      });
+    } else if (item.id && typeof taskSvc.updateChecklistItem === 'function') {
+      taskSvc.updateChecklistItem(item.id, { title: item.title, isCompleted: item.completed }).subscribe({
+        next: () => {
+          this.loadTimelineLogs();
+        },
+        error: (err: any) => {
+          this.toaster.error(err.error?.error?.message || 'Lỗi cập nhật mục kiểm tra.', 'Lỗi');
+          item.completed = !item.completed;
+          item.isCompleted = item.completed;
+          this.cdr.detectChanges();
+        }
+      });
+    }
     this.cdr.detectChanges();
   }
 
-  deleteChecklistItem(index: number): void {
-    this.checklistItems.splice(index, 1);
-    this.cdr.detectChanges();
+  deleteChecklistItem(index: number, checklistId?: string): void {
+    if (!checklistId) {
+      this.toaster.error('Không tìm thấy mã định danh (ID) của mục kiểm tra!', 'Lỗi');
+      return;
+    }
+    if (!confirm('Bạn có chắc chắn muốn xóa mục kiểm tra này không?')) return;
+
+    const taskSvc: any = this.taskService;
+    if (typeof taskSvc.deleteChecklistItem === 'function') {
+      this.isActionLoading = true;
+      taskSvc.deleteChecklistItem(checklistId).subscribe({
+        next: () => {
+          this.isActionLoading = false;
+          this.toaster.success('Đã xóa mục kiểm tra.', 'Thông báo');
+          this.loadTaskDetail(true);
+          this.loadTimelineLogs();
+        },
+        error: (err: any) => {
+          this.isActionLoading = false;
+          this.toaster.error(err.error?.error?.message || 'Lỗi khi xóa mục kiểm tra.', 'Lỗi');
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      this.toaster.error('Hệ thống chưa hỗ trợ phương thức xóa mục kiểm tra.', 'Lỗi');
+    }
   }
 
   goBack(): void {
-   this.router.navigate(['/tasks/list']);
+    this.router.navigate(['/tasks/list']);
   }
 
   loadTaskDetail(isSilent: boolean = false): void {
     if (!isSilent) this.isLoading = true;
     this.taskService.getTaskDetail(this.taskId).subscribe({
-      next: (data: TaskDetailDto & { comments?: TaskCommentDto[]; taskComments?: TaskCommentDto[]; histories?: any[] }) => {
+      next: (data: LocalTaskDetailDto & { comments?: TaskCommentDto[]; taskComments?: TaskCommentDto[]; histories?: any[]; concurrencyStamp?: string }) => {
         this.taskDetail = data as LocalTaskDetailDto;
         
         const loadedComments = data.comments || data.taskComments || [];
         this.comments = loadedComments;
         
+        if (data.subTasks && data.subTasks.length > 0) {
+          this.subTaskList = data.subTasks.map((x: any) => ({
+            id: x.id || '',
+            title: x.title,
+            isCompleted: x.isCompleted ?? x.completed ?? false,
+            completed: x.isCompleted ?? x.completed ?? false
+          }));
+        } else {
+          this.subTaskList = [];
+        }
+
+        const rawChecklists = (data as any).checklistItems || data.checklists || [];
+        if (rawChecklists && rawChecklists.length > 0) {
+          this.checklistItems = rawChecklists.map((x: any) => ({
+            id: x.id || '',
+            title: x.title,
+            isCompleted: x.isDone ?? x.isCompleted ?? x.completed ?? false,
+            completed: x.isDone ?? x.isCompleted ?? x.completed ?? false
+          }));
+        } else {
+          this.checklistItems = [];
+        }
+
         if (this.taskDetail) {
           this.taskDetail.comments = [...this.comments];
           this.taskDetail.histories = data.histories || [];
+          this.taskDetail.concurrencyStamp = data.concurrencyStamp;
         }
 
         this.isLoading = false;
@@ -659,12 +813,38 @@ export class TaskDetailComponent implements OnInit {
 
   getStatusText(status: TaskStatus | number): string {
     const st = Number(status);
-    if (st === TaskStatus.New) return 'Mới';
-    if (st === TaskStatus.InProgress) return 'Đang làm';
-    if (st === TaskStatus.InReview) return 'Chờ duyệt';
-    if (st === TaskStatus.Completed) return 'Hoàn thành';
-    if (st === TaskStatus.Cancelled) return 'Đã hủy';
-    return String(status || 'N/A');
+    
+    // Nếu bạn muốn dùng Localization Service với key chuẩn của ABP:
+    let key = '';
+    switch (st) {
+      case TaskStatus.New: key = 'Enum:TaskStatus.0'; break;
+      case TaskStatus.InProgress: key = 'Enum:TaskStatus.1'; break;
+      case TaskStatus.Completed: key = 'Enum:TaskStatus.2'; break;
+      case TaskStatus.Cancelled: key = 'Enum:TaskStatus.3'; break;
+      default: return String(status || 'N/A');
+    }
+    
+    const translated = this.localizationService.instant(key);
+    if (translated.startsWith('Enum:')) {
+      const currentLang = this.localizationService.currentLang;
+      if (currentLang === 'vi') {
+        switch (st) {
+          case TaskStatus.New: return 'Mới';
+          case TaskStatus.InProgress: return 'Đang thực hiện';
+          case TaskStatus.Completed: return 'Hoàn thành';
+          case TaskStatus.Cancelled: return 'Đã hủy';
+        }
+      } else {
+        switch (st) {
+          case TaskStatus.New: return 'New';
+          case TaskStatus.InProgress: return 'In Progress';
+          case TaskStatus.Completed: return 'Completed';
+          case TaskStatus.Cancelled: return 'Cancelled';
+        }
+      }
+    }
+    
+    return translated;
   }
 
   downloadFile(file: { fileUrl?: string; url?: string; fileName?: string; name?: string }): void {

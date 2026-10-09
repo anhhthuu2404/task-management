@@ -8,6 +8,8 @@ namespace TaskManagement.Tags;
 
 public class Tag : FullAuditedAggregateRoot<Guid>
 {
+    public string NameVi { get; set; }
+    public string NameEn { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? ColorCode { get; set; }
     public bool IsActive { get; set; } = true;

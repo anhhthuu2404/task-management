@@ -8,6 +8,8 @@ public class DepartmentDto : FullAuditedEntityDto<Guid>
 {
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string NameVi { get; set; } = string.Empty; // Tiếng Việt
+    public string NameEn { get; set; } = string.Empty;
     public string? Description { get; set; }
     public Guid? ParentId { get; set; }
     public bool IsActive { get; set; }

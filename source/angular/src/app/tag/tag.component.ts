@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, inject, ViewEncapsulation, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { CoreModule, ListService, PagedResultDto, PermissionService } from '@abp/ng.core';
+import { CoreModule, ListService, PagedResultDto, PermissionService, LocalizationService } from '@abp/ng.core';
 import {
   ConfirmationService,
   Confirmation,
@@ -50,6 +50,8 @@ export class TagComponent implements OnInit {
   private readonly confirmation = inject(ConfirmationService);
   private readonly noti = inject(ToasterService);
   private readonly permissionService = inject(PermissionService);
+  private readonly localizationService = inject(LocalizationService);
+  private readonly cdr = inject(ChangeDetectorRef);
   public readonly list = inject(ListService);
 
   items: PagedResultDto<TagDto> = { items: [], totalCount: 0 };
@@ -64,8 +66,6 @@ export class TagComponent implements OnInit {
 
   modalOptions: NgbModalOptions = { size: 'md', centered: true };
 
-  // Cho phép luôn trả về true để tránh bị kẹt phân quyền trong quá trình chạy thử, 
-  // bạn có thể khôi phục lại permissionService nếu hệ thống policy đã cấu hình chuẩn.
   get canCreate(): boolean {
     return true; 
   }
@@ -107,16 +107,21 @@ export class TagComponent implements OnInit {
         filter: searchVal?.keyword || '',
         categoryId: searchVal?.categoryId || null
       } as any).pipe(
-        finalize(() => (this.loading = false))
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        })
       );
     };
 
     this.list.hookToQuery(streamCreator).subscribe({
       next: (res) => {
         this.items = res || { items: [], totalCount: 0 };
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải danh sách thẻ:', err);
+        this.cdr.detectChanges();
       }
     });
   }
@@ -164,15 +169,23 @@ export class TagComponent implements OnInit {
     if (!this.canEdit) return;
     this.loading = true;
     this.service.get(id).pipe(
-      finalize(() => this.loading = false)
+      finalize(() => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      })
     ).subscribe({
       next: (item) => {
         this.selected = item;
         this.buildForm();
         this.isModalOpen = true;
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        this.noti.error(err?.error?.error?.message || 'Không thể tải thông tin thẻ', 'Lỗi');
+        const isEn = this.localizationService.currentLang?.startsWith('en');
+        this.noti.error(
+          err?.error?.error?.message || (isEn ? 'Could not load tag information' : 'Không thể tải thông tin thẻ'), 
+          isEn ? 'Error' : 'Lỗi'
+        );
       }
     });
   }
@@ -184,6 +197,18 @@ export class TagComponent implements OnInit {
       name: [this.selected.name || '', [Validators.required, Validators.maxLength(64)]],
       colorCode: [(this.selected as any).colorCode || '#0d6efd'],
       categoryId: [rawCatId ? String(rawCatId) : null],
+    });
+  }
+
+  getTagsByCategory(catId: string | null) {
+    if (!this.items || !this.items.items) return [];
+    
+    return this.items.items.filter(x => {
+      const rowCatId = (x as any).categoryId || (x as any).CategoryId;
+      if (catId === null) {
+        return rowCatId === null || rowCatId === undefined || rowCatId === '';
+      }
+      return String(rowCatId).toLowerCase() === String(catId).toLowerCase();
     });
   }
 
@@ -206,16 +231,29 @@ export class TagComponent implements OnInit {
       ? this.service.update(targetId, dto as any)
       : this.service.create(dto as any);
 
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     request
-      .pipe(finalize(() => (this.isSaving = false)))
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+          this.cdr.detectChanges();
+        })
+      )
       .subscribe({
         next: () => {
           this.isModalOpen = false;
           this.list.get();
-          this.noti.success('Lưu thông tin thẻ thành công', 'Thông báo');
+          this.noti.success(
+            isEn ? 'Tag saved successfully' : 'Lưu thông tin thẻ thành công', 
+            isEn ? 'Notification' : 'Thông báo'
+          );
         },
         error: (err) => {
-          this.noti.error(err?.error?.error?.message || 'Có lỗi xảy ra', 'Thất bại');
+          this.noti.error(
+            err?.error?.error?.message || (isEn ? 'An error occurred' : 'Có lỗi xảy ra'), 
+            isEn ? 'Failed' : 'Thất bại'
+          );
         }
       });
   }
@@ -223,21 +261,37 @@ export class TagComponent implements OnInit {
   delete(id: string) {
     if (!this.canDelete) return;
 
+    const isEn = this.localizationService.currentLang?.startsWith('en');
+
     this.confirmation
-      .warn('Bạn có chắc chắn muốn xóa thẻ này?', 'Xác nhận xóa')
+      .warn(
+        isEn ? 'Are you sure you want to delete this tag?' : 'Bạn có chắc chắn muốn xóa thẻ này?', 
+        isEn ? 'Delete confirmation' : 'Xác nhận xóa'
+      )
       .subscribe(status => {
         if (status === Confirmation.Status.confirm) {
           this.loading = true;
           this.service.delete(id)
-            .pipe(finalize(() => (this.loading = false)))
+            .pipe(
+              finalize(() => {
+                this.loading = false;
+                this.cdr.detectChanges();
+              })
+            )
             .subscribe({
               next: () => {
                 this.list.get();
-                this.noti.success('Xóa thẻ thành công', 'Thông báo');
+                this.noti.success(
+                  isEn ? 'Tag deleted successfully' : 'Xóa thẻ thành công', 
+                  isEn ? 'Notification' : 'Thông báo'
+                );
               },
               error: (err) => {
-                const errorMsg = err?.error?.error?.message || 'Không thể xóa thẻ này do đang được sử dụng hoặc có ràng buộc dữ liệu!';
-                this.noti.error(errorMsg, 'Thất bại');
+                const defaultMsg = isEn 
+                  ? 'Unable to delete this tag as it is currently in use or has data constraints!' 
+                  : 'Không thể xóa thẻ này do đang được sử dụng hoặc có ràng buộc dữ liệu!';
+                const errorMsg = err?.error?.error?.message || defaultMsg;
+                this.noti.error(errorMsg, isEn ? 'Failed' : 'Thất bại');
               }
             });
         }

@@ -71,7 +71,9 @@ namespace TaskManagement.Provider.Implementation
             var parameters = new DynamicParameters();
             parameters.Add("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id);
             parameters.Add("@Name", input.Name);
+            parameters.Add("@NameEn", input.NameEn);                   // <--- Đã bổ sung
             parameters.Add("@Description", input.Description);
+            parameters.Add("@DescriptionEn", input.DescriptionEn);     // <--- Đã bổ sung
             parameters.Add("@StartDate", input.StartDate);
             parameters.Add("@EndDate", input.EndDate);
             parameters.Add("@Status", input.Status);
@@ -93,7 +95,9 @@ namespace TaskManagement.Provider.Implementation
             var parameters = new DynamicParameters();
             parameters.Add("@Id", input.Id);
             parameters.Add("@Name", input.Name);
+            parameters.Add("@NameEn", input.NameEn);                   // <--- Đã bổ sung
             parameters.Add("@Description", input.Description);
+            parameters.Add("@DescriptionEn", input.DescriptionEn);     // <--- Đã bổ sung
             parameters.Add("@StartDate", input.StartDate);
             parameters.Add("@EndDate", input.EndDate);
             parameters.Add("@Status", input.Status);
@@ -165,7 +169,9 @@ namespace TaskManagement.Provider.Implementation
             parameters.Add("@Id", input.Id == Guid.Empty ? Guid.NewGuid() : input.Id);
             parameters.Add("@ProjectId", input.ProjectId);
             parameters.Add("@Title", input.Title);
+            parameters.Add("@TitleEn", input.TitleEn);                 // <--- Đã bổ sung
             parameters.Add("@Description", input.Description);
+            parameters.Add("@DescriptionEn", input.DescriptionEn);     // <--- Đã bổ sung
             parameters.Add("@DueDate", input.DueDate);
             parameters.Add("@Status", input.Status);
             parameters.Add("@CreatorId", input.CreatorId);
@@ -186,7 +192,9 @@ namespace TaskManagement.Provider.Implementation
             var parameters = new DynamicParameters();
             parameters.Add("@Id", input.Id);
             parameters.Add("@Title", input.Title);
+            parameters.Add("@TitleEn", input.TitleEn);                 // <--- Đã bổ sung
             parameters.Add("@Description", input.Description);
+            parameters.Add("@DescriptionEn", input.DescriptionEn);     // <--- Đã bổ sung
             parameters.Add("@DueDate", input.DueDate);
             parameters.Add("@Status", input.Status);
             parameters.Add("@LastModifierId", input.LastModifierId);

@@ -40,20 +40,26 @@ namespace TaskManagement.Users
         [Route("api/custom-user/change-password")]
         public async Task ChangePasswordAsync(Guid userId, string newPassword)
         {
-            // Kiểm tra quyền quản trị hoặc quyền cập nhật user thông thường
+            // 1. Kiểm tra xem user hiện tại có quyền Admin (cập nhật user khác) hay không
             bool isAdmin = await AuthorizationService.IsGrantedAsync("AbpIdentity.Users.Update");
 
-            if (!isAdmin)
+            // 2. Lấy ID của user đang đăng nhập
+            Guid? currentUserId = CurrentUser.Id;
+
+            // 3. Phân quyền: Chỉ cho phép thực hiện nếu LÀ ADMIN hoặc LÀ CHÍNH CHỦ (đổi mật khẩu của chính mình)
+            if (!isAdmin && currentUserId != userId)
             {
-                throw new Volo.Abp.UserFriendlyException("Bạn không có quyền thực hiện thao tác này!");
+                throw new Volo.Abp.UserFriendlyException("Bạn chỉ có quyền thay đổi mật khẩu cho tài khoản của chính mình!");
             }
 
-            var user = await _userManager.GetByIdAsync(userId);
+            // 4. Tìm kiếm user trong hệ thống Identity
+            var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
                 throw new Volo.Abp.UserFriendlyException("Không tìm thấy người dùng!");
             }
 
+            // 5. Tiến hành tạo token và đổi mật khẩu an toàn theo chuẩn ABP/Identity
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
 

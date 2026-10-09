@@ -41,10 +41,9 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
         }
     }
 
-    public async Task<PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input)
+    public async Task<PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListDto input, string culture = "vi")
     {
         var (dbContext, connection) = await GetConnectionAndContextAsync();
-
         var list = new List<DepartmentDto>();
         long totalCount = 0;
 
@@ -58,6 +57,7 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
             command.Parameters.Add(new SqlParameter("@IsActive", (object?)input.IsActive ?? DBNull.Value));
             command.Parameters.Add(new SqlParameter("@SkipCount", input.SkipCount));
             command.Parameters.Add(new SqlParameter("@MaxResultCount", input.MaxResultCount));
+            command.Parameters.Add(new SqlParameter("@Culture", culture));
 
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -83,17 +83,18 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
         return new PagedResultDto<DepartmentDto>(totalCount, list);
     }
 
-    public async Task<DepartmentDto> GetByIdAsync(Guid id)
+    public async Task<DepartmentDto> GetByIdAsync(Guid id, string culture = "vi")
     {
         var (dbContext, connection) = await GetConnectionAndContextAsync();
-
         DepartmentDto? dto = null;
+
         await using (var command = connection.CreateCommand())
         {
             AssignTransaction(command, dbContext);
             command.CommandText = "Sp_Department_GetById";
             command.CommandType = CommandType.StoredProcedure;
             command.Parameters.Add(new SqlParameter("@Id", id));
+            command.Parameters.Add(new SqlParameter("@Culture", culture));
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -105,7 +106,8 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
                     Name = reader.GetString(reader.GetOrdinal("Name")),
                     Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString(reader.GetOrdinal("Description")),
                     ParentId = reader.IsDBNull(reader.GetOrdinal("ParentId")) ? null : reader.GetGuid(reader.GetOrdinal("ParentId")),
-                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive"))
+                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                    CreationTime = reader.GetDateTime(reader.GetOrdinal("CreationTime"))
                 };
             }
         }
@@ -123,7 +125,8 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
         command.Parameters.Add(new SqlParameter("@Id", id));
         command.Parameters.Add(new SqlParameter("@Code", input.Code));
-        command.Parameters.Add(new SqlParameter("@Name", input.Name));
+        command.Parameters.Add(new SqlParameter("@NameVi", (object?)input.NameVi ?? DBNull.Value));
+        command.Parameters.Add(new SqlParameter("@NameEn", (object?)input.NameEn ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@Description", (object?)input.Description ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@ParentId", (object?)input.ParentId ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@IsActive", input.IsActive));
@@ -146,7 +149,8 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
 
         command.Parameters.Add(new SqlParameter("@Id", id));
         command.Parameters.Add(new SqlParameter("@Code", input.Code));
-        command.Parameters.Add(new SqlParameter("@Name", input.Name));
+        command.Parameters.Add(new SqlParameter("@NameVi", (object?)input.NameVi ?? DBNull.Value));
+        command.Parameters.Add(new SqlParameter("@NameEn", (object?)input.NameEn ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@Description", (object?)input.Description ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@ParentId", (object?)input.ParentId ?? DBNull.Value));
         command.Parameters.Add(new SqlParameter("@IsActive", input.IsActive));
@@ -170,7 +174,7 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<List<DepartmentTreeDto>> GetTreeAsync()
+    public async Task<List<DepartmentTreeDto>> GetTreeAsync(string culture = "vi")
     {
         var list = new List<DepartmentTreeDto>();
         var (dbContext, connection) = await GetConnectionAndContextAsync();
@@ -182,6 +186,7 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
             command.CommandType = CommandType.StoredProcedure;
             command.Parameters.Add(new SqlParameter("@SkipCount", 0));
             command.Parameters.Add(new SqlParameter("@MaxResultCount", 1000));
+            command.Parameters.Add(new SqlParameter("@Culture", culture));
 
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -215,8 +220,8 @@ public class DepartmentProvider : IDepartmentProvider, ITransientDependency
     public async Task<List<DepartmentMemberDto>> GetUsersByDepartmentIdAsync(Guid departmentId)
     {
         var (dbContext, connection) = await GetConnectionAndContextAsync();
-
         var members = new List<DepartmentMemberDto>();
+
         await using (var command = connection.CreateCommand())
         {
             AssignTransaction(command, dbContext);

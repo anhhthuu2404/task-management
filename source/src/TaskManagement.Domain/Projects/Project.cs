@@ -19,6 +19,7 @@ namespace TaskManagement.Projects
         public string Status { get; set; } = "Active";
         public Guid? AssigneeUserId { get; set; }
 
+
         public virtual ICollection<ProjectMilestone> Milestones { get; set; } = [];
         public virtual ICollection<ProjectMember> Members { get; set; } = [];
     }
